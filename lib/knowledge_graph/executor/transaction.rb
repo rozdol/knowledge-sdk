@@ -69,6 +69,22 @@ module KnowledgeGraph
       (@writes.keys + @deletes.keys).uniq.sort.freeze
     end
 
+    def materialize_to(destination_root)
+      ensure_open!
+      root = Pathname.new(destination_root)
+      @writes.each do |relative, content|
+        destination = root.join(relative)
+        FileUtils.mkdir_p(destination.dirname)
+        destination.delete if destination.file?
+        destination.binwrite(content)
+      end
+      @deletes.each_key do |relative|
+        destination = root.join(relative)
+        destination.delete if destination.file?
+      end
+      destination_root
+    end
+
     def commit
       ensure_open!
       verified = false

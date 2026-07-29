@@ -9,6 +9,13 @@ require_relative "knowledge_graph/hooks/hook_bus"
 require_relative "knowledge_graph/executor/dispatcher"
 require_relative "knowledge_graph/executor/transaction"
 require_relative "knowledge_graph/executor/executor"
+require_relative "knowledge_graph/storage/markdown_document"
+require_relative "knowledge_graph/storage/yaml_writer"
+require_relative "knowledge_graph/storage/schema_registry"
+require_relative "knowledge_graph/storage/repository"
+require_relative "knowledge_graph/storage/id_generator"
+require_relative "knowledge_graph/validation/external_validator"
+require_relative "knowledge_graph/entities/entity_manager"
 require_relative "knowledge_graph/engine"
 
 module KnowledgeGraph

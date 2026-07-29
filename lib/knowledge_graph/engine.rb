@@ -4,12 +4,17 @@ require "pathname"
 
 module KnowledgeGraph
   class Engine
-    attr_reader :vault_root, :hooks
+    attr_reader :vault_root, :hooks, :run_id
 
-    def initialize(vault_root:, handlers: {}, validator: nil, transaction_factory: nil)
+    def initialize(vault_root:, handlers: {}, validator: nil, transaction_factory: nil,
+                   run_id: nil, clock: nil, id_generator: nil, builtin_handlers: true)
       @vault_root = Pathname.new(vault_root).expand_path.freeze
+      @run_id = (run_id || IdGenerator.new.generate("run")).freeze
+      clock ||= -> { Time.now }
+      id_generator ||= IdGenerator.new(clock: clock)
       @dispatcher = Dispatcher.new
       @hooks = HookBus.new
+      validator ||= default_validator
       @executor = Executor.new(
         vault_root: @vault_root,
         dispatcher: @dispatcher,
@@ -17,6 +22,7 @@ module KnowledgeGraph
         validator: validator,
         transaction_factory: transaction_factory
       )
+      register_builtin_handlers(clock, id_generator) if builtin_handlers
       handlers.each { |intent_class, handler| register(intent_class, handler) }
     end
 
@@ -38,6 +44,39 @@ module KnowledgeGraph
       raise InvalidIntent, "execute expects a KnowledgeGraph::Intent" unless intent.is_a?(Intent)
 
       @executor.execute(intent)
+    end
+
+    private
+
+    def default_validator
+      path = @vault_root.join("_System/Tools/validate_vault.rb")
+      return ExternalValidator.new(vault_root: @vault_root, validator_path: path) if path.file?
+
+      lambda do |_context|
+        raise ValidationError, "required vault validator not found: #{path}"
+      end
+    end
+
+    def register_builtin_handlers(clock, id_generator)
+      registry = SchemaRegistry.new(vault_root: @vault_root)
+      manager = EntityManager.new(
+        vault_root: @vault_root,
+        registry: registry,
+        writer: YamlWriter.new,
+        id_generator: id_generator,
+        clock: clock,
+        run_id: @run_id
+      )
+      {
+        CreateEntity => :create,
+        UpdateEntity => :update,
+        RenameEntity => :rename,
+        ArchiveEntity => :archive,
+        RestoreEntity => :restore,
+        AttachEvidence => :attach_evidence,
+        ImportTranscript => :import_transcript,
+        CompleteFollowUp => :complete_follow_up
+      }.each { |intent_class, method_name| register(intent_class, manager.method(method_name)) }
     end
   end
 end
