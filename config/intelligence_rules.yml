@@ -1,0 +1,108 @@
+---
+rules:
+  - id: reconnect_valuable_contact
+    match:
+      finding_kinds:
+        - inactive_contact
+      minimum_confidence: 0.55
+    recommendation:
+      kind: reconnect
+      title: "Reconnect with %{entity}"
+      severity: medium
+      priority: high
+      tags:
+        - recommendation
+        - relationship
+      message: "%{why} Consider a personal check-in if the relationship still matters."
+  - id: complete_contact_profile
+    match:
+      finding_kinds:
+        - missing_email
+        - missing_phone
+        - missing_organization
+        - missing_location
+        - missing_interest
+      minimum_confidence: 0.9
+    recommendation:
+      kind: request_missing_data
+      title: "Complete the profile for %{entity}"
+      severity: low
+      priority: normal
+      tags:
+        - recommendation
+        - knowledge-gap
+      message: "%{why} Ask for or verify the missing fact when context makes it appropriate."
+  - id: resolve_overdue_followup
+    match:
+      finding_kinds:
+        - overdue_followup
+        - forgotten_task
+      minimum_confidence: 0.8
+    recommendation:
+      kind: resolve_followup
+      title: "Resolve follow-up: %{entity}"
+      severity: high
+      priority: high
+      tags:
+        - recommendation
+        - followup
+      message: "%{why} Complete, reschedule, snooze, or cancel it explicitly."
+  - id: repair_broken_promise
+    match:
+      finding_kinds:
+        - broken_promise
+      minimum_confidence: 0.9
+    recommendation:
+      kind: repair_commitment
+      title: "Repair commitment: %{entity}"
+      severity: critical
+      priority: critical
+      tags:
+        - recommendation
+        - commitment
+      message: "%{why} Contact the beneficiary and agree on the next concrete step."
+  - id: consider_introduction
+    match:
+      finding_kinds:
+        - possible_introduction
+      minimum_confidence: 0.5
+    recommendation:
+      kind: introduce_contacts
+      title: "Consider the introduction involving %{entity}"
+      severity: info
+      priority: normal
+      tags:
+        - recommendation
+        - opportunity
+      message: "%{why} Verify mutual relevance and obtain consent before introducing them."
+  - id: review_stale_project
+    match:
+      finding_kinds:
+        - stale_project
+      minimum_confidence: 0.6
+    recommendation:
+      kind: review_project
+      title: "Review project %{entity}"
+      severity: medium
+      priority: high
+      tags:
+        - recommendation
+        - project
+      message: "%{why} Confirm the next action or update the project lifecycle status."
+  - id: investigate_graph_anomaly
+    match:
+      finding_kinds:
+        - contradictory_preference
+        - multiple_primary_residences
+        - duplicate_relationship_signature
+        - unresolved_structural_link
+      minimum_confidence: 0.8
+    recommendation:
+      kind: investigate_anomaly
+      title: "Investigate graph anomaly"
+      severity: high
+      priority: high
+      tags:
+        - recommendation
+        - data-quality
+      message: "%{why} Review the cited canonical records; do not change or merge anything without evidence and approval."

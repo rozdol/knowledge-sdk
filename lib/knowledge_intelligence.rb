@@ -1,0 +1,30 @@
+# frozen_string_literal: true
+
+require_relative "knowledge_intelligence/errors"
+require_relative "knowledge_intelligence/model"
+require_relative "knowledge_intelligence/graph_snapshot"
+require_relative "knowledge_intelligence/graph_algorithms"
+require_relative "knowledge_intelligence/features"
+require_relative "knowledge_intelligence/analyzer"
+require_relative "knowledge_intelligence/analyzers/relationship"
+require_relative "knowledge_intelligence/analyzers/knowledge_gap"
+require_relative "knowledge_intelligence/analyzers/opportunity"
+require_relative "knowledge_intelligence/analyzers/followup"
+require_relative "knowledge_intelligence/analyzers/activity"
+require_relative "knowledge_intelligence/analyzers/project"
+require_relative "knowledge_intelligence/analyzers/timeline"
+require_relative "knowledge_intelligence/analyzers/network"
+require_relative "knowledge_intelligence/analyzers/memory"
+require_relative "knowledge_intelligence/analyzers/anomaly"
+require_relative "knowledge_intelligence/analyzers/consistency"
+require_relative "knowledge_intelligence/rules"
+require_relative "knowledge_intelligence/analyzers/recommendation"
+require_relative "knowledge_intelligence/defaults"
+require_relative "knowledge_intelligence/query_engine"
+require_relative "knowledge_intelligence/reports"
+require_relative "knowledge_intelligence/proposals"
+require_relative "knowledge_intelligence/cli"
+
+module KnowledgeIntelligence
+  VERSION = "6.0.0"
+end

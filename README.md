@@ -56,6 +56,9 @@ result = kg.execute(
 - `kg proposal show|export|validate PROPOSAL_ID` reviews immutable proposal artifacts.
 - `kg proposal approve PROPOSAL_ID --all --actor HUMAN_ID` records explicit approval.
 - `kg proposal submit PROPOSAL_ID [--dry-run]` hands approved Intents to the Engine; it never bypasses Engine gates.
+- `kg intelligence relationships|opportunities|gaps|network|memory|recommendations` runs deterministic read-only analyzers.
+- `kg intelligence digest|report|query|features|explain` exposes derived intelligence without writing canonical notes.
+- `kg intelligence proposal [FINDING_ID]` emits an immutable proposal; `--persist` stores only proposal JSON for the existing approval workflow and still does not execute it.
 
 Global options are `--vault`, `--run-id`, and `--actor-id`. Environment equivalents for the last two are `KG_RUN_ID` and `KG_ACTOR_ID`.
 
@@ -67,4 +70,4 @@ ruby "_System/Tools/test_validator.rb"
 ruby "_System/Tools/validate_vault.rb"
 ```
 
-See [Architecture](docs/Architecture.md), [Intent API](docs/Intent%20API.md), [Examples](docs/Examples.md), [Migration Guide](docs/Migration%20Guide.md), [AI Integration Guide](docs/AI%20Integration%20Guide.md), and the [Knowledge Extraction README](docs/Knowledge%20Extraction/README.md).
+See [Architecture](docs/Architecture.md), [Intent API](docs/Intent%20API.md), [Examples](docs/Examples.md), [Migration Guide](docs/Migration%20Guide.md), [AI Integration Guide](docs/AI%20Integration%20Guide.md), the [Knowledge Extraction README](docs/Knowledge%20Extraction/README.md), and the [Knowledge Intelligence README](docs/Knowledge%20Intelligence/README.md).

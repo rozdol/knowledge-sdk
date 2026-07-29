@@ -1,0 +1,77 @@
+{
+  "dataset_version": "1.0.0",
+  "synthetic": true,
+  "as_of": "2026-07-29",
+  "cases": [
+    {
+      "id": "forgotten-contact",
+      "graph": { "fixture": "rich_snapshot", "focus": ["person_ada"] },
+      "expected_findings": ["inactive_contact"],
+      "expected_scores": { "relationship_strength": { "minimum": 0.2, "maximum": 0.8 } },
+      "expected_recommendations": ["reconnect"]
+    },
+    {
+      "id": "bridge-person",
+      "graph": { "fixture": "rich_snapshot", "focus": ["person_ada"] },
+      "expected_findings": ["bridge_person"],
+      "expected_scores": { "influence_score": { "minimum": 0.0, "maximum": 1.0 } },
+      "expected_recommendations": []
+    },
+    {
+      "id": "missing-email",
+      "graph": { "fixture": "rich_snapshot", "focus": ["person_ada"] },
+      "expected_findings": ["missing_email"],
+      "expected_scores": { "completeness_score": { "minimum": 0.0, "maximum": 1.0 } },
+      "expected_recommendations": ["request_missing_data"]
+    },
+    {
+      "id": "investor-opportunity",
+      "graph": { "fixture": "rich_snapshot", "focus": ["person_ada", "org_fund"] },
+      "expected_findings": ["investor_path", "possible_introduction"],
+      "expected_scores": { "graph_distance": { "exact": 1 } },
+      "expected_recommendations": ["introduce_contacts"]
+    },
+    {
+      "id": "broken-promise",
+      "graph": { "fixture": "rich_snapshot", "focus": ["commitment_overdue"] },
+      "expected_findings": ["broken_promise"],
+      "expected_scores": { "confidence": { "exact": 1.0 } },
+      "expected_recommendations": ["repair_commitment"]
+    },
+    {
+      "id": "inactive-relationship",
+      "graph": { "fixture": "rich_snapshot", "focus": ["person_ada"] },
+      "expected_findings": ["inactive_relationship"],
+      "expected_scores": { "recency_score": { "minimum": 0.0, "maximum": 0.3 } },
+      "expected_recommendations": []
+    },
+    {
+      "id": "stale-project",
+      "graph": { "fixture": "rich_snapshot", "focus": ["project_apollo"] },
+      "expected_findings": ["stale_project"],
+      "expected_scores": { "confidence": { "minimum": 0.6, "maximum": 1.0 } },
+      "expected_recommendations": ["review_project"]
+    },
+    {
+      "id": "multiple-introductions",
+      "graph": { "fixture": "rich_snapshot", "focus": ["person_ada"] },
+      "expected_findings": ["connector_person"],
+      "expected_scores": { "influence_score": { "minimum": 0.0, "maximum": 1.0 } },
+      "expected_recommendations": []
+    },
+    {
+      "id": "network-bottleneck",
+      "graph": { "fixture": "rich_snapshot", "focus": ["person_ada", "person_cara"] },
+      "expected_findings": ["network_bridge"],
+      "expected_scores": { "confidence": { "exact": 1.0 } },
+      "expected_recommendations": []
+    },
+    {
+      "id": "duplicate-cluster",
+      "graph": { "fixture": "rich_snapshot", "focus": ["person_dup_a", "person_dup_b"] },
+      "expected_findings": ["duplicate_candidate"],
+      "expected_scores": { "resolution_confidence": { "maximum": 0.35 } },
+      "expected_recommendations": []
+    }
+  ]
+}
