@@ -52,6 +52,22 @@ module KnowledgeGraph
       records.fetch(entity_id.to_s) { raise EntityNotFound, "entity not found: #{entity_id}" }
     end
 
+    def resolve(entity_id)
+      record = find(entity_id)
+      visited = {}
+      while record.data["record_status"] == "merged"
+        raise IdentityConflict, "merged redirect cycle at #{record.id}" if visited[record.id]
+
+        visited[record.id] = true
+        target = wikilink_target(record.data["merged_into"])
+        raise IdentityConflict, "merged record #{record.id} has an invalid redirect" unless target
+
+        record = find_by_path("#{target.sub(/\.md\z/, '')}.md")
+        raise EntityNotFound, "merged redirect target not found: #{target}" unless record
+      end
+      record
+    end
+
     def find_by_path(relative_path)
       records.values.find { |record| record.relative_path == relative_path.to_s }
     end
@@ -67,6 +83,11 @@ module KnowledgeGraph
     end
 
     private
+
+    def wikilink_target(value)
+      match = value.to_s.match(/\A\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|[^\]]+)?\]\]\z/)
+      match && match[1]
+    end
 
     def records
       @records ||= load_records.freeze

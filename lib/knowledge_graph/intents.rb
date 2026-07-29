@@ -5,6 +5,7 @@ module KnowledgeGraph
     field :entity_type
     field :attributes, default: -> { {} }
     field :body, default: nil
+    field :human_approved, default: false
   end
 
   class UpdateEntity < Intent
@@ -28,12 +29,14 @@ module KnowledgeGraph
   class MergeEntities < Intent
     field :primary_id
     field :secondary_id
+    field :human_approved, default: false
   end
 
   class SplitEntity < Intent
     field :entity_id
     field :attributes
     field :body, default: nil
+    field :human_approved, default: false
   end
 
   class AddRelationship < Intent

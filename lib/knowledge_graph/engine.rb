@@ -76,6 +76,15 @@ module KnowledgeGraph
         clock: clock,
         run_id: @run_id
       )
+      identity_manager = IdentityManager.new(
+        vault_root: @vault_root,
+        schema_registry: registry,
+        relationship_registry: RelationshipRegistry.new(vault_root: @vault_root),
+        entity_manager: manager,
+        writer: YamlWriter.new,
+        clock: clock,
+        run_id: @run_id
+      )
       {
         CreateEntity => :create,
         UpdateEntity => :update,
@@ -93,6 +102,8 @@ module KnowledgeGraph
       }.each do |intent_class, method_name|
         register(intent_class, relationship_manager.method(method_name))
       end
+      register(MergeEntities, identity_manager.method(:merge))
+      register(SplitEntity, identity_manager.method(:split))
     end
   end
 end

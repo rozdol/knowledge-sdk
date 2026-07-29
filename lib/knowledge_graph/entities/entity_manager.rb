@@ -5,6 +5,7 @@ require "time"
 
 module KnowledgeGraph
   class EntityManager
+    APPROVAL_GATED_TYPES = Set.new(%w[interest technology industry profession language]).freeze
     IMMUTABLE_FIELDS = Set.new(%w[
       id type schema_version record_status merged_into created_at updated_at created_by updated_by
       created_by_run updated_by_run
@@ -22,6 +23,9 @@ module KnowledgeGraph
 
     def create(intent, context)
       schema = @registry.fetch(intent.entity_type)
+      if APPROVAL_GATED_TYPES.include?(schema.key) && !intent.human_approved
+        raise ApprovalRequired, "creating #{schema.key} requires explicit human approval"
+      end
       attributes = stringify(intent.attributes)
       now = timestamp
       entity_id = attributes.delete("id") || @id_generator.generate(schema.id_prefix)
@@ -49,7 +53,7 @@ module KnowledgeGraph
     end
 
     def update(intent, context)
-      record = repository.find(intent.entity_id)
+      record = repository.resolve(intent.entity_id)
       changes = stringify(intent.changes)
       reject_fields!(changes.keys, IMMUTABLE_FIELDS)
       raise InvalidIntent, "use RenameEntity to change name" if changes.key?("name")
@@ -61,7 +65,7 @@ module KnowledgeGraph
     end
 
     def rename(intent, context)
-      record = repository.find(intent.entity_id)
+      record = repository.resolve(intent.entity_id)
       schema = @registry.fetch(record.type)
       raise InvalidIntent, "#{record.type} records do not have names" unless schema.name_required?
 
@@ -87,7 +91,7 @@ module KnowledgeGraph
     end
 
     def attach_evidence(intent, context)
-      record = repository.find(intent.entity_id)
+      record = repository.resolve(intent.entity_id)
       data = record.data.dup
       data["source_links"] = (Array(data["source_links"]) + intent.source_links).uniq unless intent.source_links.empty?
       data["source_urls"] = (Array(data["source_urls"]) + intent.source_urls).uniq unless intent.source_urls.empty?
@@ -97,7 +101,7 @@ module KnowledgeGraph
     end
 
     def import_transcript(intent, context)
-      record = repository.find(intent.interaction_id)
+      record = repository.resolve(intent.interaction_id)
       raise InvalidIntent, "transcripts can only be attached to interactions" unless record.type == "interaction"
 
       body = replace_managed_section(record.body, "transcript", intent.transcript)
@@ -108,7 +112,7 @@ module KnowledgeGraph
     end
 
     def complete_follow_up(intent, context)
-      record = repository.find(intent.follow_up_id)
+      record = repository.resolve(intent.follow_up_id)
       raise InvalidIntent, "CompleteFollowUp requires a follow-up" unless record.type == "follow-up"
 
       data = record.data.merge(
@@ -155,7 +159,7 @@ module KnowledgeGraph
     end
 
     def change_status(intent, context, status)
-      record = repository.find(intent.entity_id)
+      record = repository.resolve(intent.entity_id)
       return result(intent, [record.id], relative_path: record.relative_path, replayed: true) if record.data["record_status"] == status
 
       data = record.data.merge("record_status" => status)

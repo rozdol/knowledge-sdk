@@ -53,8 +53,8 @@ module KnowledgeGraph
 
     def create_relationship(intent, context, ignore_ids: [])
       definition = @relationship_registry.fetch(intent.predicate)
-      source = repository.find(intent.source)
-      target = repository.find(intent.target)
+      source = repository.resolve(intent.source)
+      target = repository.resolve(intent.target)
       source, target = canonical_endpoints(source, target, definition)
       validate_endpoint_types!(source, target, definition)
       attributes = normalize_attributes(intent.attributes, definition)
@@ -157,7 +157,7 @@ module KnowledgeGraph
       recipient_reference = data.delete("recipient_id") || data.delete("recipient")
       return unless recipient_reference
 
-      recipient = repository.find(recipient_reference)
+      recipient = repository.resolve(recipient_reference)
       data["recipient"] = recipient.link
       data["recipient_id"] = recipient.id
     end
