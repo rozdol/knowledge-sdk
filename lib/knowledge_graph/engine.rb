@@ -4,23 +4,34 @@ require "pathname"
 
 module KnowledgeGraph
   class Engine
-    attr_reader :vault_root, :hooks, :run_id
+    attr_reader :vault_root, :hooks, :run_id, :audit_log
 
     def initialize(vault_root:, handlers: {}, validator: nil, transaction_factory: nil,
-                   run_id: nil, clock: nil, id_generator: nil, builtin_handlers: true)
+                   run_id: nil, clock: nil, id_generator: nil, builtin_handlers: true,
+                   audit_log: nil, receipt_store: nil, actor_id: nil)
       @vault_root = Pathname.new(vault_root).expand_path.freeze
       @run_id = (run_id || IdGenerator.new.generate("run")).freeze
       clock ||= -> { Time.now }
       id_generator ||= IdGenerator.new(clock: clock)
       @dispatcher = Dispatcher.new
       @hooks = HookBus.new
+      @receipt_store = receipt_store || ReceiptStore.new(vault_root: @vault_root)
+      @audit_log = audit_log || AuditLog.new(
+        vault_root: @vault_root,
+        clock: clock,
+        id_generator: IdGenerator.new(clock: clock),
+        actor_id: actor_id,
+        run_id: @run_id
+      )
       validator ||= default_validator
       @executor = Executor.new(
         vault_root: @vault_root,
         dispatcher: @dispatcher,
         hooks: @hooks,
         validator: validator,
-        transaction_factory: transaction_factory
+        transaction_factory: transaction_factory,
+        receipt_store: @receipt_store,
+        audit_log: @audit_log
       )
       register_builtin_handlers(clock, id_generator) if builtin_handlers
       handlers.each { |intent_class, handler| register(intent_class, handler) }
@@ -44,6 +55,18 @@ module KnowledgeGraph
       raise InvalidIntent, "execute expects a KnowledgeGraph::Intent" unless intent.is_a?(Intent)
 
       @executor.execute(intent)
+    end
+
+    def create_person(**attributes)
+      execute(CreateEntity.new(entity_type: "person", attributes: attributes))
+    end
+
+    def update_person(entity_id, **changes)
+      execute(UpdateEntity.new(entity_id: entity_id, changes: changes))
+    end
+
+    def link(source:, predicate:, target:, **attributes)
+      execute(AddRelationship.new(source: source, predicate: predicate, target: target, attributes: attributes))
     end
 
     private
@@ -94,6 +117,11 @@ module KnowledgeGraph
         AttachEvidence => :attach_evidence,
         ImportTranscript => :import_transcript,
         CompleteFollowUp => :complete_follow_up
+      }.each { |intent_class, method_name| register(intent_class, manager.method(method_name)) }
+      {
+        CreateMeeting => :create_meeting,
+        RecordInteraction => :record_interaction,
+        RecordPromise => :record_promise
       }.each { |intent_class, method_name| register(intent_class, manager.method(method_name)) }
       {
         AddRelationship => :add,

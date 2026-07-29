@@ -124,6 +124,24 @@ module KnowledgeGraph
       result(intent, [record.id], relative_path: record.relative_path)
     end
 
+    def create_meeting(intent, context)
+      attributes = stringify(intent.attributes)
+      attributes["interaction_kind"] ||= "meeting"
+      attributes["contact_weight"] ||= "substantive"
+      create_special(intent, context, "interaction", attributes)
+    end
+
+    def record_interaction(intent, context)
+      create_special(intent, context, "interaction", stringify(intent.attributes))
+    end
+
+    def record_promise(intent, context)
+      attributes = stringify(intent.attributes)
+      attributes["commitment_kind"] ||= "promise"
+      attributes["commitment_status"] ||= "open"
+      create_special(intent, context, "commitment", attributes)
+    end
+
     private
 
     def repository
@@ -186,17 +204,55 @@ module KnowledgeGraph
       if schema.id_filename?
         File.join(schema.folder_prefixes.first, "#{entity_id}.md")
       else
-        unique_named_path(schema, data.fetch("name"), entity_id)
+        folder = entity_folder(schema, data)
+        name = dated_name(schema, data, data.fetch("name"))
+        unique_named_path(schema, name, entity_id, folder: folder)
       end
     end
 
-    def unique_named_path(schema, name, entity_id, excluding: nil)
-      folder = schema.folder_prefixes.first
+    def unique_named_path(schema, name, entity_id, excluding: nil, folder: nil)
+      folder ||= schema.folder_prefixes.first
       base = safe_filename(name)
       first = File.join(folder, "#{base}.md")
       return first if first == excluding || !@vault_root.join(first).exist?
 
       File.join(folder, "#{base} - #{entity_id[-6, 6]}.md")
+    end
+
+    def entity_folder(schema, data)
+      return schema.folder_prefixes.first unless schema.key == "interaction"
+
+      case data["interaction_kind"]
+      when "meeting" then "Interactions/Meetings/"
+      when "call" then "Interactions/Calls/"
+      when "email", "message", "letter" then "Interactions/Messages/"
+      else "Interactions/Other/"
+      end
+    end
+
+    def dated_name(schema, data, name)
+      return name unless %w[interaction event].include?(schema.key)
+
+      date = data["starts_at"].to_s[0, 10]
+      date.match?(/\A\d{4}-\d{2}-\d{2}\z/) && !name.start_with?(date) ? "#{date} - #{name}" : name
+    end
+
+    def create_special(original_intent, context, entity_type, attributes)
+      created = create(
+        CreateEntity.new(
+          entity_type: entity_type,
+          attributes: attributes,
+          body: original_intent.body,
+          intent_id: original_intent.intent_id
+        ),
+        context
+      )
+      Result.new(
+        intent_type: original_intent.intent_type,
+        entity_ids: created.entity_ids,
+        value: created.value,
+        replayed: created.replayed
+      )
     end
 
     def safe_filename(value)

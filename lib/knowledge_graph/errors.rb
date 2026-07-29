@@ -12,4 +12,5 @@ module KnowledgeGraph
   class IdentityConflict < Error; end
   class RelationshipConflict < Error; end
   class TransactionError < Error; end
+  class AuditError < Error; end
 end

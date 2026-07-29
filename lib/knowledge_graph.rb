@@ -9,6 +9,8 @@ require_relative "knowledge_graph/hooks/hook_bus"
 require_relative "knowledge_graph/executor/dispatcher"
 require_relative "knowledge_graph/executor/transaction"
 require_relative "knowledge_graph/executor/executor"
+require_relative "knowledge_graph/audit/receipt_store"
+require_relative "knowledge_graph/audit/audit_log"
 require_relative "knowledge_graph/storage/markdown_document"
 require_relative "knowledge_graph/storage/yaml_writer"
 require_relative "knowledge_graph/storage/schema_registry"
@@ -21,6 +23,8 @@ require_relative "knowledge_graph/graph/relationship_manager"
 require_relative "knowledge_graph/identity/identity_resolver"
 require_relative "knowledge_graph/identity/identity_manager"
 require_relative "knowledge_graph/engine"
+require_relative "knowledge_graph/cli/intent_factory"
+require_relative "knowledge_graph/cli/cli"
 
 module KnowledgeGraph
 end
