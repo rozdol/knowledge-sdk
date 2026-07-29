@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic email-text case",
+  "mentions": [
+    {
+      "mention_id": "mention_A6B0F5F3BA76318E47BFD41156",
+      "entity_type": "person",
+      "display_name": "Uma Pine",
+      "evidence": [
+        {
+          "source_id": "source_212533EA884B5DFE6E0A04FE54",
+          "start_offset": 6,
+          "end_offset": 14,
+          "excerpt": "Uma Pine"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_3C5AD7593FDC446AC90440CCCA",
+      "entity_type": "organization",
+      "display_name": "Cedar Labs",
+      "evidence": [
+        {
+          "source_id": "source_212533EA884B5DFE6E0A04FE54",
+          "start_offset": 34,
+          "end_offset": 44,
+          "excerpt": "Cedar Labs"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_A6B0F5F3BA76318E47BFD41156",
+      "predicate": "works_for",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_3C5AD7593FDC446AC90440CCCA"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.97,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_212533EA884B5DFE6E0A04FE54",
+          "start_offset": 0,
+          "end_offset": 45,
+          "excerpt": "From: Uma Pine. Uma Pine works at Cedar Labs."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

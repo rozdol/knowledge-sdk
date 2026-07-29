@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic projects case",
+  "mentions": [
+    {
+      "mention_id": "mention_84DBC2F29BD861C2E4EB818C78",
+      "entity_type": "person",
+      "display_name": "Jon Bell",
+      "evidence": [
+        {
+          "source_id": "source_7642F326C35671D9565BB50561",
+          "start_offset": 0,
+          "end_offset": 8,
+          "excerpt": "Jon Bell"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_4C76938734C7C689E7EBB3EC42",
+      "entity_type": "project",
+      "display_name": "Atlas",
+      "evidence": [
+        {
+          "source_id": "source_7642F326C35671D9565BB50561",
+          "start_offset": 24,
+          "end_offset": 29,
+          "excerpt": "Atlas"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_84DBC2F29BD861C2E4EB818C78",
+      "predicate": "contributes_to",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_4C76938734C7C689E7EBB3EC42"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.92,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_7642F326C35671D9565BB50561",
+          "start_offset": 0,
+          "end_offset": 30,
+          "excerpt": "Jon Bell contributes to Atlas."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

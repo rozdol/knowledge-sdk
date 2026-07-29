@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic employment case",
+  "mentions": [
+    {
+      "mention_id": "mention_2A218A08FC63FD2B554CF158C2",
+      "entity_type": "person",
+      "display_name": "Анна Волкова",
+      "evidence": [
+        {
+          "source_id": "source_4B75798FF817A3F6996EEC5DEA",
+          "start_offset": 0,
+          "end_offset": 12,
+          "excerpt": "Анна Волкова"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_9C06B2FCCFE72C7CC653F2E03E",
+      "entity_type": "organization",
+      "display_name": "Север",
+      "evidence": [
+        {
+          "source_id": "source_4B75798FF817A3F6996EEC5DEA",
+          "start_offset": 33,
+          "end_offset": 38,
+          "excerpt": "Север"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_2A218A08FC63FD2B554CF158C2",
+      "predicate": "works_for",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_9C06B2FCCFE72C7CC653F2E03E"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.97,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_4B75798FF817A3F6996EEC5DEA",
+          "start_offset": 0,
+          "end_offset": 39,
+          "excerpt": "Анна Волкова работает в компании Север."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

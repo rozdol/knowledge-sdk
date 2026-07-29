@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic hallucinated-predicate case",
+  "mentions": [
+    {
+      "mention_id": "mention_91CE23C80E0ACA5E7EE12D7A88",
+      "entity_type": "person",
+      "display_name": "Uma Test",
+      "evidence": [
+        {
+          "source_id": "source_B0F5D6A78E3B298136033526C2",
+          "start_offset": 0,
+          "end_offset": 8,
+          "excerpt": "Uma Test"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_1C8DF2251D0D463D025F1D9F3C",
+      "entity_type": "organization",
+      "display_name": "Omega Test",
+      "evidence": [
+        {
+          "source_id": "source_B0F5D6A78E3B298136033526C2",
+          "start_offset": 18,
+          "end_offset": 28,
+          "excerpt": "Omega Test"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_91CE23C80E0ACA5E7EE12D7A88",
+      "predicate": "controls_everything",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_1C8DF2251D0D463D025F1D9F3C"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.99,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_B0F5D6A78E3B298136033526C2",
+          "start_offset": 0,
+          "end_offset": 72,
+          "excerpt": "Uma Test controls Omega Test, but controls_everything is not registered."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

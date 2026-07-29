@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic relationships case",
+  "mentions": [
+    {
+      "mention_id": "mention_31FAEE7D100583798C8081CF96",
+      "entity_type": "person",
+      "display_name": "Жанна Романова",
+      "evidence": [
+        {
+          "source_id": "source_7BA08E22DE1D967C86CE0F7D73",
+          "start_offset": 0,
+          "end_offset": 14,
+          "excerpt": "Жанна Романова"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_071EA7D037FAF378DF812756AA",
+      "entity_type": "person",
+      "display_name": "Илью Тихого",
+      "evidence": [
+        {
+          "source_id": "source_7BA08E22DE1D967C86CE0F7D73",
+          "start_offset": 21,
+          "end_offset": 32,
+          "excerpt": "Илью Тихого"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_31FAEE7D100583798C8081CF96",
+      "predicate": "knows",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_071EA7D037FAF378DF812756AA"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.9,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_7BA08E22DE1D967C86CE0F7D73",
+          "start_offset": 0,
+          "end_offset": 33,
+          "excerpt": "Жанна Романова знает Илью Тихого."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

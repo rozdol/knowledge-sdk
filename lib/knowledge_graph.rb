@@ -22,8 +22,10 @@ require_relative "knowledge_graph/graph/relationship_registry"
 require_relative "knowledge_graph/graph/relationship_manager"
 require_relative "knowledge_graph/identity/identity_resolver"
 require_relative "knowledge_graph/identity/identity_manager"
+require_relative "knowledge_graph/graph_reader"
 require_relative "knowledge_graph/engine"
 require_relative "knowledge_graph/cli/intent_factory"
+require_relative "knowledge_extraction"
 require_relative "knowledge_graph/cli/cli"
 
 module KnowledgeGraph

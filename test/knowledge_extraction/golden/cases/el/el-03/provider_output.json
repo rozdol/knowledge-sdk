@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic negation case",
+  "mentions": [
+    {
+      "mention_id": "mention_742476B84031E5E4719B7E57C7",
+      "entity_type": "person",
+      "display_name": "Γεωργία Μάρκου",
+      "evidence": [
+        {
+          "source_id": "source_D1F0D6ED65CF6F37121805DB0D",
+          "start_offset": 2,
+          "end_offset": 16,
+          "excerpt": "Γεωργία Μάρκου"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_FA2DCE1E3BBF6242181BB03147",
+      "entity_type": "organization",
+      "display_name": "Άλφα",
+      "evidence": [
+        {
+          "source_id": "source_D1F0D6ED65CF6F37121805DB0D",
+          "start_offset": 36,
+          "end_offset": 40,
+          "excerpt": "Άλφα"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_742476B84031E5E4719B7E57C7",
+      "predicate": "works_for",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_FA2DCE1E3BBF6242181BB03147"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.96,
+      "status": "negated",
+      "evidence": [
+        {
+          "source_id": "source_D1F0D6ED65CF6F37121805DB0D",
+          "start_offset": 0,
+          "end_offset": 41,
+          "excerpt": "Η Γεωργία Μάρκου δεν εργάστηκε στην Άλφα."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

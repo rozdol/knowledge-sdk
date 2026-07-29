@@ -1,0 +1,45 @@
+{
+  "summary": "Synthetic promises case",
+  "mentions": [
+    {
+      "mention_id": "mention_D89446B042FBE2D47C806A1390",
+      "entity_type": "person",
+      "display_name": "Кирилл Лазарев",
+      "evidence": [
+        {
+          "source_id": "source_41962D8D1B04E359749FC3E909",
+          "start_offset": 0,
+          "end_offset": 14,
+          "excerpt": "Кирилл Лазарев"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "promise",
+      "subject_mention_id": "mention_D89446B042FBE2D47C806A1390",
+      "predicate": "promise",
+      "object": {
+        "kind": "scalar",
+        "value": "отправить отчет",
+        "value_type": "string"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.9,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_41962D8D1B04E359749FC3E909",
+          "start_offset": 0,
+          "end_offset": 38,
+          "excerpt": "Кирилл Лазарев обещал отправить отчет."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

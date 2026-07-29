@@ -1,0 +1,47 @@
+{
+  "summary": "Synthetic contact-note case",
+  "mentions": [
+    {
+      "mention_id": "mention_729C8793EF58C32BEFADE94853",
+      "entity_type": "person",
+      "display_name": "Sam Vale",
+      "evidence": [
+        {
+          "source_id": "source_933BFCED22F52AFB4E73C30F64",
+          "start_offset": 0,
+          "end_offset": 8,
+          "excerpt": "Sam Vale"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "attribute",
+      "subject_mention_id": "mention_729C8793EF58C32BEFADE94853",
+      "predicate": "emails",
+      "object": {
+        "kind": "scalar",
+        "value": [
+          "sam@example.test"
+        ],
+        "value_type": "unknown"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.99,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_933BFCED22F52AFB4E73C30F64",
+          "start_offset": 0,
+          "end_offset": 35,
+          "excerpt": "Sam Vale email is sam@example.test."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

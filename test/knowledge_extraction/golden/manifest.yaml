@@ -1,0 +1,11 @@
+version: phase5-golden-v1
+case_count: 50
+privacy: synthetic-only
+languages:
+  en: 24
+  ru: 10
+  el: 8
+  mixed: 4
+  und: 4
+provider: replay
+network_required: false

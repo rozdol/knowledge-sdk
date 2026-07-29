@@ -1,0 +1,58 @@
+{
+  "summary": "Synthetic dates case",
+  "mentions": [
+    {
+      "mention_id": "mention_B13971B6B03E08513B44519EE3",
+      "entity_type": "person",
+      "display_name": "Ηλίας Ράπτης",
+      "evidence": [
+        {
+          "source_id": "source_5955DAF038FDD292BE00766431",
+          "start_offset": 7,
+          "end_offset": 19,
+          "excerpt": "Ηλίας Ράπτης"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_C57F0D4967E33FDC014EFF945E",
+      "entity_type": "person",
+      "display_name": "Θάλεια Γεωργίου",
+      "evidence": [
+        {
+          "source_id": "source_5955DAF038FDD292BE00766431",
+          "start_offset": 34,
+          "end_offset": 49,
+          "excerpt": "Θάλεια Γεωργίου"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_B13971B6B03E08513B44519EE3",
+      "predicate": "met",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_C57F0D4967E33FDC014EFF945E"
+      },
+      "qualifiers": {
+        "observed_on": "2026-07-28"
+      },
+      "confidence": 0.9,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_5955DAF038FDD292BE00766431",
+          "start_offset": 0,
+          "end_offset": 50,
+          "excerpt": "Χθες ο Ηλίας Ράπτης συνάντησε την Θάλεια Γεωργίου."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

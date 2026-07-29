@@ -1,0 +1,58 @@
+{
+  "summary": "Synthetic dates case",
+  "mentions": [
+    {
+      "mention_id": "mention_E88A0F4C0A0EEC586E2ABB83A4",
+      "entity_type": "person",
+      "display_name": "Лада Мирова",
+      "evidence": [
+        {
+          "source_id": "source_7D341EA9039E6EC846133C1DA5",
+          "start_offset": 6,
+          "end_offset": 17,
+          "excerpt": "Лада Мирова"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_54985C78477A1F2693BDE75DB3",
+      "entity_type": "person",
+      "display_name": "Максима Юдина",
+      "evidence": [
+        {
+          "source_id": "source_7D341EA9039E6EC846133C1DA5",
+          "start_offset": 28,
+          "end_offset": 41,
+          "excerpt": "Максима Юдина"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_E88A0F4C0A0EEC586E2ABB83A4",
+      "predicate": "met",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_54985C78477A1F2693BDE75DB3"
+      },
+      "qualifiers": {
+        "observed_on": "2026-07-28"
+      },
+      "confidence": 0.91,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_7D341EA9039E6EC846133C1DA5",
+          "start_offset": 0,
+          "end_offset": 42,
+          "excerpt": "Вчера Лада Мирова встретила Максима Юдина."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

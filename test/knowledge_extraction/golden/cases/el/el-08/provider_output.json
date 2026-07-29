@@ -1,0 +1,45 @@
+{
+  "summary": "Synthetic follow-ups case",
+  "mentions": [
+    {
+      "mention_id": "mention_ED0C0014DEF9D08BBE34E14B50",
+      "entity_type": "person",
+      "display_name": "Κώστα Αντωνίου",
+      "evidence": [
+        {
+          "source_id": "source_3A6760AA9A2310300A291D130A",
+          "start_offset": 14,
+          "end_offset": 28,
+          "excerpt": "Κώστα Αντωνίου"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "follow-up",
+      "subject_mention_id": "mention_ED0C0014DEF9D08BBE34E14B50",
+      "predicate": "follow-up",
+      "object": {
+        "kind": "scalar",
+        "value": "Κλήση στον Κώστα Αντωνίου",
+        "value_type": "string"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.82,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_3A6760AA9A2310300A291D130A",
+          "start_offset": 0,
+          "end_offset": 50,
+          "excerpt": "Να καλέσω τον Κώστα Αντωνίου την επόμενη εβδομάδα."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

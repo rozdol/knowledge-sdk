@@ -1,0 +1,45 @@
+{
+  "summary": "Synthetic meeting-notes case",
+  "mentions": [
+    {
+      "mention_id": "mention_80E23BC653E918D1879B92BC6F",
+      "entity_type": "person",
+      "display_name": "Tia North",
+      "evidence": [
+        {
+          "source_id": "source_5AD34CB934CBEDD1A9D8DB5699",
+          "start_offset": 13,
+          "end_offset": 22,
+          "excerpt": "Tia North"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "meeting",
+      "subject_mention_id": "mention_80E23BC653E918D1879B92BC6F",
+      "predicate": "meeting",
+      "object": {
+        "kind": "scalar",
+        "value": "Launch planning meeting",
+        "value_type": "string"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.9,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_5AD34CB934CBEDD1A9D8DB5699",
+          "start_offset": 0,
+          "end_offset": 45,
+          "excerpt": "Meeting with Tia North about launch planning."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic technology case",
+  "mentions": [
+    {
+      "mention_id": "mention_F100B490952C0057D7E33772B7",
+      "entity_type": "person",
+      "display_name": "Дарья Белова",
+      "evidence": [
+        {
+          "source_id": "source_62F07FA56FA6AEC7F5B7A0506A",
+          "start_offset": 0,
+          "end_offset": 12,
+          "excerpt": "Дарья Белова"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_8FF37738AA6780CFA06E672A0C",
+      "entity_type": "technology",
+      "display_name": "Обсидиан",
+      "evidence": [
+        {
+          "source_id": "source_62F07FA56FA6AEC7F5B7A0506A",
+          "start_offset": 24,
+          "end_offset": 32,
+          "excerpt": "Обсидиан"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_F100B490952C0057D7E33772B7",
+      "predicate": "uses",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_8FF37738AA6780CFA06E672A0C"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.95,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_62F07FA56FA6AEC7F5B7A0506A",
+          "start_offset": 0,
+          "end_offset": 33,
+          "excerpt": "Дарья Белова использует Обсидиан."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

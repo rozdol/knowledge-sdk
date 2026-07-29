@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic interests case",
+  "mentions": [
+    {
+      "mention_id": "mention_4C3FB2260D3275909DB2E072A5",
+      "entity_type": "person",
+      "display_name": "Eva Moss",
+      "evidence": [
+        {
+          "source_id": "source_C4768449907BA2CA6ACB9D837C",
+          "start_offset": 0,
+          "end_offset": 8,
+          "excerpt": "Eva Moss"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_9A6C3DD1DD15F105F0F0B4C2CF",
+      "entity_type": "interest",
+      "display_name": "Sailing",
+      "evidence": [
+        {
+          "source_id": "source_C4768449907BA2CA6ACB9D837C",
+          "start_offset": 26,
+          "end_offset": 33,
+          "excerpt": "Sailing"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_4C3FB2260D3275909DB2E072A5",
+      "predicate": "interested_in",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_9A6C3DD1DD15F105F0F0B4C2CF"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.96,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_C4768449907BA2CA6ACB9D837C",
+          "start_offset": 0,
+          "end_offset": 34,
+          "excerpt": "Eva Moss is interested in Sailing."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

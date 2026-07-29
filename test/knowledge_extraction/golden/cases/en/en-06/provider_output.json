@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic preferences case",
+  "mentions": [
+    {
+      "mention_id": "mention_0AFBBD1DE22150A5E681E1EA99",
+      "entity_type": "person",
+      "display_name": "Felix Gray",
+      "evidence": [
+        {
+          "source_id": "source_A61B17A15BC7D8CAEC154B3613",
+          "start_offset": 0,
+          "end_offset": 10,
+          "excerpt": "Felix Gray"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_EED16D71CFAC137D1E8C241FD7",
+      "entity_type": "interest",
+      "display_name": "Thai Food",
+      "evidence": [
+        {
+          "source_id": "source_A61B17A15BC7D8CAEC154B3613",
+          "start_offset": 17,
+          "end_offset": 26,
+          "excerpt": "Thai Food"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_0AFBBD1DE22150A5E681E1EA99",
+      "predicate": "likes",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_EED16D71CFAC137D1E8C241FD7"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.95,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_A61B17A15BC7D8CAEC154B3613",
+          "start_offset": 0,
+          "end_offset": 27,
+          "excerpt": "Felix Gray likes Thai Food."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

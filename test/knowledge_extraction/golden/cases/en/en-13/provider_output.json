@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic locations case",
+  "mentions": [
+    {
+      "mention_id": "mention_CFB868E0B3027AC39056575F4D",
+      "entity_type": "person",
+      "display_name": "Olive West",
+      "evidence": [
+        {
+          "source_id": "source_8D309E3BEEE8D5C071574CB42E",
+          "start_offset": 0,
+          "end_offset": 10,
+          "excerpt": "Olive West"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_08A9CA24405D360AC368D6A0DD",
+      "entity_type": "city",
+      "display_name": "Limassol",
+      "evidence": [
+        {
+          "source_id": "source_8D309E3BEEE8D5C071574CB42E",
+          "start_offset": 20,
+          "end_offset": 28,
+          "excerpt": "Limassol"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_CFB868E0B3027AC39056575F4D",
+      "predicate": "lives_in",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_08A9CA24405D360AC368D6A0DD"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.93,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_8D309E3BEEE8D5C071574CB42E",
+          "start_offset": 0,
+          "end_offset": 29,
+          "excerpt": "Olive West lives in Limassol."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

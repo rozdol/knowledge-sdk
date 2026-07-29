@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic preferences case",
+  "mentions": [
+    {
+      "mention_id": "mention_ED83B7324896DC31E3BFE25DAD",
+      "entity_type": "person",
+      "display_name": "Ιωάννα Σάββα",
+      "evidence": [
+        {
+          "source_id": "source_F88109F55E778F508C811E92A6",
+          "start_offset": 2,
+          "end_offset": 14,
+          "excerpt": "Ιωάννα Σάββα"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_5AF42CA625B2AF752F70163863",
+      "entity_type": "interest",
+      "display_name": "Ελληνική Κουζίνα",
+      "evidence": [
+        {
+          "source_id": "source_F88109F55E778F508C811E92A6",
+          "start_offset": 25,
+          "end_offset": 41,
+          "excerpt": "Ελληνική Κουζίνα"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_ED83B7324896DC31E3BFE25DAD",
+      "predicate": "likes",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_5AF42CA625B2AF752F70163863"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.91,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_F88109F55E778F508C811E92A6",
+          "start_offset": 0,
+          "end_offset": 42,
+          "excerpt": "Η Ιωάννα Σάββα αγαπά την Ελληνική Κουζίνα."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic chat case",
+  "mentions": [
+    {
+      "mention_id": "mention_5132FE855CB4273BC0A37D7F98",
+      "entity_type": "person",
+      "display_name": "Wren Fox",
+      "evidence": [
+        {
+          "source_id": "source_236139E554290B46C8AA9F45EF",
+          "start_offset": 13,
+          "end_offset": 21,
+          "excerpt": "Wren Fox"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_5E1F738D13215D4CB10BFBFC4B",
+      "entity_type": "technology",
+      "display_name": "Ruby",
+      "evidence": [
+        {
+          "source_id": "source_236139E554290B46C8AA9F45EF",
+          "start_offset": 27,
+          "end_offset": 31,
+          "excerpt": "Ruby"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_5132FE855CB4273BC0A37D7F98",
+      "predicate": "uses",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_5E1F738D13215D4CB10BFBFC4B"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.94,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_236139E554290B46C8AA9F45EF",
+          "start_offset": 0,
+          "end_offset": 32,
+          "excerpt": "[10:00] Vic: Wren Fox uses Ruby."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

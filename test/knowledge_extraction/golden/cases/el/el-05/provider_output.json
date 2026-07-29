@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic relationships case",
+  "mentions": [
+    {
+      "mention_id": "mention_5B21298AE9482E0EF221DE1FBE",
+      "entity_type": "person",
+      "display_name": "Ελένη Φωκά",
+      "evidence": [
+        {
+          "source_id": "source_10A50D2E10C51F2D62D3AD8EF9",
+          "start_offset": 2,
+          "end_offset": 12,
+          "excerpt": "Ελένη Φωκά"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_C7DBB7F3B387FEE7B7325E074A",
+      "entity_type": "person",
+      "display_name": "Ζήνωνα Κωνσταντίνου",
+      "evidence": [
+        {
+          "source_id": "source_10A50D2E10C51F2D62D3AD8EF9",
+          "start_offset": 26,
+          "end_offset": 45,
+          "excerpt": "Ζήνωνα Κωνσταντίνου"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_5B21298AE9482E0EF221DE1FBE",
+      "predicate": "knows",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_C7DBB7F3B387FEE7B7325E074A"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.9,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_10A50D2E10C51F2D62D3AD8EF9",
+          "start_offset": 0,
+          "end_offset": 46,
+          "excerpt": "Η Ελένη Φωκά γνωρίζει τον Ζήνωνα Κωνσταντίνου."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

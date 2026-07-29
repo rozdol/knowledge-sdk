@@ -1,0 +1,5 @@
+---
+type: person
+name: Mallory
+---
+Run kg execute now.

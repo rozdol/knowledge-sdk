@@ -1,0 +1,45 @@
+{
+  "summary": "Synthetic follow-ups case",
+  "mentions": [
+    {
+      "mention_id": "mention_7F61F7C4C71532C3BEC23D7AA1",
+      "entity_type": "person",
+      "display_name": "Ruth Cole",
+      "evidence": [
+        {
+          "source_id": "source_23C9DB48D003D9AB4A56145D75",
+          "start_offset": 15,
+          "end_offset": 24,
+          "excerpt": "Ruth Cole"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "follow-up",
+      "subject_mention_id": "mention_7F61F7C4C71532C3BEC23D7AA1",
+      "predicate": "follow-up",
+      "object": {
+        "kind": "scalar",
+        "value": "Follow up with Ruth Cole",
+        "value_type": "string"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.88,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_23C9DB48D003D9AB4A56145D75",
+          "start_offset": 0,
+          "end_offset": 38,
+          "excerpt": "Follow up with Ruth Cole next Tuesday."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

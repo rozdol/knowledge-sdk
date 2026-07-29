@@ -50,15 +50,21 @@ result = kg.execute(
 - `kg stats` reports canonical counts by type and status.
 - `kg search QUERY` searches exact normalized identities and names/aliases.
 - `kg replay AUDIT_ID` replays a successful audit event; the durable receipt makes this idempotent.
+- `kg extract TYPE --file PATH [--dry-run]` creates a reviewable extraction proposal without changing canonical notes.
+- `kg extract replay --fixture PATH` replays captured structured extraction output offline.
+- `kg extract evaluate --provider replay` runs the 50-case offline golden evaluation and refreshes reports.
+- `kg proposal show|export|validate PROPOSAL_ID` reviews immutable proposal artifacts.
+- `kg proposal approve PROPOSAL_ID --all --actor HUMAN_ID` records explicit approval.
+- `kg proposal submit PROPOSAL_ID [--dry-run]` hands approved Intents to the Engine; it never bypasses Engine gates.
 
 Global options are `--vault`, `--run-id`, and `--actor-id`. Environment equivalents for the last two are `KG_RUN_ID` and `KG_ACTOR_ID`.
 
 ## Verification
 
 ```sh
-ruby -I"_System/KnowledgeGraph/lib" -e 'Dir["_System/KnowledgeGraph/test/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
+ruby -I"_System/KnowledgeGraph/lib" -I"_System/KnowledgeGraph/test" -e 'Dir["_System/KnowledgeGraph/test/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
 ruby "_System/Tools/test_validator.rb"
 ruby "_System/Tools/validate_vault.rb"
 ```
 
-See [Architecture](docs/Architecture.md), [Intent API](docs/Intent%20API.md), [Examples](docs/Examples.md), [Migration Guide](docs/Migration%20Guide.md), and [AI Integration Guide](docs/AI%20Integration%20Guide.md).
+See [Architecture](docs/Architecture.md), [Intent API](docs/Intent%20API.md), [Examples](docs/Examples.md), [Migration Guide](docs/Migration%20Guide.md), [AI Integration Guide](docs/AI%20Integration%20Guide.md), and the [Knowledge Extraction README](docs/Knowledge%20Extraction/README.md).

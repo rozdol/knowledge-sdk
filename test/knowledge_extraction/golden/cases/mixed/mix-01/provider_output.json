@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic mixed-language case",
+  "mentions": [
+    {
+      "mention_id": "mention_2D4E01958ECF04CE9F096CE8CE",
+      "entity_type": "person",
+      "display_name": "Мария Иванова",
+      "evidence": [
+        {
+          "source_id": "source_3AB5282117009BFC31DD8A324A",
+          "start_offset": 0,
+          "end_offset": 13,
+          "excerpt": "Мария Иванова"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_EEB7DF52F85815E7934D5EC571",
+      "entity_type": "organization",
+      "display_name": "Atlas",
+      "evidence": [
+        {
+          "source_id": "source_3AB5282117009BFC31DD8A324A",
+          "start_offset": 23,
+          "end_offset": 28,
+          "excerpt": "Atlas"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_2D4E01958ECF04CE9F096CE8CE",
+      "predicate": "works_for",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_EEB7DF52F85815E7934D5EC571"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.95,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_3AB5282117009BFC31DD8A324A",
+          "start_offset": 0,
+          "end_offset": 29,
+          "excerpt": "Мария Иванова works at Atlas."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic relationships case",
+  "mentions": [
+    {
+      "mention_id": "mention_113E0401EE939D8B7B04F72460",
+      "entity_type": "person",
+      "display_name": "Maya Snow",
+      "evidence": [
+        {
+          "source_id": "source_D6B55934561A0348DA66104733",
+          "start_offset": 0,
+          "end_offset": 9,
+          "excerpt": "Maya Snow"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_FF09702EFAB132ECFE58BE238D",
+      "entity_type": "person",
+      "display_name": "Noah King",
+      "evidence": [
+        {
+          "source_id": "source_D6B55934561A0348DA66104733",
+          "start_offset": 25,
+          "end_offset": 34,
+          "excerpt": "Noah King"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_113E0401EE939D8B7B04F72460",
+      "predicate": "friend_of",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_FF09702EFAB132ECFE58BE238D"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.94,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_D6B55934561A0348DA66104733",
+          "start_offset": 0,
+          "end_offset": 35,
+          "excerpt": "Maya Snow is a friend of Noah King."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

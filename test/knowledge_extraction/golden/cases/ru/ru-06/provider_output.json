@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic languages case",
+  "mentions": [
+    {
+      "mention_id": "mention_A8E2A6BFC84AECDED4EF802F32",
+      "entity_type": "person",
+      "display_name": "Егор Лебедев",
+      "evidence": [
+        {
+          "source_id": "source_41A2C089386771EA292386516F",
+          "start_offset": 0,
+          "end_offset": 12,
+          "excerpt": "Егор Лебедев"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_25C686C6BEACF174F92697A760",
+      "entity_type": "language",
+      "display_name": "по-гречески",
+      "evidence": [
+        {
+          "source_id": "source_41A2C089386771EA292386516F",
+          "start_offset": 21,
+          "end_offset": 32,
+          "excerpt": "по-гречески"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_A8E2A6BFC84AECDED4EF802F32",
+      "predicate": "speaks",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_25C686C6BEACF174F92697A760"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.92,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_41A2C089386771EA292386516F",
+          "start_offset": 0,
+          "end_offset": 33,
+          "excerpt": "Егор Лебедев говорит по-гречески."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

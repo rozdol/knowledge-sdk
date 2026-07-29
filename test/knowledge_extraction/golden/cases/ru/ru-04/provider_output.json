@@ -1,0 +1,58 @@
+{
+  "summary": "Synthetic historical-employment case",
+  "mentions": [
+    {
+      "mention_id": "mention_CFAFE74B2D626EE7A9A548BF10",
+      "entity_type": "person",
+      "display_name": "Глеб Морозов",
+      "evidence": [
+        {
+          "source_id": "source_9C00A5E50C507C4577AE3EA8FA",
+          "start_offset": 0,
+          "end_offset": 12,
+          "excerpt": "Глеб Морозов"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_99E2CCD5BD3C4399BA396A2696",
+      "entity_type": "organization",
+      "display_name": "Вектор",
+      "evidence": [
+        {
+          "source_id": "source_9C00A5E50C507C4577AE3EA8FA",
+          "start_offset": 30,
+          "end_offset": 36,
+          "excerpt": "Вектор"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_CFAFE74B2D626EE7A9A548BF10",
+      "predicate": "works_for",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_99E2CCD5BD3C4399BA396A2696"
+      },
+      "qualifiers": {
+        "valid_to": "2025"
+      },
+      "confidence": 0.9,
+      "status": "historical",
+      "evidence": [
+        {
+          "source_id": "source_9C00A5E50C507C4577AE3EA8FA",
+          "start_offset": 0,
+          "end_offset": 38,
+          "excerpt": "Глеб Морозов раньше работал в Векторе."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

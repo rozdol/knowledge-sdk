@@ -1,0 +1,45 @@
+{
+  "summary": "Synthetic promises case",
+  "mentions": [
+    {
+      "mention_id": "mention_4D592D2E22A3D52917E001AE05",
+      "entity_type": "person",
+      "display_name": "Quinn Rose",
+      "evidence": [
+        {
+          "source_id": "source_9CFBE71007CA261912B214E606",
+          "start_offset": 0,
+          "end_offset": 10,
+          "excerpt": "Quinn Rose"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "promise",
+      "subject_mention_id": "mention_4D592D2E22A3D52917E001AE05",
+      "predicate": "promise",
+      "object": {
+        "kind": "scalar",
+        "value": "send the brief",
+        "value_type": "string"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.91,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_9CFBE71007CA261912B214E606",
+          "start_offset": 0,
+          "end_offset": 38,
+          "excerpt": "Quinn Rose promised to send the brief."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

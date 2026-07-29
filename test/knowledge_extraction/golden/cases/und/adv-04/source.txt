@@ -1,0 +1,1 @@
+Uma Test controls Omega Test, but controls_everything is not registered.

@@ -33,6 +33,10 @@ module KnowledgeGraph
       when "stats" then stats_command
       when "search" then search_command
       when "replay" then replay_command
+      when "extract", "proposal" then KnowledgeExtraction::CLI.new(
+        command: command, argv: @argv, out: @out, err: @err,
+        vault_root: vault_root, run_id: @options[:run_id], actor_id: @options[:actor_id]
+      ).run
       when "help", "--help", "-h" then print_help(parser)
       else
         raise InvalidIntent, "unknown command #{command.inspect}"
@@ -41,6 +45,9 @@ module KnowledgeGraph
       @err.puts(JSON.generate(error: error.message))
       2
     rescue KnowledgeGraph::Error => error
+      @err.puts(JSON.generate(error: error.message, error_class: error.class.name))
+      1
+    rescue KnowledgeExtraction::Error => error
       @err.puts(JSON.generate(error: error.message, error_class: error.class.name))
       1
     end
@@ -205,7 +212,7 @@ module KnowledgeGraph
 
     def print_help(option_parser)
       @out.puts(option_parser)
-      @out.puts("Commands: execute, validate, doctor, graph, stats, search, replay")
+      @out.puts("Commands: execute, validate, doctor, graph, stats, search, replay, extract, proposal")
       0
     end
   end

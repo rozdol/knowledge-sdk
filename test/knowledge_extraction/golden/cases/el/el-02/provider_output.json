@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic interests case",
+  "mentions": [
+    {
+      "mention_id": "mention_2159EB9032F451F5F154A0E252",
+      "entity_type": "person",
+      "display_name": "Βασίλης Πέτρου",
+      "evidence": [
+        {
+          "source_id": "source_6DA16BA03A268189E3AE19DB36",
+          "start_offset": 2,
+          "end_offset": 16,
+          "excerpt": "Βασίλης Πέτρου"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_4AFB3513C80EF61B1C74B81918",
+      "entity_type": "interest",
+      "display_name": "Ιστιοπλοΐα",
+      "evidence": [
+        {
+          "source_id": "source_6DA16BA03A268189E3AE19DB36",
+          "start_offset": 34,
+          "end_offset": 44,
+          "excerpt": "Ιστιοπλοΐα"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_2159EB9032F451F5F154A0E252",
+      "predicate": "interested_in",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_4AFB3513C80EF61B1C74B81918"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.93,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_6DA16BA03A268189E3AE19DB36",
+          "start_offset": 0,
+          "end_offset": 45,
+          "excerpt": "Ο Βασίλης Πέτρου ενδιαφέρεται για Ιστιοπλοΐα."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

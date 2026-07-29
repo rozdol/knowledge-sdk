@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic employment case",
+  "mentions": [
+    {
+      "mention_id": "mention_B26B77271F7F45D0E561131B90",
+      "entity_type": "person",
+      "display_name": "Alice Carter",
+      "evidence": [
+        {
+          "source_id": "source_89C58FC72D844B8A4D9CCFEE2E",
+          "start_offset": 0,
+          "end_offset": 12,
+          "excerpt": "Alice Carter"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_117D5A9CB0BDD4A8CC73AD7EC9",
+      "entity_type": "organization",
+      "display_name": "Northstar",
+      "evidence": [
+        {
+          "source_id": "source_89C58FC72D844B8A4D9CCFEE2E",
+          "start_offset": 22,
+          "end_offset": 31,
+          "excerpt": "Northstar"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_B26B77271F7F45D0E561131B90",
+      "predicate": "works_for",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_117D5A9CB0BDD4A8CC73AD7EC9"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.98,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_89C58FC72D844B8A4D9CCFEE2E",
+          "start_offset": 0,
+          "end_offset": 32,
+          "excerpt": "Alice Carter works at Northstar."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

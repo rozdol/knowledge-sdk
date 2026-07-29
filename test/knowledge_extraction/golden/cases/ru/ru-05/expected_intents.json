@@ -1,0 +1,12 @@
+{
+  "intent_types": [
+    "CreateEntity",
+    "CreateEntity",
+    "AddRelationship"
+  ],
+  "approval_requirements": [
+    "human_review",
+    "explicit_engine_approval",
+    "human_review"
+  ]
+}

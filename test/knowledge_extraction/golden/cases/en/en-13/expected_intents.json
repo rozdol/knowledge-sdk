@@ -1,0 +1,10 @@
+{
+  "intent_types": [
+    "CreateEntity",
+    "AddRelationship"
+  ],
+  "approval_requirements": [
+    "human_review",
+    "human_review"
+  ]
+}

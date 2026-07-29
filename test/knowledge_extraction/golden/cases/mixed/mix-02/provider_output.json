@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic mixed-language case",
+  "mentions": [
+    {
+      "mention_id": "mention_3B7AB70B9AA0F5FAAFB734CAFF",
+      "entity_type": "person",
+      "display_name": "Νίκος Παύλου",
+      "evidence": [
+        {
+          "source_id": "source_180E67A2A48D936F4CFC807F47",
+          "start_offset": 2,
+          "end_offset": 14,
+          "excerpt": "Νίκος Παύλου"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_5E1F738D13215D4CB10BFBFC4B",
+      "entity_type": "technology",
+      "display_name": "Ruby",
+      "evidence": [
+        {
+          "source_id": "source_180E67A2A48D936F4CFC807F47",
+          "start_offset": 20,
+          "end_offset": 24,
+          "excerpt": "Ruby"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_3B7AB70B9AA0F5FAAFB734CAFF",
+      "predicate": "uses",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_5E1F738D13215D4CB10BFBFC4B"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.94,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_180E67A2A48D936F4CFC807F47",
+          "start_offset": 0,
+          "end_offset": 25,
+          "excerpt": "Ο Νίκος Παύλου uses Ruby."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

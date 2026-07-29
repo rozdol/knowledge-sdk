@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic technology case",
+  "mentions": [
+    {
+      "mention_id": "mention_833370DC2F5DBC05A9225E4F47",
+      "entity_type": "person",
+      "display_name": "Δημήτρης Λάμπρου",
+      "evidence": [
+        {
+          "source_id": "source_B8186DD8D6B729342BAAB311F7",
+          "start_offset": 2,
+          "end_offset": 18,
+          "excerpt": "Δημήτρης Λάμπρου"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_1B225E09248DFE3FE2693FAC2C",
+      "entity_type": "technology",
+      "display_name": "Obsidian",
+      "evidence": [
+        {
+          "source_id": "source_B8186DD8D6B729342BAAB311F7",
+          "start_offset": 32,
+          "end_offset": 40,
+          "excerpt": "Obsidian"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_833370DC2F5DBC05A9225E4F47",
+      "predicate": "uses",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_1B225E09248DFE3FE2693FAC2C"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.94,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_B8186DD8D6B729342BAAB311F7",
+          "start_offset": 0,
+          "end_offset": 41,
+          "excerpt": "Ο Δημήτρης Λάμπρου χρησιμοποιεί Obsidian."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}

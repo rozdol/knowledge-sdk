@@ -1,0 +1,57 @@
+{
+  "summary": "Synthetic technology case",
+  "mentions": [
+    {
+      "mention_id": "mention_CC3D5A15A49B966BA196689814",
+      "entity_type": "person",
+      "display_name": "Henry Lake",
+      "evidence": [
+        {
+          "source_id": "source_FFAB9C7E1323D1E83E380C017A",
+          "start_offset": 0,
+          "end_offset": 10,
+          "excerpt": "Henry Lake"
+        }
+      ]
+    },
+    {
+      "mention_id": "mention_1B225E09248DFE3FE2693FAC2C",
+      "entity_type": "technology",
+      "display_name": "Obsidian",
+      "evidence": [
+        {
+          "source_id": "source_FFAB9C7E1323D1E83E380C017A",
+          "start_offset": 16,
+          "end_offset": 24,
+          "excerpt": "Obsidian"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_type": "relationship",
+      "subject_mention_id": "mention_CC3D5A15A49B966BA196689814",
+      "predicate": "uses",
+      "object": {
+        "kind": "mention",
+        "mention_id": "mention_1B225E09248DFE3FE2693FAC2C"
+      },
+      "qualifiers": {
+      },
+      "confidence": 0.96,
+      "status": "asserted",
+      "evidence": [
+        {
+          "source_id": "source_FFAB9C7E1323D1E83E380C017A",
+          "start_offset": 0,
+          "end_offset": 25,
+          "excerpt": "Henry Lake uses Obsidian."
+        }
+      ]
+    }
+  ],
+  "warnings": [
+
+  ]
+}
