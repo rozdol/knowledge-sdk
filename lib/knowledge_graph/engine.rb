@@ -67,6 +67,15 @@ module KnowledgeGraph
         clock: clock,
         run_id: @run_id
       )
+      relationship_manager = RelationshipManager.new(
+        vault_root: @vault_root,
+        schema_registry: registry,
+        relationship_registry: RelationshipRegistry.new(vault_root: @vault_root),
+        writer: YamlWriter.new,
+        id_generator: id_generator,
+        clock: clock,
+        run_id: @run_id
+      )
       {
         CreateEntity => :create,
         UpdateEntity => :update,
@@ -77,6 +86,13 @@ module KnowledgeGraph
         ImportTranscript => :import_transcript,
         CompleteFollowUp => :complete_follow_up
       }.each { |intent_class, method_name| register(intent_class, manager.method(method_name)) }
+      {
+        AddRelationship => :add,
+        RemoveRelationship => :remove,
+        ReplaceRelationship => :replace
+      }.each do |intent_class, method_name|
+        register(intent_class, relationship_manager.method(method_name))
+      end
     end
   end
 end

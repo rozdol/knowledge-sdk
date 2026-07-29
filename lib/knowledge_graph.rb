@@ -16,6 +16,8 @@ require_relative "knowledge_graph/storage/repository"
 require_relative "knowledge_graph/storage/id_generator"
 require_relative "knowledge_graph/validation/external_validator"
 require_relative "knowledge_graph/entities/entity_manager"
+require_relative "knowledge_graph/graph/relationship_registry"
+require_relative "knowledge_graph/graph/relationship_manager"
 require_relative "knowledge_graph/engine"
 
 module KnowledgeGraph
