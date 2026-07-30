@@ -1,0 +1,160 @@
+[
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.extraction.extract_source",
+    "name": "extract_source",
+    "version": "1.0.0",
+    "description": "Treat source content as untrusted data and create an immutable review-only extraction proposal.",
+    "input_schema": {
+      "type": "object",
+      "required": ["source_type", "content"],
+      "properties": {
+        "source_type": { "type": "string", "enum": ["text", "chat", "meeting-notes", "email-text", "transcript", "ocr-text", "pdf-text"] },
+        "content": { "type": "string", "minLength": 1, "maxLength": 1000000 },
+        "language": { "type": "string", "enum": ["en", "ru", "el", "mixed", "und"] },
+        "captured_at": { "type": "string", "format": "date-time" },
+        "external_id": { "type": "string", "maxLength": 1000 },
+        "source_uri": { "type": "string", "maxLength": 4096 },
+        "title": { "type": "string", "maxLength": 1000 },
+        "sensitivity": { "type": "string", "enum": ["normal", "private", "restricted"] }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "required": ["proposal_id", "status", "fact_count", "planned_intent_count", "executable"],
+      "properties": {
+        "proposal_id": { "type": "string" }, "status": { "type": "string" },
+        "fact_count": { "type": "integer" }, "planned_intent_count": { "type": "integer" },
+        "executable": { "type": "boolean", "const": false }
+      },
+      "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "proposal_write", "timeout_ms": 120000, "idempotent": true },
+    "policy": { "permissions": ["proposal:create"], "risk": "medium", "approval": "proposal_only" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "source_type": "transcript", "content": "Ada works at ExampleCo", "language": "en", "sensitivity": "private" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.proposals.create",
+    "name": "create_proposal",
+    "version": "1.0.0",
+    "description": "Create and persist an immutable review-only proposal from deterministic intelligence findings.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "finding_ids": { "type": "array", "minItems": 1, "maxItems": 100, "uniqueItems": true, "items": { "type": "string" } },
+        "as_of": { "type": "string", "format": "date" }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "required": ["proposal_id", "status", "planned_intent_count", "executable"],
+      "properties": {
+        "proposal_id": { "type": "string" }, "status": { "type": "string" },
+        "planned_intent_count": { "type": "integer" }, "executable": { "type": "boolean", "const": false }
+      },
+      "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "proposal_write", "timeout_ms": 120000, "idempotent": true },
+    "policy": { "permissions": ["proposal:create", "intelligence:read"], "risk": "medium", "approval": "proposal_only" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "as_of": "2026-07-30" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.proposals.validate",
+    "name": "validate_proposal",
+    "version": "1.0.0",
+    "description": "Validate the structure and immutable references of a stored proposal without executing it.",
+    "input_schema": {
+      "type": "object", "required": ["proposal_id"],
+      "properties": { "proposal_id": { "type": "string", "pattern": "^proposal_[0-9A-HJKMNP-TV-Z]{26}$" } },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["proposal_id", "status"],
+      "properties": { "proposal_id": { "type": "string" }, "status": { "type": "string", "const": "valid" } },
+      "additionalProperties": false
+    },
+    "errors": ["ProposalNotFound", "InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 10000, "idempotent": true },
+    "policy": { "permissions": ["proposal:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": false },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "proposal_id": "proposal_01K1D9VB96W7CS7F4M7K8Q2Z0A" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.proposals.status",
+    "name": "proposal_status",
+    "version": "1.0.0",
+    "description": "Return proposal and approval status without exposing source content or runtime paths.",
+    "input_schema": {
+      "type": "object", "required": ["proposal_id"],
+      "properties": { "proposal_id": { "type": "string", "pattern": "^proposal_[0-9A-HJKMNP-TV-Z]{26}$" } },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "required": ["proposal_id", "status", "immutable_fingerprint", "approval_status", "approved_intent_ids"],
+      "properties": {
+        "proposal_id": { "type": "string" }, "status": { "type": "string" },
+        "immutable_fingerprint": { "type": "string" },
+        "approval_status": { "type": "string", "enum": ["approved", "not_approved"] },
+        "approved_intent_ids": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "errors": ["ProposalNotFound", "InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 10000, "idempotent": true },
+    "policy": { "permissions": ["proposal:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": false },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "proposal_id": "proposal_01K1D9VB96W7CS7F4M7K8Q2Z0A" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.proposals.submit",
+    "name": "submit_proposal",
+    "version": "1.0.0",
+    "description": "Submit only a stored immutable proposal covered by an exact existing human approval receipt.",
+    "input_schema": {
+      "type": "object", "required": ["proposal_id"],
+      "properties": {
+        "proposal_id": { "type": "string", "pattern": "^proposal_[0-9A-HJKMNP-TV-Z]{26}$" },
+        "dry_run": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["proposal_id", "status", "dry_run", "submitted_at", "results", "transaction_semantics"],
+      "properties": {
+        "proposal_id": { "type": "string" }, "status": { "type": "string" }, "dry_run": { "type": "boolean" },
+        "submitted_at": { "type": "string", "format": "date-time" }, "results": { "type": "array", "items": { "type": "object" } },
+        "transaction_semantics": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "errors": ["ProposalNotFound", "ApprovalRequired", "InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "graph_write", "timeout_ms": 300000, "idempotent": true },
+    "policy": {
+      "permissions": ["proposal:submit"], "risk": "high", "approval": "existing_proposal_approval",
+      "proposal_id_argument": "proposal_id"
+    },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "proposal_id": "proposal_01K1D9VB96W7CS7F4M7K8Q2Z0A", "dry_run": true } }],
+    "deprecation": { "status": "active" }
+  }
+]

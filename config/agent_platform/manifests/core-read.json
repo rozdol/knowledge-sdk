@@ -1,0 +1,379 @@
+[
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.entities.search",
+    "name": "search_entities",
+    "version": "1.0.0",
+    "description": "Search canonical entity identities without exposing storage paths or implementation details.",
+    "input_schema": {
+      "type": "object",
+      "required": ["query"],
+      "properties": {
+        "query": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "entity_type": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "strong_only": { "type": "boolean" },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 100 }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "required": ["query", "matches"],
+      "properties": { "query": { "type": "string" }, "matches": { "type": "array", "items": { "type": "object" } } },
+      "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 5000, "idempotent": true },
+    "policy": { "permissions": ["graph:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "query": "Ada", "entity_type": "person" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.entities.get",
+    "name": "get_entity",
+    "version": "1.0.0",
+    "description": "Return one policy-filtered canonical entity projection by immutable ID.",
+    "input_schema": {
+      "type": "object", "required": ["entity_id"],
+      "properties": { "entity_id": { "type": "string", "minLength": 3, "maxLength": 200 } },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["entity"],
+      "properties": { "entity": { "type": "object" } }, "additionalProperties": false
+    },
+    "errors": ["CapabilityNotFound", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 5000, "idempotent": true },
+    "policy": { "permissions": ["graph:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": false },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "entity_id": "person_01K1D9VB96W7CS7F4M7K8Q2Z0A" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.graph.relationship_path",
+    "name": "find_relationship_path",
+    "version": "1.0.0",
+    "description": "Find a deterministic shortest path between immutable entity IDs.",
+    "input_schema": {
+      "type": "object", "required": ["source_id", "target_id"],
+      "properties": {
+        "source_id": { "type": "string", "minLength": 3, "maxLength": 200 },
+        "target_id": { "type": "string", "minLength": 3, "maxLength": 200 },
+        "mode": { "type": "string", "enum": ["auto", "social", "knowledge"] },
+        "as_of": { "type": "string", "format": "date" }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["source_id", "target_id", "mode", "graph_path", "distance"],
+      "properties": {
+        "source_id": { "type": "string" }, "target_id": { "type": "string" },
+        "mode": { "type": "string" }, "graph_path": { "type": ["array", "null"], "items": { "type": "string" } },
+        "distance": { "type": ["integer", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "errors": ["CapabilityNotFound", "InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 15000, "idempotent": true },
+    "policy": { "permissions": ["graph:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "source_id": "person_A", "target_id": "person_B", "mode": "social" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.graph.query",
+    "name": "graph_query",
+    "version": "1.0.0",
+    "description": "Execute one supported deterministic natural-language graph query.",
+    "input_schema": {
+      "type": "object", "required": ["query"],
+      "properties": { "query": { "type": "string", "minLength": 1, "maxLength": 1000 }, "as_of": { "type": "string", "format": "date" } },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["query", "kind", "answers"],
+      "properties": { "query": { "type": "string" }, "kind": { "type": "string" }, "answers": { "type": "array", "items": { "type": "object" } } },
+      "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 15000, "idempotent": true },
+    "policy": { "permissions": ["graph:read", "intelligence:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "query": "Which companies are connected?" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.intelligence.analyze",
+    "name": "run_analyzer",
+    "version": "1.0.0",
+    "description": "Run selected versioned Knowledge Intelligence analyzers on one immutable snapshot.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "analyzers": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "enum": ["relationship", "knowledge_gap", "opportunity", "followup", "activity", "project", "timeline", "network", "memory", "anomaly", "consistency", "recommendation"] }
+        },
+        "as_of": { "type": "string", "format": "date" }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["snapshot_digest", "as_of", "results", "feature_metrics"],
+      "properties": {
+        "snapshot_digest": { "type": "string" }, "as_of": { "type": "string", "format": "date" },
+        "results": { "type": "array", "items": { "type": "object" } }, "feature_metrics": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 60000, "idempotent": true },
+    "policy": { "permissions": ["intelligence:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "analyzers": ["relationship", "followup"], "as_of": "2026-07-30" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.intelligence.briefing",
+    "name": "generate_briefing",
+    "version": "1.0.0",
+    "description": "Generate a deterministic briefing scoped by manifest arguments or immutable session references.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "entity_ids": { "type": "array", "maxItems": 50, "uniqueItems": true, "items": { "type": "string" } },
+        "as_of": { "type": "string", "format": "date" },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 200 }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["as_of", "entities", "findings", "summary"],
+      "properties": {
+        "as_of": { "type": "string", "format": "date" }, "entities": { "type": "array", "items": { "type": "object" } },
+        "findings": { "type": "array", "items": { "type": "object" } }, "summary": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 60000, "idempotent": true },
+    "policy": { "permissions": ["graph:read", "intelligence:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "entity_ids": ["person_01K1D9VB96W7CS7F4M7K8Q2Z0A"], "limit": 20 } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.intelligence.digest",
+    "name": "generate_digest",
+    "version": "1.0.0",
+    "description": "Generate a daily, weekly, or monthly deterministic intelligence digest.",
+    "input_schema": {
+      "type": "object",
+      "properties": { "period": { "type": "string", "enum": ["daily", "weekly", "monthly"] }, "as_of": { "type": "string", "format": "date" } },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["name", "as_of", "summary", "sections", "metrics"],
+      "properties": {
+        "name": { "type": "string" }, "as_of": { "type": "string", "format": "date" }, "summary": { "type": "string" },
+        "sections": { "type": "object" }, "metrics": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 60000, "idempotent": true },
+    "policy": { "permissions": ["intelligence:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "period": "weekly", "as_of": "2026-07-30" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.intelligence.explain_finding",
+    "name": "explain_finding",
+    "version": "1.0.0",
+    "description": "Explain one deterministic finding with confidence, evidence references, and graph path.",
+    "input_schema": {
+      "type": "object", "required": ["finding_id"],
+      "properties": { "finding_id": { "type": "string", "minLength": 3, "maxLength": 200 }, "as_of": { "type": "string", "format": "date" } },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["finding"], "properties": { "finding": { "type": "object" } }, "additionalProperties": false
+    },
+    "errors": ["CapabilityNotFound", "InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 60000, "idempotent": true },
+    "policy": { "permissions": ["intelligence:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "finding_id": "finding_01K1D9VB96W7CS7F4M7K8Q2Z0A" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.projects.search",
+    "name": "search_projects",
+    "version": "1.0.0",
+    "description": "Search canonical Project identities by name or alias.",
+    "input_schema": {
+      "type": "object", "required": ["query"],
+      "properties": { "query": { "type": "string", "minLength": 1, "maxLength": 500 }, "limit": { "type": "integer", "minimum": 1, "maximum": 100 } },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["query", "matches"],
+      "properties": { "query": { "type": "string" }, "matches": { "type": "array", "items": { "type": "object" } } }, "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 10000, "idempotent": true },
+    "policy": { "permissions": ["graph:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "query": "Apollo" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.companies.search",
+    "name": "search_companies",
+    "version": "1.0.0",
+    "description": "Search canonical company Organizations by name or alias.",
+    "input_schema": {
+      "type": "object", "required": ["query"],
+      "properties": { "query": { "type": "string", "minLength": 1, "maxLength": 500 }, "limit": { "type": "integer", "minimum": 1, "maximum": 100 } },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["query", "matches"],
+      "properties": { "query": { "type": "string" }, "matches": { "type": "array", "items": { "type": "object" } } }, "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 10000, "idempotent": true },
+    "policy": { "permissions": ["graph:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "query": "Northstar" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.intelligence.timeline",
+    "name": "timeline",
+    "version": "1.0.0",
+    "description": "Return deterministic activity and relationship timeline findings.",
+    "input_schema": {
+      "type": "object", "properties": { "entity_id": { "type": "string", "maxLength": 200 }, "as_of": { "type": "string", "format": "date" } }, "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["as_of", "analyzers", "findings", "metrics"],
+      "properties": { "as_of": { "type": "string", "format": "date" }, "analyzers": { "type": "array", "items": { "type": "string" } }, "findings": { "type": "array", "items": { "type": "object" } }, "metrics": { "type": "object" } },
+      "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 30000, "idempotent": true },
+    "policy": { "permissions": ["intelligence:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "as_of": "2026-07-30" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.intelligence.network",
+    "name": "network_analysis",
+    "version": "1.0.0",
+    "description": "Run potentially long network analysis as an asynchronous in-memory job.",
+    "input_schema": {
+      "type": "object", "properties": { "entity_id": { "type": "string", "maxLength": 200 }, "as_of": { "type": "string", "format": "date" } }, "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["as_of", "analyzers", "findings", "metrics"],
+      "properties": { "as_of": { "type": "string", "format": "date" }, "analyzers": { "type": "array", "items": { "type": "string" } }, "findings": { "type": "array", "items": { "type": "object" } }, "metrics": { "type": "object" } },
+      "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "asynchronous", "effects": "read_only", "timeout_ms": 120000, "idempotent": true },
+    "policy": { "permissions": ["intelligence:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "as_of": "2026-07-30" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.intelligence.knowledge_gaps",
+    "name": "knowledge_gaps",
+    "version": "1.0.0",
+    "description": "Return deterministic knowledge-gap and consistency findings.",
+    "input_schema": {
+      "type": "object", "properties": { "entity_id": { "type": "string", "maxLength": 200 }, "as_of": { "type": "string", "format": "date" } }, "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["as_of", "analyzers", "findings", "metrics"],
+      "properties": { "as_of": { "type": "string", "format": "date" }, "analyzers": { "type": "array", "items": { "type": "string" } }, "findings": { "type": "array", "items": { "type": "object" } }, "metrics": { "type": "object" } }, "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 60000, "idempotent": true },
+    "policy": { "permissions": ["intelligence:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "entity_id": "person_01K1D9VB96W7CS7F4M7K8Q2Z0A" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.intelligence.relationship_health",
+    "name": "relationship_health",
+    "version": "1.0.0",
+    "description": "Return deterministic relationship and activity health findings.",
+    "input_schema": {
+      "type": "object", "properties": { "entity_id": { "type": "string", "maxLength": 200 }, "as_of": { "type": "string", "format": "date" } }, "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["as_of", "analyzers", "findings", "metrics"],
+      "properties": { "as_of": { "type": "string", "format": "date" }, "analyzers": { "type": "array", "items": { "type": "string" } }, "findings": { "type": "array", "items": { "type": "object" } }, "metrics": { "type": "object" } }, "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 60000, "idempotent": true },
+    "policy": { "permissions": ["intelligence:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "as_of": "2026-07-30" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.intelligence.followup_status",
+    "name": "followup_status",
+    "version": "1.0.0",
+    "description": "Return deterministic follow-up and commitment status findings.",
+    "input_schema": {
+      "type": "object", "properties": { "entity_id": { "type": "string", "maxLength": 200 }, "as_of": { "type": "string", "format": "date" } }, "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object", "required": ["as_of", "analyzers", "findings", "metrics"],
+      "properties": { "as_of": { "type": "string", "format": "date" }, "analyzers": { "type": "array", "items": { "type": "string" } }, "findings": { "type": "array", "items": { "type": "object" } }, "metrics": { "type": "object" } }, "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 30000, "idempotent": true },
+    "policy": { "permissions": ["intelligence:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "as_of": "2026-07-30" } }],
+    "deprecation": { "status": "active" }
+  }
+]

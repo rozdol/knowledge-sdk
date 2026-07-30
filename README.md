@@ -12,6 +12,8 @@ From the vault root:
 ruby "_System/KnowledgeGraph/bin/kg" doctor
 ruby "_System/KnowledgeGraph/bin/kg" stats
 ruby "_System/KnowledgeGraph/bin/kg" search "Ada"
+ruby "_System/KnowledgeGraph/bin/kg" gateway capabilities
+ruby "_System/KnowledgeGraph/bin/kg" gateway execute kg.entities.search '{"query":"Ada"}'
 ```
 
 Execute an Intent from JSON:
@@ -59,6 +61,11 @@ result = kg.execute(
 - `kg intelligence relationships|opportunities|gaps|network|memory|recommendations` runs deterministic read-only analyzers.
 - `kg intelligence digest|report|query|features|explain` exposes derived intelligence without writing canonical notes.
 - `kg intelligence proposal [FINDING_ID]` emits an immutable proposal; `--persist` stores only proposal JSON for the existing approval workflow and still does not execute it.
+- `kg gateway capabilities` returns policy-filtered Capability Manifests and opaque invocation tokens.
+- `kg gateway execute CAPABILITY_ID[@VERSION] [JSON]` resolves the CLI selector through discovery, validates the manifest contract, and executes through the Agent Gateway.
+- `kg gateway policy check CAPABILITY_ID[@VERSION] [JSON]` evaluates centralized policy without invoking a handler.
+- `kg gateway explain TRACE_ID` returns sanitized telemetry for one agent-owned trace.
+- `kg gateway job JOB_ID [WAIT_MS]` reads an asynchronous capability job.
 
 Global options are `--vault`, `--run-id`, and `--actor-id`. Environment equivalents for the last two are `KG_RUN_ID` and `KG_ACTOR_ID`.
 
@@ -70,4 +77,4 @@ ruby "_System/Tools/test_validator.rb"
 ruby "_System/Tools/validate_vault.rb"
 ```
 
-See [Architecture](docs/Architecture.md), [Intent API](docs/Intent%20API.md), [Examples](docs/Examples.md), [Migration Guide](docs/Migration%20Guide.md), [AI Integration Guide](docs/AI%20Integration%20Guide.md), the [Knowledge Extraction README](docs/Knowledge%20Extraction/README.md), and the [Knowledge Intelligence README](docs/Knowledge%20Intelligence/README.md).
+See [Architecture](docs/Architecture.md), [Intent API](docs/Intent%20API.md), [Examples](docs/Examples.md), [Migration Guide](docs/Migration%20Guide.md), [AI Integration Guide](docs/AI%20Integration%20Guide.md), the [Knowledge Extraction README](docs/Knowledge%20Extraction/README.md), the [Knowledge Intelligence README](docs/Knowledge%20Intelligence/README.md), and the [Agent Platform README](docs/Agent%20Platform/README.md).

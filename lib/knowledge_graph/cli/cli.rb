@@ -33,6 +33,7 @@ module KnowledgeGraph
       when "stats" then stats_command
       when "search" then search_command
       when "replay" then replay_command
+      when "gateway" then gateway_command
       when "intelligence" then KnowledgeIntelligence::CLI.new(
         argv: @argv, out: @out, err: @err, vault_root: vault_root
       ).run
@@ -95,6 +96,7 @@ module KnowledgeGraph
         ruby_version: RUBY_VERSION,
         schemas: registry.keys.length,
         predicates: relationships.predicates.length,
+        capabilities: agent_gateway.registry.size,
         validator_output: [stdout, stderr].join.strip
       )
       status.success? ? 0 : 1
@@ -115,16 +117,22 @@ module KnowledgeGraph
       query = @argv.join(" ").strip
       raise InvalidIntent, "search expects a query" if query.empty?
 
-      matches = IdentityResolver.new(repository: repository).search(query).map do |match|
-        {
-          id: match.record.id,
-          type: match.record.type,
-          name: match.record.data["name"],
-          path: match.record.relative_path,
-          signals: match.signals
-        }
+      agent = AgentPlatform::AgentIdentity.new(
+        id: @options[:actor_id].to_s.empty? ? "local-cli-search" : @options[:actor_id],
+        permissions: ["graph:read"], roles: ["local_reader"]
+      )
+      contract = agent_gateway.discover(agent: agent).find do |item|
+        item.fetch("capability_id") == "kg.entities.search"
       end
-      emit_json(query: query, matches: matches)
+      raise InvalidIntent, "entity search capability is unavailable" unless contract
+
+      request = agent_gateway.issue_request(
+        invocation_token: contract.fetch("invocation_token"), arguments: { query: query }
+      )
+      response = agent_gateway.execute(request: request, agent: agent)
+      raise InvalidIntent, response.errors.first.fetch("message") unless response.success?
+
+      emit_json(response.payload)
       0
     end
 
@@ -164,6 +172,19 @@ module KnowledgeGraph
 
       emit_result(engine.execute(IntentFactory.build(event.fetch("intent"))))
       0
+    end
+
+    def gateway_command
+      AgentPlatform::Adapters::CLI.new(
+        gateway: agent_gateway, argv: @argv, out: @out, err: @err,
+        agent: AgentPlatform.local_cli_identity(@options[:actor_id])
+      ).run
+    end
+
+    def agent_gateway
+      @agent_gateway ||= AgentPlatform.build(
+        vault_root: vault_root, run_id: @options[:run_id], actor_id: @options[:actor_id]
+      )
     end
 
     def engine
@@ -215,7 +236,7 @@ module KnowledgeGraph
 
     def print_help(option_parser)
       @out.puts(option_parser)
-      @out.puts("Commands: execute, validate, doctor, graph, stats, search, replay, extract, proposal, intelligence")
+      @out.puts("Commands: execute, validate, doctor, graph, stats, search, replay, extract, proposal, intelligence, gateway")
       0
     end
   end

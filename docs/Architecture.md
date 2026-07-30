@@ -22,7 +22,23 @@ immutable Intent
   -> replayable JSONL audit event
 ```
 
-Authorization is an explicit future insertion point before dispatch. Approval gates for Person merges and ontology creation are already enforced by Intent fields.
+The Agent Platform is the public authorization and capability-dispatch boundary for Hermes, MCP, REST-style clients, and new agent integrations. Existing direct Engine calls remain an internal/local SDK compatibility surface. Proposal submission still reaches `Engine#execute`, so Agent Platform policy augments rather than replaces Engine approval gates.
+
+## Agent execution pipeline
+
+```text
+policy-filtered manifest discovery
+  -> opaque invocation token
+  -> immutable AgentRequest
+  -> manifest input validation
+  -> centralized policy and exact approval check
+  -> private handler binding
+  -> existing Graph / Extraction / Intelligence API
+  -> manifest output validation and leak guard
+  -> structured AgentResponse + sanitized telemetry
+```
+
+Agents cannot dispatch arbitrary capability names. Transport strings are selectors only: an adapter resolves them against current policy-filtered discovery and invokes the Gateway with the manifest-issued opaque token.
 
 ## Modules
 
@@ -34,6 +50,7 @@ Authorization is an explicit future insertion point before dispatch. Approval ga
 - `identity/` indexes exact identity signals, follows merge redirects, and performs atomic merge/split operations.
 - `audit/` stores local JSONL events and transactionally committed idempotency receipts.
 - `cli/` exposes the same SDK capabilities without a second execution path.
+- `agent_platform/` owns manifests, Registry, Gateway, policy, sessions, adapters, jobs, telemetry, plugins, and generated contract artifacts. It does not parse Markdown or YAML.
 
 ## Transaction guarantees
 
