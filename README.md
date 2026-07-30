@@ -14,6 +14,8 @@ ruby "_System/KnowledgeGraph/bin/kg" stats
 ruby "_System/KnowledgeGraph/bin/kg" search "Ada"
 ruby "_System/KnowledgeGraph/bin/kg" gateway capabilities
 ruby "_System/KnowledgeGraph/bin/kg" gateway execute kg.entities.search '{"query":"Ada"}'
+ruby "_System/KnowledgeGraph/bin/kg" workflow list
+ruby "_System/KnowledgeGraph/bin/kg" scheduler list
 ruby "_System/KnowledgeGraph/bin/kg" plan compare \
   '{"description":"Reach a target","goal_type":"warm_introduction","preferences":{"target_ids":["person_<ULID>"]}}' \
   --as-of 2026-07-30
@@ -72,6 +74,11 @@ result = kg.execute(
 - `kg gateway policy check CAPABILITY_ID[@VERSION] [JSON]` evaluates centralized policy without invoking a handler.
 - `kg gateway explain TRACE_ID` returns sanitized telemetry for one agent-owned trace.
 - `kg gateway job JOB_ID [WAIT_MS]` reads an asynchronous capability job.
+- `kg workflow list|run|replay|trace|cancel|jobs|resume|metrics` operates deterministic workflows and durable background jobs.
+- `kg events list|publish|replay|explain|dead-letters` operates the immutable internal event stream.
+- `kg scheduler list|run` inspects or runs cron-like declarative schedules.
+- `kg notifications list` returns informational runtime notifications; notifications never execute actions.
+- `kg cache list|explain|graph` inspects only derived computation artifacts and their event/snapshot dependencies.
 
 Global options are `--vault`, `--run-id`, and `--actor-id`. Environment equivalents for the last two are `KG_RUN_ID` and `KG_ACTOR_ID`.
 
@@ -83,4 +90,4 @@ ruby "_System/Tools/test_validator.rb"
 ruby "_System/Tools/validate_vault.rb"
 ```
 
-See [Architecture](docs/Architecture.md), [Intent API](docs/Intent%20API.md), [Examples](docs/Examples.md), [Migration Guide](docs/Migration%20Guide.md), [AI Integration Guide](docs/AI%20Integration%20Guide.md), the [Knowledge Extraction README](docs/Knowledge%20Extraction/README.md), the [Knowledge Intelligence README](docs/Knowledge%20Intelligence/README.md), the [Planning & Decision Engine README](docs/Planning%20Decision%20Engine/README.md), and the [Agent Platform README](docs/Agent%20Platform/README.md).
+See [Architecture](docs/Architecture.md), [Intent API](docs/Intent%20API.md), [Examples](docs/Examples.md), [Migration Guide](docs/Migration%20Guide.md), [AI Integration Guide](docs/AI%20Integration%20Guide.md), the [Knowledge Extraction README](docs/Knowledge%20Extraction/README.md), the [Knowledge Intelligence README](docs/Knowledge%20Intelligence/README.md), the [Planning & Decision Engine README](docs/Planning%20Decision%20Engine/README.md), the [Agent Platform README](docs/Agent%20Platform/README.md), and the [Event-Driven Orchestration README](docs/Event-Driven%20Orchestration/README.md).

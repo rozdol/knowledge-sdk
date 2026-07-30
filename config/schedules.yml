@@ -1,0 +1,59 @@
+schema_version: 1
+
+schedules:
+  - id: morning_briefing
+    description: Daily morning knowledge digest.
+    cron: "0 7 * * *"
+    event_type: DigestRequested
+    workflow: digest_requested
+    payload:
+      period: daily
+    enabled: true
+
+  - id: weekly_review
+    description: Weekly review every Monday morning.
+    cron: "0 8 * * 1"
+    event_type: DigestRequested
+    workflow: digest_requested
+    payload:
+      period: weekly
+    enabled: true
+
+  - id: monthly_review
+    description: Monthly review on the first day of each month.
+    cron: "0 9 1 * *"
+    event_type: DigestRequested
+    workflow: digest_requested
+    payload:
+      period: monthly
+    enabled: true
+
+  - id: relationship_health
+    description: Weekly relationship-health analysis.
+    cron: "30 8 * * 1"
+    event_type: ReminderDue
+    workflow: scheduled_health_review
+    payload:
+      analyzers: [relationship, followup]
+    enabled: true
+
+  - id: stale_projects
+    description: Daily stale-project analysis.
+    cron: "15 9 * * *"
+    event_type: ReminderDue
+    workflow: scheduled_health_review
+    payload:
+      analyzers: [project, activity]
+    enabled: true
+
+  - id: deadline_scan
+    description: Daily planning review for approaching deadlines.
+    cron: "0 10 * * *"
+    event_type: DeadlineReached
+    workflow: deadline_reached
+    payload:
+      goal:
+        description: Review active goals approaching their declared deadlines.
+        goal_type: generic
+        priority: high
+    enabled: true

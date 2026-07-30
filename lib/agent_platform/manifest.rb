@@ -166,7 +166,7 @@ module AgentPlatform
       unless %w[synchronous asynchronous].include?(execution["mode"])
         raise InvalidManifest, "invalid execution mode"
       end
-      unless %w[read_only proposal_write graph_write].include?(execution["effects"])
+      unless %w[read_only operational_write proposal_write graph_write].include?(execution["effects"])
         raise InvalidManifest, "invalid execution effects"
       end
       timeout = execution["timeout_ms"]

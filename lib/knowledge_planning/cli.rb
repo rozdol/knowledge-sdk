@@ -6,13 +6,14 @@ require "pathname"
 
 module KnowledgePlanning
   class CLI
-    def initialize(group:, argv:, out:, err:, stdin:, vault_root:)
+    def initialize(group:, argv:, out:, err:, stdin:, vault_root:, event_bus: nil)
       @group = group.to_s
       @argv = argv.dup
       @out = out
       @err = err
       @stdin = stdin
       @vault_root = vault_root.to_s
+      @event_bus = event_bus
       @options = { as_of: Date.today, persist: false }
     end
 
@@ -35,13 +36,17 @@ module KnowledgePlanning
       case command
       when "create"
         payload = parse_json_source(@argv.shift)
-        emit(goal_store.create(payload).to_h)
+        goal = goal_store.create(payload)
+        publish_goal_event("GoalCreated", goal)
+        emit(goal.to_h)
       when "list"
         status = nil
         OptionParser.new { |options| options.on("--status STATUS") { |value| status = value } }.parse!(@argv)
         emit(goals: goal_store.list(status: status).map(&:to_h))
       when "archive"
-        emit(goal_store.archive(@argv.shift || raise(InvalidGoal, "goal ID is required")).to_h)
+        goal = goal_store.archive(@argv.shift || raise(InvalidGoal, "goal ID is required"))
+        publish_goal_event("GoalArchived", goal)
+        emit(goal.to_h)
       when "help", "--help", "-h", nil
         @out.puts("Usage: kg goal create JSON|-|FILE | kg goal list [--status STATUS] | kg goal archive GOAL_ID")
       else raise InvalidGoal, "unknown goal command #{command.inspect}"
@@ -112,6 +117,15 @@ module KnowledgePlanning
 
     def goal_store
       @goal_store ||= GoalStore.new(vault_root: @vault_root)
+    end
+
+    def publish_goal_event(type, goal)
+      return unless @event_bus
+
+      @event_bus.publish(
+        type: type, source: "planning-goal-store",
+        payload: { "goal" => goal.to_h, "goal_id" => goal.id, "as_of" => @options[:as_of].iso8601 }
+      )
     end
 
     def compare_payload(result)

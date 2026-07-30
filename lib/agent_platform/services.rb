@@ -6,11 +6,14 @@ module AgentPlatform
   class Services
     attr_reader :vault_root, :run_id, :actor_id
 
-    def initialize(vault_root:, run_id:, actor_id: nil, clock: nil)
+    def initialize(vault_root:, run_id:, actor_id: nil, clock: nil, event_bus: nil,
+                   notification_store: nil)
       @vault_root = File.expand_path(vault_root.to_s).freeze
       @run_id = run_id.to_s.freeze
       @actor_id = actor_id && actor_id.to_s.freeze
       @clock = clock || -> { Time.now }
+      @event_bus = event_bus
+      @notification_store = notification_store
     end
 
     def graph_reader(context)
@@ -73,10 +76,24 @@ module AgentPlatform
 
     def engine(context)
       context.memoize(:engine) do
-        KnowledgeGraph::Engine.new(
+        engine = KnowledgeGraph::Engine.new(
           vault_root: vault_root, run_id: run_id, actor_id: actor_id, clock: @clock
         )
+        if @event_bus
+          KnowledgeOrchestration::EngineEventBridge.new(event_bus: @event_bus).attach(engine)
+        end
+        engine
       end
+    end
+
+    def notification_store
+      raise ExecutionFailed, "notification service is unavailable" unless @notification_store
+
+      @notification_store
+    end
+
+    def notification_store?
+      !@notification_store.nil?
     end
 
     def visible_entity?(record, agent)

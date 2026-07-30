@@ -12,7 +12,7 @@ module KnowledgeExtraction
       "ocr-text" => "ocr-text", "pdf-text" => "pdf-text"
     }.freeze
 
-    def initialize(command:, argv:, out:, err:, vault_root:, run_id:, actor_id:)
+    def initialize(command:, argv:, out:, err:, vault_root:, run_id:, actor_id:, event_bus: nil)
       @command = command
       @argv = argv.dup
       @out = out
@@ -20,6 +20,7 @@ module KnowledgeExtraction
       @vault_root = Pathname.new(vault_root)
       @run_id = run_id
       @actor_id = actor_id
+      @event_bus = event_bus
     end
 
     def run
@@ -151,9 +152,14 @@ module KnowledgeExtraction
       end
       raise ApprovalSubmissionFailure, "select --intent ID or --all" if options[:intent_ids].empty?
 
-      @out.puts(JSON.pretty_generate(store.approve(
+      approval = store.approve(
         proposal_id: proposal_id, intent_ids: options[:intent_ids], actor_id: options[:actor_id]
-      )))
+      )
+      @event_bus.publish(
+        type: "ProposalApproved", source: "proposal-store",
+        payload: { "proposal_id" => proposal_id, "approved_intent_ids" => options[:intent_ids] }
+      ) if @event_bus
+      @out.puts(JSON.pretty_generate(approval))
     end
 
     def proposal_submit(proposal_id)
@@ -219,9 +225,16 @@ module KnowledgeExtraction
     end
 
     def engine
-      @engine ||= KnowledgeGraph::Engine.new(
+      return @engine if @engine
+
+      engine = KnowledgeGraph::Engine.new(
         vault_root: @vault_root, run_id: @run_id, actor_id: @actor_id
       )
+      @engine = if @event_bus
+                  KnowledgeOrchestration::EngineEventBridge.new(event_bus: @event_bus).attach(engine)
+                else
+                  engine
+                end
     end
 
     def default_dataset

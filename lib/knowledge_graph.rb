@@ -29,6 +29,7 @@ require_relative "knowledge_extraction"
 require_relative "knowledge_intelligence"
 require_relative "knowledge_planning"
 require_relative "agent_platform"
+require_relative "knowledge_orchestration"
 require_relative "knowledge_graph/cli/cli"
 
 module KnowledgeGraph

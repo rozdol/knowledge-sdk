@@ -7,12 +7,13 @@ module AgentPlatform
 
   def build(vault_root:, run_id: nil, actor_id: nil, manifest_paths: DEFAULT_MANIFEST_PATH,
             environment: "production", feature_flags: {}, clock: nil, threaded_jobs: true,
-            telemetry: nil)
+            telemetry: nil, event_bus: nil, notification_store: nil)
     clock ||= -> { Time.now }
     id_generator = KnowledgeGraph::IdGenerator.new(clock: clock)
     resolved_run_id = run_id || id_generator.generate("run")
     services = Services.new(
-      vault_root: vault_root, run_id: resolved_run_id, actor_id: actor_id, clock: clock
+      vault_root: vault_root, run_id: resolved_run_id, actor_id: actor_id, clock: clock,
+      event_bus: event_bus, notification_store: notification_store
     )
     registry = CapabilityRegistry.new(ManifestLoader.new.load(manifest_paths))
     handlers = DefaultHandlers.build(services)

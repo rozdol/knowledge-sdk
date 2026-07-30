@@ -27,6 +27,10 @@ module AgentPlatform
       end.map { |manifest| registry.reference(manifest).to_h }.freeze
     end
 
+    def plugin_registrar
+      PluginRegistrar.new(registry: registry, handlers: @handlers)
+    end
+
     def issue_request(invocation_token:, arguments:, session_id: nil, trace_id: nil)
       registry.fetch_token(invocation_token)
       AgentRequest.new(

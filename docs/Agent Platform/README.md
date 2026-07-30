@@ -39,9 +39,11 @@ The CLI necessarily accepts a textual selector, but it resolves that selector ag
 
 ## Core capabilities
 
-Twenty-five `1.0.0` contracts cover entity and company/project search, entity retrieval, relationship paths, deterministic graph queries, analyzers, briefings, digests, timelines, networks, knowledge gaps, relationship health, follow-up status, finding explanations, planning/decision, simulation, comparison, planning explanation, extraction, and the proposal lifecycle.
+Twenty-six `1.0.0` contracts cover entity and company/project search, entity retrieval, relationship paths, deterministic graph queries, analyzers, briefings, digests, timelines, networks, knowledge gaps, relationship health, follow-up status, finding explanations, planning/decision, simulation, comparison, planning explanation, extraction, the proposal lifecycle, and informational runtime notifications.
 
 `extract_source`, `create_proposal`, and `kg.planning.create_proposal` may persist review artifacts but never execute an Intent. `submit_proposal` is the only graph-write capability; centralized policy requires `proposal:submit` and a fingerprint-matching approval receipt, and the existing `ProposalSubmitter` and Engine enforce the same immutable approval again. Planning responses require `planning:read`; restricted graph evidence is removed before output or proposal persistence unless the agent has `graph:restricted`.
+
+`kg.orchestration.notify` has the additive `operational_write` effect. It writes only Git-ignored notification runtime state, returns `executable: false`, and has no Engine dependency.
 
 ## Quick start
 

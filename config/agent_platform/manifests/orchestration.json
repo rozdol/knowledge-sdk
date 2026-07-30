@@ -1,0 +1,65 @@
+[
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.orchestration.notify",
+    "name": "create_notification",
+    "version": "1.0.0",
+    "description": "Create an informational runtime notification that cannot execute any action.",
+    "input_schema": {
+      "type": "object",
+      "required": ["title", "message"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["info", "briefing", "opportunity", "relationship", "goal", "proposal", "reminder", "digest", "warning"]
+        },
+        "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "message": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "correlation_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "source": { "type": "string", "minLength": 1, "maxLength": 200 }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "required": ["notification_id", "timestamp", "kind", "title", "message", "trace_id", "correlation_id", "source", "read", "executable"],
+      "properties": {
+        "notification_id": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "kind": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "trace_id": { "type": "string" },
+        "correlation_id": { "type": "string" },
+        "source": { "type": "string" },
+        "read": { "type": "boolean" },
+        "executable": { "type": "boolean", "const": false }
+      },
+      "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "operational_write",
+      "timeout_ms": 10000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": ["notification:create"],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [
+      {
+        "arguments": {
+          "kind": "digest",
+          "title": "Daily digest ready",
+          "message": "Your deterministic daily digest is ready for review."
+        }
+      }
+    ],
+    "deprecation": { "status": "active" }
+  }
+]

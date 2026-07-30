@@ -34,16 +34,21 @@ module KnowledgeGraph
       when "search" then search_command
       when "replay" then replay_command
       when "gateway" then gateway_command
+      when "events", "workflow", "scheduler", "notifications", "cache"
+        KnowledgeOrchestration::CLI.new(
+          group: command, argv: @argv, out: @out, err: @err, orchestrator: orchestrator
+        ).run
       when "intelligence" then KnowledgeIntelligence::CLI.new(
         argv: @argv, out: @out, err: @err, vault_root: vault_root
       ).run
       when "goal", "plan" then KnowledgePlanning::CLI.new(
         group: command, argv: @argv, out: @out, err: @err, stdin: @stdin,
-        vault_root: vault_root
+        vault_root: vault_root, event_bus: orchestrator.event_bus
       ).run
       when "extract", "proposal" then KnowledgeExtraction::CLI.new(
         command: command, argv: @argv, out: @out, err: @err,
-        vault_root: vault_root, run_id: @options[:run_id], actor_id: @options[:actor_id]
+        vault_root: vault_root, run_id: @options[:run_id], actor_id: @options[:actor_id],
+        event_bus: orchestrator.event_bus
       ).run
       when "help", "--help", "-h" then print_help(parser)
       else
@@ -56,6 +61,9 @@ module KnowledgeGraph
       @err.puts(JSON.generate(error: error.message, error_class: error.class.name))
       1
     rescue KnowledgeExtraction::Error => error
+      @err.puts(JSON.generate(error: error.message, error_class: error.class.name))
+      1
+    rescue KnowledgeOrchestration::Error => error
       @err.puts(JSON.generate(error: error.message, error_class: error.class.name))
       1
     end
@@ -187,15 +195,25 @@ module KnowledgeGraph
 
     def agent_gateway
       @agent_gateway ||= AgentPlatform.build(
-        vault_root: vault_root, run_id: @options[:run_id], actor_id: @options[:actor_id]
+        vault_root: vault_root, run_id: @options[:run_id], actor_id: @options[:actor_id],
+        event_bus: orchestrator.event_bus, notification_store: orchestrator.notifications
       )
     end
 
     def engine
-      @engine ||= Engine.new(
+      @engine ||= KnowledgeOrchestration::EngineEventBridge.new(
+        event_bus: orchestrator.event_bus
+      ).attach(Engine.new(
         vault_root: vault_root,
         run_id: @options[:run_id],
         actor_id: @options[:actor_id]
+      ))
+    end
+
+    def orchestrator
+      @orchestrator ||= KnowledgeOrchestration.build(
+        vault_root: vault_root, run_id: @options[:run_id], actor_id: @options[:actor_id],
+        threaded_workflows: false
       )
     end
 
@@ -240,7 +258,7 @@ module KnowledgeGraph
 
     def print_help(option_parser)
       @out.puts(option_parser)
-      @out.puts("Commands: execute, validate, doctor, graph, stats, search, replay, extract, proposal, intelligence, goal, plan, gateway")
+      @out.puts("Commands: execute, validate, doctor, graph, stats, search, replay, extract, proposal, intelligence, goal, plan, gateway, events, workflow, scheduler, notifications, cache")
       0
     end
   end

@@ -1,0 +1,263 @@
+schema_version: 1
+
+workflows:
+  - id: meeting_imported
+    version: "1.0.0"
+    description: Extract untrusted meeting text into a review-only proposal, then notify the user.
+    "on": [MeetingImported]
+    steps:
+      - id: extraction
+        capability: kg.extraction.extract_source
+        arguments:
+          content: "$event.payload.content"
+          source_type: meeting-notes
+          language: "$event.payload.language"
+          sensitivity: "$event.payload.sensitivity"
+        retries: 1
+      - id: notify
+        capability: kg.orchestration.notify
+        depends_on: [extraction]
+        arguments:
+          kind: proposal
+          title: Meeting extraction awaiting approval
+          message: "Proposal {{steps.extraction.payload.proposal_id}} is ready for human review. No Intent was executed."
+          correlation_id: "$event.correlation_id"
+          source: meeting_imported
+    outputs:
+      proposal_id: "$steps.extraction.payload.proposal_id"
+      notification_id: "$steps.notify.payload.notification_id"
+
+  - id: transcript_extracted
+    version: "1.0.0"
+    description: Extract an imported transcript without executing its generated Intents.
+    "on": [TranscriptExtracted]
+    steps:
+      - id: extraction
+        capability: kg.extraction.extract_source
+        arguments:
+          content: "$event.payload.content"
+          source_type: transcript
+          language: "$event.payload.language"
+          sensitivity: "$event.payload.sensitivity"
+        retries: 1
+      - id: notify
+        capability: kg.orchestration.notify
+        depends_on: [extraction]
+        arguments:
+          kind: proposal
+          title: Transcript proposal ready
+          message: "Transcript proposal {{steps.extraction.payload.proposal_id}} requires explicit approval."
+          correlation_id: "$event.correlation_id"
+          source: transcript_extracted
+
+  - id: goal_created
+    version: "1.0.0"
+    description: Run deterministic planning for a newly created goal.
+    "on": [GoalCreated]
+    steps:
+      - id: planner
+        capability: kg.planning.plan
+        arguments:
+          goal: "$event.payload.goal"
+          as_of: "$event.payload.as_of"
+        cache:
+          enabled: true
+          artifact_type: plan
+          invalidate_on: [GoalArchived, GraphChanged]
+          entity_paths: ["$event.payload.goal.preferences.target_ids"]
+      - id: notify
+        capability: kg.orchestration.notify
+        depends_on: [planner]
+        arguments:
+          kind: goal
+          title: Goal plan ready
+          message: "Deterministic plan {{steps.planner.payload.decision_id}} is ready for review; it is not executable."
+          correlation_id: "$event.correlation_id"
+          source: goal_created
+    outputs:
+      decision_id: "$steps.planner.payload.decision_id"
+      notification_id: "$steps.notify.payload.notification_id"
+
+  - id: deadline_reached
+    version: "1.0.0"
+    description: Re-plan a deadline-bound goal and create only a reviewable proposal.
+    "on": [DeadlineReached]
+    steps:
+      - id: planner
+        capability: kg.planning.plan
+        arguments:
+          goal: "$event.payload.goal"
+          as_of: "$event.payload.as_of"
+        cache:
+          enabled: true
+          artifact_type: plan
+          invalidate_on: [DeadlineReached, GoalArchived, GraphChanged]
+      - id: proposal
+        capability: kg.planning.create_proposal
+        depends_on: [planner]
+        arguments:
+          goal: "$event.payload.goal"
+          as_of: "$event.payload.as_of"
+      - id: notify
+        capability: kg.orchestration.notify
+        depends_on: [proposal]
+        arguments:
+          kind: proposal
+          title: Deadline proposal awaiting approval
+          message: "Proposal {{steps.proposal.payload.proposal_id}} was generated; Engine execution remains manual."
+          correlation_id: "$event.correlation_id"
+          source: deadline_reached
+
+  - id: followup_overdue
+    version: "1.0.0"
+    description: Recompute only follow-up analysis and notify the user.
+    "on": [FollowupOverdue]
+    steps:
+      - id: analyzer
+        capability: kg.intelligence.followup_status
+        arguments:
+          as_of: "$event.payload.as_of"
+        cache:
+          enabled: true
+          artifact_type: analysis
+          invalidate_on: [FollowupCompleted, FollowupOverdue, GraphChanged]
+      - id: notify
+        capability: kg.orchestration.notify
+        depends_on: [analyzer]
+        arguments:
+          kind: reminder
+          title: Follow-up review ready
+          message: Deterministic follow-up status has been refreshed for review.
+          correlation_id: "$event.correlation_id"
+          source: followup_overdue
+
+  - id: planner_finished
+    version: "1.0.0"
+    description: Generate a digest after a planning computation completes.
+    "on": [PlannerCompleted]
+    steps:
+      - id: digest
+        capability: kg.intelligence.digest
+        arguments:
+          period: daily
+        cache:
+          enabled: true
+          artifact_type: digest
+          invalidate_on: [GraphChanged, PlannerCompleted]
+      - id: notify
+        capability: kg.orchestration.notify
+        depends_on: [digest]
+        arguments:
+          kind: digest
+          title: Planning digest ready
+          message: "$steps.digest.payload.summary"
+          correlation_id: "$event.correlation_id"
+          source: planner_finished
+
+  - id: proposal_approved
+    version: "1.0.0"
+    description: Verify approval state and notify; submission is deliberately absent.
+    "on": [ProposalApproved]
+    steps:
+      - id: proposal_status
+        capability: kg.proposals.status
+        arguments:
+          proposal_id: "$event.payload.proposal_id"
+      - id: notify
+        capability: kg.orchestration.notify
+        depends_on: [proposal_status]
+        arguments:
+          kind: proposal
+          title: Proposal approved
+          message: "Proposal {{steps.proposal_status.payload.proposal_id}} is approved and awaits manual submission."
+          correlation_id: "$event.correlation_id"
+          source: proposal_approved
+
+  - id: proposal_rejected
+    version: "1.0.0"
+    description: Notify about a rejected proposal without taking any action.
+    "on": [ProposalRejected]
+    steps:
+      - id: notify
+        capability: kg.orchestration.notify
+        arguments:
+          kind: warning
+          title: Proposal rejected
+          message: "Proposal {{event.payload.proposal_id}} was rejected. No action was executed."
+          correlation_id: "$event.correlation_id"
+          source: proposal_rejected
+
+  - id: relationship_changed
+    version: "1.0.0"
+    description: Recompute relationship and opportunity analyzers for a relationship change.
+    "on": [RelationshipUpdated]
+    steps:
+      - id: analyzer
+        capability: kg.intelligence.analyze
+        arguments:
+          analyzers: [relationship, opportunity]
+        cache:
+          enabled: true
+          artifact_type: analysis
+          invalidate_on: [GraphChanged, RelationshipUpdated]
+          entity_paths: ["$event.payload.entity_ids"]
+      - id: notify
+        capability: kg.orchestration.notify
+        depends_on: [analyzer]
+        arguments:
+          kind: relationship
+          title: Relationship analysis refreshed
+          message: Relationship and opportunity findings are ready for review.
+          correlation_id: "$event.correlation_id"
+          source: relationship_changed
+
+  - id: digest_requested
+    version: "1.0.0"
+    description: Build a requested daily, weekly, or monthly digest from deterministic analysis.
+    "on": [DigestRequested]
+    steps:
+      - id: digest
+        capability: kg.intelligence.digest
+        arguments:
+          period: "$event.payload.period"
+          as_of: "$event.payload.as_of"
+        cache:
+          enabled: true
+          artifact_type: digest
+          invalidate_on: [GraphChanged]
+      - id: notify
+        capability: kg.orchestration.notify
+        depends_on: [digest]
+        arguments:
+          kind: digest
+          title: Knowledge digest ready
+          message: "$steps.digest.payload.summary"
+          correlation_id: "$event.correlation_id"
+          source: digest_requested
+    outputs:
+      digest: "$steps.digest.payload"
+      notification_id: "$steps.notify.payload.notification_id"
+
+  - id: scheduled_health_review
+    version: "1.0.0"
+    description: Run a declaratively scheduled relationship-health or stale-work review.
+    "on": [ReminderDue]
+    steps:
+      - id: analyzer
+        capability: kg.intelligence.analyze
+        arguments:
+          analyzers: "$event.payload.analyzers"
+          as_of: "$event.payload.as_of"
+        cache:
+          enabled: true
+          artifact_type: report
+          invalidate_on: [GraphChanged, ReminderDue]
+      - id: notify
+        capability: kg.orchestration.notify
+        depends_on: [analyzer]
+        arguments:
+          kind: reminder
+          title: Scheduled review ready
+          message: The scheduled deterministic review is ready.
+          correlation_id: "$event.correlation_id"
+          source: scheduled_health_review

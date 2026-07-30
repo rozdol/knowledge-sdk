@@ -57,6 +57,22 @@ policy-filtered manifest discovery
 
 Agents cannot dispatch arbitrary capability names. Transport strings are selectors only: an adapter resolves them against current policy-filtered discovery and invokes the Gateway with the manifest-issued opaque token.
 
+## Event-driven orchestration pipeline
+
+Phase 9 coordinates the stable components without moving planning, decision making, approval, or execution into the Orchestrator:
+
+```text
+immutable Event -> versioned Event Bus -> declarative Trigger
+  -> deterministic Workflow DAG -> durable Job
+  -> policy-filtered Agent Gateway capability
+  -> derived Knowledge Cache artifact / notification / review-only proposal
+  -> explicit human approval -> existing Engine
+```
+
+Workflow definitions cannot contain `kg.proposals.submit`, and runtime invocation rejects every graph-write or existing-approval capability. A workflow may produce a review-only proposal, but the Orchestrator cannot approve or submit it.
+
+The Knowledge Cache is not a fact cache and not a graph cache. It stores only derived, reproducible outputs such as analyzer results, plans, reports, briefings, digests, recommendations, and workflow outputs. Every artifact records its producing capability version, immutable graph snapshot digest, originating event IDs, invalidating event types, and optional entity scope. A new event marks only affected artifacts stale; a snapshot mismatch prevents reuse even before stale marking.
+
 ## Modules
 
 - `intents.rb` defines immutable commands and their serialization contract.
@@ -69,6 +85,7 @@ Agents cannot dispatch arbitrary capability names. Transport strings are selecto
 - `cli/` exposes the same SDK capabilities without a second execution path.
 - `knowledge_planning/` owns immutable goals and plans, constraint evaluation, graph search, candidate planners, scenario simulation, shared decision policy, explanations, traces, and review-proposal adaptation. It never mutates the graph.
 - `agent_platform/` owns manifests, Registry, Gateway, policy, sessions, adapters, jobs, telemetry, plugins, and generated contract artifacts. It does not parse Markdown or YAML.
+- `knowledge_orchestration/` owns immutable events, the internal bus and dead-letter queue, trigger and workflow DSL, dependency graph, derived-artifact Knowledge Cache, durable jobs, cron scheduler, notifications, replay, and sanitized timelines. It invokes existing components only through Agent Gateway capabilities.
 
 ## Transaction guarantees
 

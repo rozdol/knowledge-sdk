@@ -12,7 +12,24 @@ module AgentPlatform
       register_planning_handlers(registry, services)
       register_proposal_handlers(registry, services)
       register_extraction_handler(registry, services)
+      register_orchestration_handlers(registry, services) if services.notification_store?
       registry
+    end
+
+    def register_orchestration_handlers(registry, services)
+      registry.register("kg.orchestration.notify") do |arguments, context|
+        notification = services.notification_store.create(
+          kind: arguments.fetch("kind", "info"), title: arguments.fetch("title"),
+          message: arguments.fetch("message"), trace_id: context.request.trace_id,
+          correlation_id: arguments.fetch("correlation_id", context.request.trace_id),
+          source: arguments.fetch("source", "agent-gateway")
+        )
+        HandlerResult.new(
+          payload: notification.to_h,
+          why: "Created an informational runtime notification; it cannot execute an action.",
+          confidence: 1.0
+        )
+      end
     end
 
     def register_entity_handlers(registry, services)
