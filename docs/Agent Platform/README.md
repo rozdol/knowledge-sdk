@@ -17,7 +17,7 @@ Hermes / MCP / CLI / REST-style client
                  |
  Registry -> Policy -> Session -> private handler binding
                  |
- GraphReader / Extraction Pipeline / Intelligence / ProposalSubmitter
+ GraphReader / Extraction / Intelligence / Planning / ProposalSubmitter
                  |
        Engine for approved writes only
 ```
@@ -39,9 +39,9 @@ The CLI necessarily accepts a textual selector, but it resolves that selector ag
 
 ## Core capabilities
 
-Twenty `1.0.0` contracts cover entity and company/project search, entity retrieval, relationship paths, deterministic graph queries, analyzers, briefings, digests, timelines, networks, knowledge gaps, relationship health, follow-up status, finding explanations, extraction, and the proposal lifecycle.
+Twenty-five `1.0.0` contracts cover entity and company/project search, entity retrieval, relationship paths, deterministic graph queries, analyzers, briefings, digests, timelines, networks, knowledge gaps, relationship health, follow-up status, finding explanations, planning/decision, simulation, comparison, planning explanation, extraction, and the proposal lifecycle.
 
-`extract_source` and `create_proposal` may persist review artifacts but never execute an Intent. `submit_proposal` is the only graph-write capability; centralized policy requires `proposal:submit` and a fingerprint-matching approval receipt, and the existing `ProposalSubmitter` and Engine enforce the same immutable approval again.
+`extract_source`, `create_proposal`, and `kg.planning.create_proposal` may persist review artifacts but never execute an Intent. `submit_proposal` is the only graph-write capability; centralized policy requires `proposal:submit` and a fingerprint-matching approval receipt, and the existing `ProposalSubmitter` and Engine enforce the same immutable approval again. Planning responses require `planning:read`; restricted graph evidence is removed before output or proposal persistence unless the agent has `graph:restricted`.
 
 ## Quick start
 

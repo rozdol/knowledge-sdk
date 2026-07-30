@@ -27,6 +27,7 @@ require_relative "knowledge_graph/engine"
 require_relative "knowledge_graph/cli/intent_factory"
 require_relative "knowledge_extraction"
 require_relative "knowledge_intelligence"
+require_relative "knowledge_planning"
 require_relative "agent_platform"
 require_relative "knowledge_graph/cli/cli"
 

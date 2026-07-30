@@ -1,0 +1,171 @@
+[
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.planning.plan",
+    "name": "plan_goal",
+    "version": "1.0.0",
+    "description": "Generate candidate plans, evaluate scenarios, and select a deterministic decision-approved plan without executing it.",
+    "input_schema": {
+      "type": "object", "required": ["goal"],
+      "properties": {
+        "goal": {
+          "type": "object", "required": ["description"],
+          "properties": {
+            "id": { "type": "string", "maxLength": 200 },
+            "description": { "type": "string", "minLength": 1, "maxLength": 2000 },
+            "goal_type": { "type": "string", "maxLength": 100 },
+            "priority": { "type": "string", "enum": ["low", "normal", "high", "critical"] },
+            "deadline": { "type": "string", "format": "date" },
+            "constraints": { "type": "object", "maxProperties": 20 },
+            "preferences": { "type": "object", "maxProperties": 50 },
+            "success_criteria": { "type": "array", "maxItems": 50, "items": { "type": "string", "maxLength": 1000 } },
+            "status": { "type": "string", "enum": ["active", "archived", "completed"] }
+          },
+          "additionalProperties": false
+        },
+        "as_of": { "type": "string", "format": "date" }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "required": ["decision_id", "goal", "snapshot_digest", "as_of", "policy_version", "approved_plan", "ranked_plans", "decision_trace", "executable"],
+      "properties": {
+        "decision_id": { "type": "string" }, "goal": { "type": "object" },
+        "snapshot_digest": { "type": "string" }, "as_of": { "type": "string", "format": "date" },
+        "policy_version": { "type": "string" }, "approved_plan": { "type": ["object", "null"] },
+        "ranked_plans": { "type": "array", "items": { "type": "object" } },
+        "decision_trace": { "type": "object" }, "executable": { "type": "boolean", "const": false }
+      },
+      "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 120000, "idempotent": true },
+    "policy": { "permissions": ["planning:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "goal": { "description": "Reach a synthetic target", "goal_type": "generic" }, "as_of": "2026-07-30" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.planning.compare",
+    "name": "compare_plans",
+    "version": "1.0.0",
+    "description": "Compare deterministic candidate plans under one shared decision policy.",
+    "input_schema": {
+      "type": "object", "required": ["goal"],
+      "properties": {
+        "goal": { "type": "object", "required": ["description"], "properties": {
+          "id": { "type": "string" }, "description": { "type": "string", "minLength": 1, "maxLength": 2000 },
+          "goal_type": { "type": "string" }, "priority": { "type": "string", "enum": ["low", "normal", "high", "critical"] },
+          "deadline": { "type": "string", "format": "date" }, "constraints": { "type": "object" },
+          "preferences": { "type": "object" }, "success_criteria": { "type": "array", "items": { "type": "string" } },
+          "status": { "type": "string", "enum": ["active", "archived", "completed"] }
+        }, "additionalProperties": false },
+        "as_of": { "type": "string", "format": "date" }
+      }, "additionalProperties": false
+    },
+    "output_schema": { "type": "object", "required": ["decision_id", "approved_plan_id", "alternatives", "executable"], "properties": {
+      "decision_id": { "type": "string" }, "approved_plan_id": { "type": ["string", "null"] },
+      "alternatives": { "type": "array", "items": { "type": "object" } },
+      "executable": { "type": "boolean", "const": false }
+    }, "additionalProperties": false },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 120000, "idempotent": true },
+    "policy": { "permissions": ["planning:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true }, "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "goal": { "description": "Compare synthetic routes", "goal_type": "generic" } } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.planning.simulate",
+    "name": "simulate_plan",
+    "version": "1.0.0",
+    "description": "Return deterministic resource and duration estimates for a candidate plan.",
+    "input_schema": {
+      "type": "object", "required": ["goal"], "properties": {
+        "goal": { "type": "object", "required": ["description"], "properties": {
+          "id": { "type": "string" }, "description": { "type": "string", "minLength": 1 }, "goal_type": { "type": "string" },
+          "priority": { "type": "string", "enum": ["low", "normal", "high", "critical"] }, "deadline": { "type": "string", "format": "date" },
+          "constraints": { "type": "object" }, "preferences": { "type": "object" },
+          "success_criteria": { "type": "array", "items": { "type": "string" } },
+          "status": { "type": "string", "enum": ["active", "archived", "completed"] }
+        }, "additionalProperties": false },
+        "as_of": { "type": "string", "format": "date" }, "plan_id": { "type": "string" }
+      }, "additionalProperties": false
+    },
+    "output_schema": { "type": "object", "required": ["decision_id", "plan_id", "simulation", "constraints_satisfied", "violations", "executable"], "properties": {
+      "decision_id": { "type": "string" }, "plan_id": { "type": "string" }, "simulation": { "type": "object" },
+      "constraints_satisfied": { "type": "boolean" }, "violations": { "type": "array", "items": { "type": "object" } },
+      "executable": { "type": "boolean", "const": false }
+    }, "additionalProperties": false },
+    "errors": ["CapabilityNotFound", "InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 120000, "idempotent": true },
+    "policy": { "permissions": ["planning:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true }, "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "goal": { "description": "Simulate a synthetic baseline", "goal_type": "generic" } } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.planning.explain",
+    "name": "explain_plan",
+    "version": "1.0.0",
+    "description": "Explain plan selection using score components, rules, and constraint results.",
+    "input_schema": {
+      "type": "object", "required": ["goal"], "properties": {
+        "goal": { "type": "object", "required": ["description"], "properties": {
+          "id": { "type": "string" }, "description": { "type": "string", "minLength": 1 }, "goal_type": { "type": "string" },
+          "priority": { "type": "string", "enum": ["low", "normal", "high", "critical"] }, "deadline": { "type": "string", "format": "date" },
+          "constraints": { "type": "object" }, "preferences": { "type": "object" },
+          "success_criteria": { "type": "array", "items": { "type": "string" } },
+          "status": { "type": "string", "enum": ["active", "archived", "completed"] }
+        }, "additionalProperties": false },
+        "as_of": { "type": "string", "format": "date" }, "plan_id": { "type": "string" }
+      }, "additionalProperties": false
+    },
+    "output_schema": { "type": "object", "required": ["decision_id", "plan_id", "selected", "why", "score_trace", "constraint_violations", "executable"], "properties": {
+      "decision_id": { "type": "string" }, "plan_id": { "type": "string" }, "selected": { "type": "boolean" },
+      "why": { "type": "string" }, "score_trace": { "type": "array", "items": { "type": "object" } },
+      "constraint_violations": { "type": "array", "items": { "type": "object" } },
+      "executable": { "type": "boolean", "const": false }
+    }, "additionalProperties": false },
+    "errors": ["CapabilityNotFound", "InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 120000, "idempotent": true },
+    "policy": { "permissions": ["planning:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true }, "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "goal": { "description": "Explain a synthetic baseline", "goal_type": "generic" } } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.planning.create_proposal",
+    "name": "create_planning_proposal",
+    "version": "1.0.0",
+    "description": "Persist review-only Intents from the deterministic decision-approved plan without executing them.",
+    "input_schema": {
+      "type": "object", "required": ["goal"], "properties": {
+        "goal": { "type": "object", "required": ["description"], "properties": {
+          "id": { "type": "string" }, "description": { "type": "string", "minLength": 1 }, "goal_type": { "type": "string" },
+          "priority": { "type": "string", "enum": ["low", "normal", "high", "critical"] }, "deadline": { "type": "string", "format": "date" },
+          "constraints": { "type": "object" }, "preferences": { "type": "object" },
+          "success_criteria": { "type": "array", "items": { "type": "string" } },
+          "status": { "type": "string", "enum": ["active", "archived", "completed"] }
+        }, "additionalProperties": false },
+        "as_of": { "type": "string", "format": "date" }
+      }, "additionalProperties": false
+    },
+    "output_schema": { "type": "object", "required": ["proposal_id", "status", "decision_id", "planned_intent_count", "executable"], "properties": {
+      "proposal_id": { "type": "string" }, "status": { "type": "string" }, "decision_id": { "type": "string" },
+      "planned_intent_count": { "type": "integer" }, "executable": { "type": "boolean", "const": false }
+    }, "additionalProperties": false },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "proposal_write", "timeout_ms": 120000, "idempotent": true },
+    "policy": { "permissions": ["planning:read", "proposal:create"], "risk": "medium", "approval": "proposal_only" },
+    "explanation": { "required": true }, "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "goal": { "description": "Create a synthetic review proposal", "goal_type": "generic" } } }],
+    "deprecation": { "status": "active" }
+  }
+]

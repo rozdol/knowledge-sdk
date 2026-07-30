@@ -24,6 +24,23 @@ immutable Intent
 
 The Agent Platform is the public authorization and capability-dispatch boundary for Hermes, MCP, REST-style clients, and new agent integrations. Existing direct Engine calls remain an internal/local SDK compatibility surface. Proposal submission still reaches `Engine#execute`, so Agent Platform policy augments rather than replaces Engine approval gates.
 
+## Planning and decision pipeline
+
+Phase 8 is a read-only decision layer above the graph snapshot and Intelligence features. Planning and decision are deliberately separate:
+
+```text
+immutable Goal + composable Constraints
+  -> Candidate Plan Generator (one or more deterministic planners)
+  -> Scenario Evaluator (simulation, features, hard-constraint checks)
+  -> Decision Engine (shared policy, Pareto frontier, stable ranking)
+  -> decision-approved Plan + alternatives + machine-readable trace
+  -> optional review-only Intent Proposal
+  -> existing explicit human approval
+  -> existing Engine
+```
+
+“Decision-approved” means only that a plan ranked first after hard constraints. It is not human approval and gives no execution authority. The planning module has no Engine, dispatcher, repository writer, or autonomous-agent dependency. Given the same graph snapshot, goal, constraints, policy, and `as_of` date, its canonical result is identical.
+
 ## Agent execution pipeline
 
 ```text
@@ -50,6 +67,7 @@ Agents cannot dispatch arbitrary capability names. Transport strings are selecto
 - `identity/` indexes exact identity signals, follows merge redirects, and performs atomic merge/split operations.
 - `audit/` stores local JSONL events and transactionally committed idempotency receipts.
 - `cli/` exposes the same SDK capabilities without a second execution path.
+- `knowledge_planning/` owns immutable goals and plans, constraint evaluation, graph search, candidate planners, scenario simulation, shared decision policy, explanations, traces, and review-proposal adaptation. It never mutates the graph.
 - `agent_platform/` owns manifests, Registry, Gateway, policy, sessions, adapters, jobs, telemetry, plugins, and generated contract artifacts. It does not parse Markdown or YAML.
 
 ## Transaction guarantees

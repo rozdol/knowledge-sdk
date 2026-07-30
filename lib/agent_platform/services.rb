@@ -48,6 +48,14 @@ module AgentPlatform
       end
     end
 
+    def planning(context, goal:, as_of: nil)
+      date = parse_date(as_of)
+      key = ["planning", KnowledgePlanning::Stable.json(goal.planning_signature), date.iso8601]
+      context.memoize(key) do
+        KnowledgePlanning::Engine.new(snapshot: snapshot(context), as_of: date).plan(goal)
+      end
+    end
+
     def extraction_pipeline(context)
       context.memoize(:extraction_pipeline) do
         reader = graph_reader(context)
@@ -154,6 +162,36 @@ module AgentPlatform
       }
     end
 
+    def visible_plan?(ranked_plan, context)
+      hidden = restricted_ids(context)
+      plan = ranked_plan.plan
+      entity_ids = Array(plan.metadata["entity_ids"]) + plan.steps.flat_map(&:entity_ids)
+      evidence_ids = plan.evidence.map(&:record_id)
+      intent_ids = nested_strings(plan.generated_intents).map do |value|
+        snapshot(context).resolve_link(value)
+      end.compact
+      ((entity_ids + evidence_ids + intent_ids).map(&:to_s).uniq & hidden).empty?
+    end
+
+    def public_planning_result(result, context)
+      payload = Value.mutable(result.to_h)
+      visible = result.ranked_plans.select { |item| visible_plan?(item, context) }
+      visible_ids = visible.map { |item| item.plan.plan_id }
+      payload["ranked_plans"].select! do |item|
+        visible_ids.include?(item.dig("scenario", "plan", "plan_id"))
+      end
+      approved_id = result.approved_plan && result.approved_plan.plan.plan_id
+      payload["approved_plan"] = nil unless visible_ids.include?(approved_id)
+      trace = payload.fetch("decision_trace")
+      trace.fetch("candidate_generation")["candidate_plan_ids"] &= visible_ids
+      trace["scenario_evaluation"].select! { |item| visible_ids.include?(item["plan_id"]) }
+      decision = trace.fetch("decision")
+      decision["pareto_plan_ids"] &= visible_ids
+      decision["ranking"].select! { |item| visible_ids.include?(item["plan_id"]) }
+      decision["chosen_plan_id"] = nil unless visible_ids.include?(decision["chosen_plan_id"])
+      SecurityGuard.sanitize(public_value(payload, context) || {})
+    end
+
     def public_value(value, context)
       hidden = restricted_ids(context)
       case value
@@ -203,6 +241,15 @@ module AgentPlatform
 
     def symbolize_keys(value)
       value.each_with_object({}) { |(key, item), result| result[key.to_sym] = item }
+    end
+
+    def nested_strings(value)
+      case value
+      when Hash then value.flat_map { |key, item| [key.to_s] + nested_strings(item) }
+      when Array then value.flat_map { |item| nested_strings(item) }
+      when String then [value]
+      else []
+      end
     end
   end
 end

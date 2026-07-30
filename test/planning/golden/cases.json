@@ -1,0 +1,50 @@
+[
+  {
+    "id": "conference",
+    "goal": { "description": "Prepare a synthetic conference", "goal_type": "conference", "preferences": { "target_ids": ["event_summit"], "travel_required": true } },
+    "expected_planners": ["event_strategy"],
+    "expected_selected_planner": "event_strategy"
+  },
+  {
+    "id": "sales",
+    "goal": { "description": "Find a synthetic customer", "goal_type": "customer_acquisition", "preferences": { "target_ids": ["org_fund"] } },
+    "expected_planners": ["direct_outreach", "warm_introduction"],
+    "expected_selected_planner": "warm_introduction"
+  },
+  {
+    "id": "fundraising",
+    "goal": { "description": "Reach a synthetic fund", "goal_type": "fundraising", "preferences": { "target_ids": ["org_fund"] } },
+    "expected_planners": ["direct_outreach", "warm_introduction"],
+    "expected_selected_planner": "warm_introduction"
+  },
+  {
+    "id": "recruiting",
+    "goal": { "description": "Recruit a synthetic engineer", "goal_type": "recruiting", "preferences": { "target_ids": ["person_bob"] } },
+    "expected_planners": ["direct_outreach", "project_staffing", "warm_introduction"],
+    "expected_selected_planner": "project_staffing"
+  },
+  {
+    "id": "customer-recovery",
+    "goal": { "description": "Recover a synthetic relationship", "goal_type": "customer_recovery", "preferences": { "target_ids": ["person_cara"] } },
+    "expected_planners": ["direct_outreach", "relationship_maintenance"],
+    "expected_selected_planner": "relationship_maintenance"
+  },
+  {
+    "id": "warm-introduction",
+    "goal": { "description": "Find a warm path", "goal_type": "warm_introduction", "preferences": { "target_ids": ["person_leaf"] } },
+    "expected_planners": ["warm_introduction"],
+    "expected_selected_planner": "warm_introduction"
+  },
+  {
+    "id": "project-launch",
+    "goal": { "description": "Launch a synthetic project", "goal_type": "project_launch", "preferences": { "target_ids": ["person_bob"] } },
+    "expected_planners": ["project_staffing"],
+    "expected_selected_planner": "project_staffing"
+  },
+  {
+    "id": "travel",
+    "goal": { "description": "Prepare a synthetic London trip", "goal_type": "travel", "constraints": { "location": "Synthetic London" }, "preferences": { "target_ids": ["city_london"], "travel_budget": 500 } },
+    "expected_planners": ["travel_strategy"],
+    "expected_selected_planner": "travel_strategy"
+  }
+]

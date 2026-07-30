@@ -14,6 +14,9 @@ ruby "_System/KnowledgeGraph/bin/kg" stats
 ruby "_System/KnowledgeGraph/bin/kg" search "Ada"
 ruby "_System/KnowledgeGraph/bin/kg" gateway capabilities
 ruby "_System/KnowledgeGraph/bin/kg" gateway execute kg.entities.search '{"query":"Ada"}'
+ruby "_System/KnowledgeGraph/bin/kg" plan compare \
+  '{"description":"Reach a target","goal_type":"warm_introduction","preferences":{"target_ids":["person_<ULID>"]}}' \
+  --as-of 2026-07-30
 ```
 
 Execute an Intent from JSON:
@@ -61,6 +64,9 @@ result = kg.execute(
 - `kg intelligence relationships|opportunities|gaps|network|memory|recommendations` runs deterministic read-only analyzers.
 - `kg intelligence digest|report|query|features|explain` exposes derived intelligence without writing canonical notes.
 - `kg intelligence proposal [FINDING_ID]` emits an immutable proposal; `--persist` stores only proposal JSON for the existing approval workflow and still does not execute it.
+- `kg goal create|list|archive` manages immutable operational goals under Git-ignored runtime state; goals are not canonical graph facts.
+- `kg plan goal|scenarios|compare|simulate|trace|explain GOAL_ID_OR_JSON` runs the deterministic Candidate Generator → Scenario Evaluator → Decision Engine pipeline without graph mutation.
+- `kg plan proposal GOAL_ID_OR_JSON [--persist]` converts only the decision-approved plan's generated Intents into the existing review workflow; it never executes them.
 - `kg gateway capabilities` returns policy-filtered Capability Manifests and opaque invocation tokens.
 - `kg gateway execute CAPABILITY_ID[@VERSION] [JSON]` resolves the CLI selector through discovery, validates the manifest contract, and executes through the Agent Gateway.
 - `kg gateway policy check CAPABILITY_ID[@VERSION] [JSON]` evaluates centralized policy without invoking a handler.
@@ -77,4 +83,4 @@ ruby "_System/Tools/test_validator.rb"
 ruby "_System/Tools/validate_vault.rb"
 ```
 
-See [Architecture](docs/Architecture.md), [Intent API](docs/Intent%20API.md), [Examples](docs/Examples.md), [Migration Guide](docs/Migration%20Guide.md), [AI Integration Guide](docs/AI%20Integration%20Guide.md), the [Knowledge Extraction README](docs/Knowledge%20Extraction/README.md), the [Knowledge Intelligence README](docs/Knowledge%20Intelligence/README.md), and the [Agent Platform README](docs/Agent%20Platform/README.md).
+See [Architecture](docs/Architecture.md), [Intent API](docs/Intent%20API.md), [Examples](docs/Examples.md), [Migration Guide](docs/Migration%20Guide.md), [AI Integration Guide](docs/AI%20Integration%20Guide.md), the [Knowledge Extraction README](docs/Knowledge%20Extraction/README.md), the [Knowledge Intelligence README](docs/Knowledge%20Intelligence/README.md), the [Planning & Decision Engine README](docs/Planning%20Decision%20Engine/README.md), and the [Agent Platform README](docs/Agent%20Platform/README.md).

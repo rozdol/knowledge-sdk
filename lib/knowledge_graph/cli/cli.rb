@@ -37,6 +37,10 @@ module KnowledgeGraph
       when "intelligence" then KnowledgeIntelligence::CLI.new(
         argv: @argv, out: @out, err: @err, vault_root: vault_root
       ).run
+      when "goal", "plan" then KnowledgePlanning::CLI.new(
+        group: command, argv: @argv, out: @out, err: @err, stdin: @stdin,
+        vault_root: vault_root
+      ).run
       when "extract", "proposal" then KnowledgeExtraction::CLI.new(
         command: command, argv: @argv, out: @out, err: @err,
         vault_root: vault_root, run_id: @options[:run_id], actor_id: @options[:actor_id]
@@ -236,7 +240,7 @@ module KnowledgeGraph
 
     def print_help(option_parser)
       @out.puts(option_parser)
-      @out.puts("Commands: execute, validate, doctor, graph, stats, search, replay, extract, proposal, intelligence, gateway")
+      @out.puts("Commands: execute, validate, doctor, graph, stats, search, replay, extract, proposal, intelligence, goal, plan, gateway")
       0
     end
   end

@@ -7,7 +7,7 @@ class AgentPlatformManifestRegistryTest < Minitest::Test
     manifests = AgentPlatform::ManifestLoader.new.load(AgentPlatform::DEFAULT_MANIFEST_PATH)
     registry = AgentPlatform::CapabilityRegistry.new(manifests)
 
-    assert_equal 20, registry.size
+    assert_equal 25, registry.size
     assert_equal manifests.map { |item| [item.capability_id, item.version] }.uniq.length, manifests.length
     reference = registry.reference_for("kg.entities.search")
     assert_match(/\Acap_[0-9a-f]{48}\z/, reference.invocation_token)
@@ -57,7 +57,9 @@ class AgentPlatformManifestRegistryTest < Minitest::Test
     sdk = AgentPlatform::Generators.ruby_sdk(registry)
 
     assert_includes docs, "kg.entities.search@1.0.0"
+    assert_includes docs, "kg.planning.plan@1.0.0"
     assert_includes sdk, "def search_entities"
+    assert_includes sdk, "def plan_goal"
     assert_includes sdk, "kg.proposals.submit"
   end
 end

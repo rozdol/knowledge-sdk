@@ -9,6 +9,7 @@ module AgentPlatform
       register_entity_handlers(registry, services)
       register_graph_handlers(registry, services)
       register_intelligence_handlers(registry, services)
+      register_planning_handlers(registry, services)
       register_proposal_handlers(registry, services)
       register_extraction_handler(registry, services)
       registry
@@ -251,6 +252,113 @@ module AgentPlatform
       end
     end
 
+    def register_planning_handlers(registry, services)
+      registry.register("kg.planning.plan") do |arguments, context|
+        result = planning_decision(arguments, context, services)
+        public = services.public_planning_result(result, context)
+        approved = result.approved_plan
+        visible_approved = approved && services.visible_plan?(approved, context)
+        HandlerResult.new(
+          payload: public,
+          why: visible_approved ? approved.explanation : "No policy-visible plan passed every hard constraint.",
+          confidence: visible_approved ? approved.scenario.confidence : 0.0,
+          evidence: visible_approved ? approved.plan.evidence.map { |item| services.public_evidence(item, context) }.compact : [],
+          graph_path: visible_approved ? services.public_value(approved.plan.metadata["graph_path"], context) || [] : []
+        )
+      rescue KnowledgePlanning::Error => error
+        raise InvalidArguments, error.message
+      end
+
+      registry.register("kg.planning.compare") do |arguments, context|
+        result = planning_decision(arguments, context, services)
+        public = services.public_planning_result(result, context)
+        alternatives = public.fetch("ranked_plans").map do |item|
+          scenario = item.fetch("scenario")
+          plan = scenario.fetch("plan")
+          {
+            "rank" => item.fetch("rank"), "plan_id" => plan.fetch("plan_id"),
+            "title" => plan.fetch("title"), "planner_id" => plan.fetch("planner_id"),
+            "status" => item.fetch("decision_status"), "utility_score" => item.fetch("utility_score"),
+            "pareto_optimal" => item.fetch("pareto_optimal"),
+            "constraints_satisfied" => scenario.fetch("constraints_satisfied"),
+            "why" => item.fetch("explanation")
+          }
+        end
+        approved = public["approved_plan"]
+        HandlerResult.new(
+          payload: {
+            decision_id: public.fetch("decision_id"),
+            approved_plan_id: approved && approved.dig("scenario", "plan", "plan_id"),
+            alternatives: alternatives, executable: false
+          },
+          why: approved ? approved.fetch("explanation") : "No policy-visible plan passed every hard constraint.",
+          confidence: approved ? approved.dig("scenario", "confidence") : 0.0
+        )
+      rescue KnowledgePlanning::Error => error
+        raise InvalidArguments, error.message
+      end
+
+      registry.register("kg.planning.simulate") do |arguments, context|
+        result = planning_decision(arguments, context, services)
+        public = services.public_planning_result(result, context)
+        selected = select_public_plan(public, arguments["plan_id"])
+        scenario = selected.fetch("scenario")
+        HandlerResult.new(
+          payload: {
+            decision_id: public.fetch("decision_id"),
+            plan_id: scenario.dig("plan", "plan_id"), simulation: scenario.fetch("simulation"),
+            constraints_satisfied: scenario.fetch("constraints_satisfied"),
+            violations: scenario.fetch("constraint_violations"), executable: false
+          },
+          why: "Simulated only deterministic counts, duration, cost, and declared plan requirements.",
+          confidence: scenario.fetch("confidence")
+        )
+      rescue KnowledgePlanning::Error => error
+        raise InvalidArguments, error.message
+      end
+
+      registry.register("kg.planning.explain") do |arguments, context|
+        result = planning_decision(arguments, context, services)
+        public = services.public_planning_result(result, context)
+        selected = select_public_plan(public, arguments["plan_id"])
+        scenario = selected.fetch("scenario")
+        HandlerResult.new(
+          payload: {
+            decision_id: public.fetch("decision_id"), plan_id: scenario.dig("plan", "plan_id"),
+            selected: selected.fetch("decision_status") == "decision_approved",
+            why: selected.fetch("explanation"), score_trace: selected.fetch("score_trace"),
+            constraint_violations: scenario.fetch("constraint_violations"), executable: false
+          },
+          why: selected.fetch("explanation"), confidence: scenario.fetch("confidence")
+        )
+      rescue KnowledgePlanning::Error => error
+        raise InvalidArguments, error.message
+      end
+
+      registry.register("kg.planning.create_proposal") do |arguments, context|
+        result = planning_decision(arguments, context, services)
+        approved = result.approved_plan
+        unless approved && services.visible_plan?(approved, context)
+          raise PolicyDenied, "decision-approved plan is unavailable under current sensitivity policy"
+        end
+        payload = KnowledgePlanning::ProposalAdapter.new.build(result)
+        path = KnowledgePlanning::ProposalAdapter.new.persist(payload, vault_root: services.vault_root)
+        raise ExecutionFailed, "planning proposal persistence failed" unless path
+
+        HandlerResult.new(
+          payload: {
+            proposal_id: payload.fetch("proposal_id"), status: payload.fetch("status"),
+            decision_id: result.decision_id,
+            planned_intent_count: payload.fetch("planned_intents").length, executable: false
+          },
+          why: "Persisted only reviewable Intents from the decision-approved plan; nothing was executed.",
+          confidence: approved.scenario.confidence
+        )
+      rescue KnowledgePlanning::Error => error
+        raise InvalidArguments, error.message
+      end
+    end
+
     def register_extraction_handler(registry, services)
       registry.register("kg.extraction.extract_source") do |arguments, context|
         metadata = {
@@ -312,6 +420,33 @@ module AgentPlatform
         why: "Matched canonical names and aliases within the requested entity type.",
         confidence: matches.empty? ? 0.0 : 1.0
       )
+    end
+
+    def planning_decision(arguments, context, services)
+      values = arguments.fetch("goal").transform_keys(&:to_s)
+      goal = KnowledgePlanning::Goal.new(
+        id: values["id"] || KnowledgePlanning::Stable.id("goal", values),
+        description: values.fetch("description"),
+        goal_type: values.fetch("goal_type", "generic"),
+        priority: values.fetch("priority", "normal"), deadline: values["deadline"],
+        constraints: values.fetch("constraints", {}), preferences: values.fetch("preferences", {}),
+        success_criteria: values.fetch("success_criteria", []), status: values.fetch("status", "active")
+      )
+      services.planning(context, goal: goal, as_of: arguments["as_of"])
+    rescue KeyError => error
+      raise InvalidArguments, "missing goal field #{error.key}"
+    end
+
+    def select_public_plan(public, plan_id)
+      ranked = public.fetch("ranked_plans")
+      selected = if plan_id.to_s.empty?
+                   ranked.find { |item| item.fetch("decision_status") == "decision_approved" } || ranked.first
+                 else
+                   ranked.find { |item| item.dig("scenario", "plan", "plan_id") == plan_id }
+                 end
+      raise CapabilityNotFound, "plan not found under current policy" unless selected
+
+      selected
     end
 
     def findings_evidence(findings, services, context)

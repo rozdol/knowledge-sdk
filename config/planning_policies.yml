@@ -1,0 +1,63 @@
+version: "1.0.0"
+
+weights:
+  confidence: 0.10
+  effort_efficiency: 0.08
+  evidence_support: 0.12
+  goal_relevance: 0.18
+  preference_alignment: 0.10
+  recency_score: 0.08
+  relationship_strength: 0.12
+  risk_safety: 0.08
+  trust_score: 0.07
+  value: 0.07
+
+rules:
+  - id: confidence
+    criterion: confidence
+    message: Prefer estimates supported by deterministic simulation inputs.
+  - id: effort
+    criterion: effort_efficiency
+    message: Prefer lower effort when expected outcomes are otherwise comparable.
+  - id: evidence
+    criterion: evidence_support
+    message: Prefer plans with direct graph evidence for their steps and paths.
+  - id: goal
+    criterion: goal_relevance
+    message: Prefer plans that cover the goal's explicit targets and success direction.
+  - id: preferences
+    criterion: preference_alignment
+    message: Prefer plans aligned with explicit user targets and preferences.
+  - id: recency
+    criterion: recency_score
+    message: Prefer recent relationship context when relationship use is required.
+  - id: relationship
+    criterion: relationship_strength
+    message: Prefer stronger existing relationships.
+  - id: risk
+    criterion: risk_safety
+    message: Prefer lower-risk paths after all hard constraints pass.
+  - id: trust
+    criterion: trust_score
+    message: Prefer graph relationships supported by higher-confidence assertions.
+  - id: value
+    criterion: value
+    message: Prefer higher estimated goal value from deterministic planner estimates.
+
+objectives:
+  - name: goal_relevance
+    direction: maximize
+  - name: relationship_strength
+    direction: maximize
+  - name: trust_score
+    direction: maximize
+  - name: confidence
+    direction: maximize
+  - name: effort
+    direction: minimize
+  - name: risk
+    direction: minimize
+  - name: meetings
+    direction: minimize
+  - name: introductions
+    direction: minimize

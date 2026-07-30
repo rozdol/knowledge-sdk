@@ -40,6 +40,10 @@ module IntelligenceTestSupport
     records << snapshot_record("project_apollo", "project", "Project Apollo Test", "Work/Projects/Project Apollo Test.md", {
       "project_status" => "active", "started_on" => "2025-01-01", "technologies" => [], "topics" => []
     })
+    records << snapshot_record("city_london", "city", "Synthetic London", "Places/Cities/Synthetic London.md", {})
+    records << snapshot_record("event_summit", "event", "Synthetic AI Summit", "Interactions/Events/Synthetic AI Summit.md", {
+      "starts_at" => "2026-09-15T09:00:00Z", "location" => "Synthetic London"
+    })
 
     records << relationship("rel_self_ada", "person_self", "knows", "person_ada", "close")
     records << relationship("rel_self_bob", "person_self", "knows", "person_bob", "regular")
