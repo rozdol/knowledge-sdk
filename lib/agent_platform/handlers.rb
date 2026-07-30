@@ -377,11 +377,19 @@ module AgentPlatform
     end
 
     def register_extraction_handler(registry, services)
-      registry.register("kg.extraction.extract_source") do |arguments, context|
+      registry.register("kg.extraction.extract_source", version: "1.1.0") do |arguments, context|
+        envelope_metadata = {
+          "observation_id" => arguments["observation_id"],
+          "observation_source" => arguments["origin_source"],
+          "conversation_id" => arguments["conversation_id"],
+          "message_id" => arguments["message_id"],
+          "sender" => arguments["sender"]
+        }.reject { |_key, value| value.nil? }
         metadata = {
           language: arguments.fetch("language", "und"), captured_at: arguments["captured_at"],
           external_id: arguments["external_id"], source_uri: arguments["source_uri"],
-          title: arguments["title"], metadata: { "sensitivity" => arguments.fetch("sensitivity", "private") }
+          title: arguments["title"], author: arguments["sender"],
+          metadata: envelope_metadata.merge("sensitivity" => arguments.fetch("sensitivity", "private"))
         }.reject { |_key, value| value.nil? }
         proposal = services.extraction_pipeline(context).process(
           arguments.fetch("content"), source_type: arguments.fetch("source_type"),

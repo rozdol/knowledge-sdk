@@ -15,4 +15,5 @@ module KnowledgeExtraction
   class DuplicateSource < Error; end
   class PrivacyPolicyViolation < Error; end
   class ProposalNotFound < Error; end
+  class ObservationFailure < Error; end
 end

@@ -4,11 +4,12 @@ require "pathname"
 
 module KnowledgeOrchestration
   class ArtifactDependencies
-    attr_reader :event_ids, :event_types, :entity_ids, :snapshot_digest,
+    attr_reader :observation_ids, :event_ids, :event_types, :entity_ids, :snapshot_digest,
                 :capability_id, :capability_version
 
-    def initialize(event_ids:, event_types:, snapshot_digest:, entity_ids: [],
+    def initialize(event_ids:, event_types:, snapshot_digest:, observation_ids: [], entity_ids: [],
                    capability_id: nil, capability_version: nil)
+      @observation_ids = strings(observation_ids)
       @event_ids = strings(event_ids)
       @event_types = strings(event_types)
       @entity_ids = strings(entity_ids)
@@ -20,7 +21,8 @@ module KnowledgeOrchestration
 
     def to_h
       {
-        event_ids: event_ids, event_types: event_types, entity_ids: entity_ids,
+        observation_ids: observation_ids, event_ids: event_ids,
+        event_types: event_types, entity_ids: entity_ids,
         snapshot_digest: snapshot_digest, capability_id: capability_id,
         capability_version: capability_version
       }.reject { |_key, value| value.nil? }
@@ -28,7 +30,7 @@ module KnowledgeOrchestration
 
     def with_event_id(event_id)
       self.class.new(
-        event_ids: event_ids + [event_id.to_s], event_types: event_types,
+        observation_ids: observation_ids, event_ids: event_ids + [event_id.to_s], event_types: event_types,
         entity_ids: entity_ids, snapshot_digest: snapshot_digest,
         capability_id: capability_id, capability_version: capability_version
       )
@@ -37,6 +39,7 @@ module KnowledgeOrchestration
     def self.from_h(value)
       data = value.transform_keys(&:to_s)
       new(
+        observation_ids: data.fetch("observation_ids", []),
         event_ids: data.fetch("event_ids"), event_types: data.fetch("event_types"),
         entity_ids: data.fetch("entity_ids", []), snapshot_digest: data.fetch("snapshot_digest"),
         capability_id: data["capability_id"], capability_version: data["capability_version"]
@@ -56,7 +59,10 @@ module KnowledgeOrchestration
 
   class CachedArtifact
     STATUSES = %w[valid stale].freeze
-    TYPES = %w[analysis plan report briefing digest recommendation workflow_output].freeze
+    TYPES = %w[
+      analysis plan report briefing digest recommendation workflow_output
+      knowledge_extraction entity_resolution
+    ].freeze
 
     attr_reader :id, :artifact_type, :cache_key, :value, :dependencies,
                 :created_at, :status, :invalidated_by, :metadata
@@ -151,7 +157,8 @@ module KnowledgeOrchestration
         nodes: @artifacts.map { |artifact| { id: artifact.id, type: artifact.artifact_type, status: artifact.status } },
         edges: @artifacts.flat_map do |artifact|
           dependency = artifact.dependencies
-          dependency.event_ids.map { |id| { from: id, to: artifact.id, kind: "event" } } +
+          dependency.observation_ids.map { |id| { from: id, to: artifact.id, kind: "observation" } } +
+            dependency.event_ids.map { |id| { from: id, to: artifact.id, kind: "event" } } +
             [{ from: dependency.snapshot_digest, to: artifact.id, kind: "snapshot" }] +
             dependency.entity_ids.map { |id| { from: id, to: artifact.id, kind: "entity_scope" } }
         end.sort_by { |edge| [edge[:to], edge[:kind], edge[:from]] }

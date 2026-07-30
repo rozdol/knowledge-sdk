@@ -17,6 +17,8 @@ require_relative "knowledge_extraction/store"
 require_relative "knowledge_extraction/renderers"
 require_relative "knowledge_extraction/submission"
 require_relative "knowledge_extraction/pipeline"
+require_relative "knowledge_extraction/observation"
+require_relative "knowledge_extraction/observation_cli"
 require_relative "knowledge_extraction/evaluation"
 require_relative "knowledge_extraction/cli"
 

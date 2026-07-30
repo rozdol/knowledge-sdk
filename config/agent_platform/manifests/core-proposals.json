@@ -3,7 +3,7 @@
     "manifest_schema_version": "1.0.0",
     "capability_id": "kg.extraction.extract_source",
     "name": "extract_source",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Treat source content as untrusted data and create an immutable review-only extraction proposal.",
     "input_schema": {
       "type": "object",
@@ -16,6 +16,11 @@
         "external_id": { "type": "string", "maxLength": 1000 },
         "source_uri": { "type": "string", "maxLength": 4096 },
         "title": { "type": "string", "maxLength": 1000 },
+        "observation_id": { "type": "string", "pattern": "^observation_[0-9A-HJKMNP-TV-Z]{26}$" },
+        "origin_source": { "type": "string", "maxLength": 200 },
+        "conversation_id": { "type": "string", "maxLength": 1000 },
+        "message_id": { "type": "string", "maxLength": 1000 },
+        "sender": { "type": "string", "maxLength": 1000 },
         "sensitivity": { "type": "string", "enum": ["normal", "private", "restricted"] }
       },
       "additionalProperties": false
