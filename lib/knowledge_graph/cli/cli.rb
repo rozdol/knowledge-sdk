@@ -45,6 +45,12 @@ module KnowledgeGraph
         group: command, argv: @argv, out: @out, err: @err, stdin: @stdin,
         vault_root: vault_root, event_bus: orchestrator.event_bus
       ).run
+      when "chat" then ChatCLI.new(
+        argv: @argv, out: @out, err: @err, stdin: @stdin,
+        vault_root: vault_root, gateway: agent_gateway,
+        event_bus: orchestrator.event_bus, cache: orchestrator.cache,
+        actor_id: @options[:actor_id]
+      ).run
       when "observe" then KnowledgeExtraction::ObservationCLI.new(
         argv: @argv, out: @out, err: @err, stdin: @stdin,
         vault_root: vault_root, gateway: agent_gateway,
@@ -264,7 +270,7 @@ module KnowledgeGraph
 
     def print_help(option_parser)
       @out.puts(option_parser)
-      @out.puts("Commands: execute, validate, doctor, graph, stats, search, replay, observe, extract, proposal, intelligence, goal, plan, gateway, events, workflow, scheduler, notifications, cache")
+      @out.puts("Commands: execute, validate, doctor, graph, stats, search, replay, chat, observe, extract, proposal, intelligence, goal, plan, gateway, events, workflow, scheduler, notifications, cache")
       0
     end
   end
