@@ -5,7 +5,7 @@ module KnowledgeGraph
     INTENTS = [
       CreateEntity, UpdateEntity, RenameEntity, ArchiveEntity, RestoreEntity, MergeEntities, SplitEntity,
       AddRelationship, RemoveRelationship, ReplaceRelationship, CreateMeeting, ImportTranscript,
-      AttachEvidence, RecordInteraction, RecordPromise, CompleteFollowUp
+      AttachEvidence, RecordInteraction, RecordPromise, CompleteFollowUp, InsertDatasetRow
     ].to_h { |intent_class| [intent_class.name.split("::").last, intent_class] }.freeze
 
     def self.build(payload)

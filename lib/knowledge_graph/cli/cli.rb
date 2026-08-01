@@ -34,6 +34,10 @@ module KnowledgeGraph
       when "search" then search_command
       when "replay" then replay_command
       when "gateway" then gateway_command
+      when "dataset" then StructuredDataset::CLI.new(
+        argv: @argv, out: @out, err: @err, vault_root: vault_root,
+        run_id: @options[:run_id], actor_id: @options[:actor_id], event_bus: orchestrator.event_bus
+      ).run
       when "activity" then KnowledgeActivity::CLI.new(
         argv: @argv, out: @out, err: @err, vault_root: vault_root,
         event_bus: orchestrator.event_bus, cache: orchestrator.cache
@@ -82,6 +86,9 @@ module KnowledgeGraph
     rescue KnowledgeOrchestration::Error => error
       @err.puts(JSON.generate(error: error.message, error_class: error.class.name))
       1
+    rescue StructuredDataset::Error => error
+      @err.puts(JSON.generate(error: error.message, error_class: error.class.name))
+      1
     end
 
     private
@@ -119,15 +126,17 @@ module KnowledgeGraph
       stdout, stderr, status = run_validator
       registry = schema_registry
       relationships = relationship_registry
+      dataset_status = dataset_health
       emit_json(
-        status: status.success? ? "ok" : "failed",
+        status: status.success? && dataset_status.fetch(:status) == "ok" ? "ok" : "failed",
         ruby_version: RUBY_VERSION,
         schemas: registry.keys.length,
         predicates: relationships.predicates.length,
         capabilities: agent_gateway.registry.size,
+        structured_datasets: dataset_status,
         validator_output: [stdout, stderr].join.strip
       )
-      status.success? ? 0 : 1
+      status.success? && dataset_status.fetch(:status) == "ok" ? 0 : 1
     end
 
     def stats_command
@@ -144,6 +153,12 @@ module KnowledgeGraph
     def search_command
       query = @argv.join(" ").strip
       raise InvalidIntent, "search expects a query" if query.empty?
+
+      dataset_result = StructuredDataset::Search.new(engine: dataset_engine).query(query)
+      if dataset_result
+        emit_json(dataset_result)
+        return 0
+      end
 
       agent = AgentPlatform::AgentIdentity.new(
         id: @options[:actor_id].to_s.empty? ? "local-cli-search" : @options[:actor_id],
@@ -216,6 +231,39 @@ module KnowledgeGraph
       )
     end
 
+    def dataset_engine
+      @dataset_engine ||= StructuredDataset::Engine.new(
+        vault_root: vault_root, run_id: @options[:run_id], actor_id: @options[:actor_id],
+        event_bus: orchestrator.event_bus
+      )
+    end
+
+    def dataset_health
+      database = StructuredDataset::Database.new(vault_root: vault_root)
+      version = database.migrate!
+      storage_ids = []
+      integrity = nil
+      foreign_key_violations = []
+      database.with_connection do |connection|
+        storage_ids = database.datasets(connection).map { |item| item.fetch("dataset_id") }
+        integrity = connection.get_first_value("PRAGMA quick_check")
+        foreign_key_violations = connection.execute("PRAGMA foreign_key_check")
+      end
+      graph_datasets = dataset_engine.list
+      graph_ids = graph_datasets.map { |item| item.fetch("dataset_id") }
+      missing_storage = graph_datasets.reject { |item| item["storage_status"] == "ready" }.map { |item| item.fetch("dataset_id") }
+      orphan_storage = storage_ids - graph_ids
+      healthy = integrity == "ok" && foreign_key_violations.empty? && missing_storage.empty? && orphan_storage.empty?
+      {
+        status: healthy ? "ok" : "failed", sqlite_version: SQLite3::SQLITE_VERSION,
+        schema_version: version, datasets: graph_ids.length, integrity: integrity,
+        foreign_key_violations: foreign_key_violations.length,
+        missing_storage: missing_storage, orphan_storage: orphan_storage, path: database.path.to_s
+      }
+    rescue StructuredDataset::Error => error
+      { status: "failed", error: error.message }
+    end
+
     def engine
       @engine ||= KnowledgeOrchestration::EngineEventBridge.new(
         event_bus: orchestrator.event_bus
@@ -274,7 +322,7 @@ module KnowledgeGraph
 
     def print_help(option_parser)
       @out.puts(option_parser)
-      @out.puts("Commands: execute, validate, doctor, graph, stats, search, replay, activity, chat, observe, extract, proposal, intelligence, goal, plan, gateway, events, workflow, scheduler, notifications, cache")
+      @out.puts("Commands: execute, validate, doctor, graph, stats, search, replay, dataset, activity, chat, observe, extract, proposal, intelligence, goal, plan, gateway, events, workflow, scheduler, notifications, cache")
       0
     end
   end

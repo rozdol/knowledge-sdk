@@ -61,12 +61,12 @@ module KnowledgeGraph
       @resolver = resolver
       @agent = AgentPlatform::AgentIdentity.new(
         id: actor_id.to_s.empty? ? "kg-chat-cli" : actor_id.to_s,
-        permissions: %w[graph:read intelligence:read planning:read proposal:read],
+        permissions: %w[graph:read dataset:read intelligence:read planning:read proposal:read],
         roles: ["chat_client"],
         attributes: {
           "autonomous_execution" => false,
           "allowed_capabilities" => %w[
-            kg.entities.search kg.graph.query kg.planning.plan kg.proposals.status
+            kg.entities.search kg.graph.query kg.datasets.query kg.planning.plan kg.proposals.status
           ],
           "denied_capabilities" => ["kg.proposals.submit"]
         }
@@ -122,6 +122,12 @@ module KnowledgeGraph
     end
 
     def search_response(text, decision)
+      dataset_response = invoke("kg.datasets.query", "query" => text)
+      return [{ "status" => "ok", "route" => decision.route, "result" => dataset_response.payload }, "kg.datasets.query"] if dataset_response.success?
+      unless dataset_response.errors.first.to_h["code"] == "InvalidArguments"
+        return [gateway_error(decision.route, dataset_response), "kg.datasets.query"]
+      end
+
       response = invoke("kg.graph.query", "query" => text)
       if !response.success? && response.errors.first.to_h["code"] == "InvalidArguments"
         query = entity_query(text)

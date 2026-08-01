@@ -64,7 +64,7 @@ module KnowledgeExtraction
       @last_document = document
       @provider.extract(
         document,
-        { configuration: configuration, graph_context: [] }
+        { configuration: configuration, graph_context: [], self_entity: @graph_reader.self_entity }
       )
     rescue KnowledgeExtraction::Error
       raise

@@ -55,7 +55,10 @@ module AgentPlatform
       date = parse_date(as_of)
       key = ["planning", KnowledgePlanning::Stable.json(goal.planning_signature), date.iso8601]
       context.memoize(key) do
-        KnowledgePlanning::Engine.new(snapshot: snapshot(context), as_of: date).plan(goal)
+        KnowledgePlanning::Engine.new(
+          snapshot: snapshot(context), as_of: date,
+          dataset_provider: StructuredDataset::PlanningAdapter.new(engine: dataset_engine(context), clock: @clock)
+        ).plan(goal)
       end
     end
 
@@ -83,6 +86,15 @@ module AgentPlatform
           KnowledgeOrchestration::EngineEventBridge.new(event_bus: @event_bus).attach(engine)
         end
         engine
+      end
+    end
+
+    def dataset_engine(context)
+      context.memoize(:dataset_engine) do
+        StructuredDataset::Engine.new(
+          vault_root: vault_root, run_id: run_id, actor_id: actor_id,
+          event_bus: @event_bus, clock: @clock
+        )
       end
     end
 

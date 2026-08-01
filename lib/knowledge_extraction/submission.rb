@@ -2,10 +2,11 @@
 
 module KnowledgeExtraction
   class ProposalSubmitter
-    def initialize(engine:, store:, clock: nil)
+    def initialize(engine:, store:, clock: nil, dataset_engine: nil)
       @engine = engine
       @store = store
       @clock = clock || -> { Time.now }
+      @dataset_engine = dataset_engine
     end
 
     def submit(proposal_id, dry_run: false)
@@ -37,13 +38,13 @@ module KnowledgeExtraction
 
         begin
           intent = approved_intent(item, approved_ids)
-          result = @engine.execute(intent)
+          result = execute_intent(intent, proposal_id, approval)
           completed[item.fetch("planned_intent_id")] = true
           results << {
             "planned_intent_id" => item.fetch("planned_intent_id"), "status" => "executed",
-            "intent_type" => result.intent_type, "entity_ids" => result.entity_ids,
-            "audit_id" => result.audit_id, "replayed" => result.replayed
-          }
+            "intent_type" => result.fetch("intent_type"), "entity_ids" => result.fetch("entity_ids"),
+            "audit_id" => result.fetch("audit_id"), "replayed" => result.fetch("replayed")
+          }.merge(result.fetch("extra", {}))
         rescue StandardError => error
           failed = true
           results << {
@@ -63,6 +64,37 @@ module KnowledgeExtraction
     end
 
     private
+
+    def execute_intent(intent, proposal_id, approval)
+      if intent.is_a?(KnowledgeGraph::InsertDatasetRow)
+        row = dataset_engine.insert(
+          intent.dataset, intent.values,
+          source: intent.source, observation_id: intent.observation_id,
+          proposal_id: proposal_id, approval_id: approval && approval["approval_id"],
+          created_by: approval && approval["actor_id"] || "proposal-engine",
+          intent_id: intent.intent_id
+        )
+        dataset_id = dataset_engine.describe(intent.dataset).fetch("dataset_id")
+        return {
+          "intent_type" => intent.intent_type, "entity_ids" => [dataset_id],
+          "audit_id" => row.fetch("dataset_activity_id"), "replayed" => row.fetch("replayed"),
+          "extra" => { "row_id" => row.fetch("row_id") }
+        }
+      end
+
+      result = @engine.execute(intent)
+      {
+        "intent_type" => result.intent_type, "entity_ids" => result.entity_ids,
+        "audit_id" => result.audit_id, "replayed" => result.replayed
+      }
+    end
+
+    def dataset_engine
+      @dataset_engine ||= StructuredDataset::Engine.new(
+        vault_root: @engine.vault_root, run_id: @engine.run_id,
+        actor_id: "proposal-engine", clock: @clock
+      )
+    end
 
     def verify_approval!(proposal, approval)
       return unless approval

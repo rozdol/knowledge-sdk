@@ -165,7 +165,9 @@ module KnowledgeExtraction
     def proposal_submit(proposal_id)
       options = { dry_run: false }
       OptionParser.new { |option| option.on("--dry-run") { options[:dry_run] = true } }.parse!(@argv)
-      result = ProposalSubmitter.new(engine: engine, store: store).submit(proposal_id, dry_run: options[:dry_run])
+      result = ProposalSubmitter.new(
+        engine: engine, store: store, dataset_engine: dataset_engine
+      ).submit(proposal_id, dry_run: options[:dry_run])
       @out.puts(JSON.pretty_generate(result))
     end
 
@@ -235,6 +237,12 @@ module KnowledgeExtraction
                 else
                   engine
                 end
+    end
+
+    def dataset_engine
+      @dataset_engine ||= StructuredDataset::Engine.new(
+        vault_root: @vault_root, run_id: @run_id, actor_id: @actor_id, event_bus: @event_bus
+      )
     end
 
     def default_dataset

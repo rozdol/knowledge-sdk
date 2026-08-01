@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://knowledge.local/schemas/structured-dataset-response.json",
+  "title": "Structured Dataset CLI Response",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["status", "result"],
+      "properties": {
+        "status": { "const": "ok" },
+        "result": {}
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["status", "error"],
+      "properties": {
+        "status": { "const": "error" },
+        "error": {
+          "type": "object",
+          "required": ["code", "message"],
+          "properties": {
+            "code": { "type": "string" },
+            "message": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  ]
+}

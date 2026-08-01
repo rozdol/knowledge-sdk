@@ -8,12 +8,42 @@ module AgentPlatform
       registry = HandlerRegistry.new
       register_entity_handlers(registry, services)
       register_graph_handlers(registry, services)
+      register_dataset_handlers(registry, services)
       register_intelligence_handlers(registry, services)
       register_planning_handlers(registry, services)
       register_proposal_handlers(registry, services)
       register_extraction_handler(registry, services)
       register_orchestration_handlers(registry, services) if services.notification_store?
       registry
+    end
+
+    def register_dataset_handlers(registry, services)
+      registry.register("kg.datasets.query") do |arguments, context|
+        result = StructuredDataset::Search.new(engine: services.dataset_engine(context)).query(arguments.fetch("query"))
+        raise InvalidArguments, "unsupported deterministic dataset query" unless result
+
+        HandlerResult.new(
+          payload: result,
+          why: result.fetch("explanation"), confidence: result.fetch("answers").empty? ? 0.0 : 1.0,
+          evidence: [{ "record_id" => result.dig("dataset", "dataset_id"), "role" => "dataset_registry" }]
+        )
+      rescue StructuredDataset::Error => error
+        raise InvalidArguments, error.message
+      end
+
+      registry.register("kg.datasets.describe") do |arguments, context|
+        description = services.dataset_engine(context).describe(arguments.fetch("dataset"))
+        raise PolicyDenied, "restricted dataset requires dataset:restricted" if
+          description["sensitivity"] == "restricted" && !context.agent.permits?("dataset:restricted")
+
+        HandlerResult.new(
+          payload: { "dataset" => description },
+          why: "Resolved the canonical Dataset registry entry and its operational SQLite schema.",
+          confidence: 1.0
+        )
+      rescue StructuredDataset::Error => error
+        raise InvalidArguments, error.message
+      end
     end
 
     def register_orchestration_handlers(registry, services)
@@ -255,7 +285,8 @@ module AgentPlatform
       registry.register("kg.proposals.submit") do |arguments, context|
         proposal_id = arguments.fetch("proposal_id")
         result = KnowledgeExtraction::ProposalSubmitter.new(
-          engine: services.engine(context), store: services.proposal_store(context)
+          engine: services.engine(context), store: services.proposal_store(context),
+          dataset_engine: services.dataset_engine(context)
         ).submit(proposal_id, dry_run: arguments.fetch("dry_run", false))
         HandlerResult.new(
           payload: SecurityGuard.sanitize(result),

@@ -1,0 +1,9 @@
+[
+  { "slug": "blood_tests", "columns": ["observed_at", "marker", "value", "unit", "reference_low", "reference_high", "laboratory", "notes"] },
+  { "slug": "medication_log", "columns": ["observed_at", "medication", "dose", "unit", "action", "notes"] },
+  { "slug": "blood_pressure", "columns": ["observed_at", "systolic", "diastolic", "pulse", "notes"] },
+  { "slug": "weight", "columns": ["observed_at", "weight_kg", "notes"] },
+  { "slug": "expenses", "columns": ["occurred_on", "category", "amount", "currency", "merchant", "notes"] },
+  { "slug": "exercise", "columns": ["started_at", "activity", "duration_minutes", "distance_km", "calories"] },
+  { "slug": "sleep", "columns": ["started_at", "ended_at", "duration_hours", "quality", "notes"] }
+]

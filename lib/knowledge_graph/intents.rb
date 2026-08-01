@@ -88,4 +88,13 @@ module KnowledgeGraph
     field :follow_up_id
     field :completed_on, default: nil
   end
+
+  class InsertDatasetRow < Intent
+    field :dataset
+    field :values
+    field :source
+    field :observation_id
+    field :proposal_id, default: nil
+    field :approval_id, default: nil
+  end
 end

@@ -28,7 +28,7 @@ class KnowledgeExtractionSubmissionCLITest < Minitest::Test
       alice = reader.search("Alice Carter").first.fetch(:entity)
       northstar = reader.search("Northstar").first.fetch(:entity)
       assert reader.relationship_exists?(source_id: alice.id, predicate: "works_for", target_id: northstar.id)
-      assert_equal "OK: 3 canonical notes, 18 entity schemas, 39 predicates\n", validator_output(root)
+      assert_equal "OK: 3 canonical notes, 19 entity schemas, 39 predicates\n", validator_output(root)
 
       second = submitter.submit(proposal.proposal_id)
       assert_equal "executed", second.fetch("status")

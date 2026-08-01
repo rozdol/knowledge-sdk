@@ -7,7 +7,7 @@ module KnowledgeExtraction
     HIGH_RISK = %w[
       MergeEntities SplitEntity RemoveRelationship RenameEntity ArchiveEntity ReplaceRelationship
     ].freeze
-    MEDIUM_RISK = %w[UpdateEntity RecordPromise CompleteFollowUp].freeze
+    MEDIUM_RISK = %w[UpdateEntity RecordPromise CompleteFollowUp InsertDatasetRow].freeze
 
     def classify(intent)
       return "high" if HIGH_RISK.include?(intent.intent_type)
@@ -186,6 +186,8 @@ module KnowledgeExtraction
           item = plan_promise(document, fact, decisions)
         when "follow-up"
           item = plan_follow_up(document, fact, decisions)
+        when "dataset_observation"
+          item = plan_dataset_observation(document, fact, decisions)
         else
           item = blocked_intent(document, fact, "No safe existing Intent mapping for #{fact.fact_type}")
         end
@@ -383,6 +385,28 @@ module KnowledgeExtraction
       attributes[:due_on] = due if due
       intent = KnowledgeGraph::CreateEntity.new(entity_type: "follow-up", attributes: attributes)
       build_planned(document, intent, [fact], fact.confidence, blocked_reasons: blocked)
+    end
+
+    def plan_dataset_observation(document, fact, decisions)
+      unless fact.object.is_a?(ScalarValue) && fact.object.value.is_a?(Hash)
+        raise UnsupportedIntentMapping, "dataset observation requires structured scalar values"
+      end
+      decision = decisions.fetch(fact.subject.mention_id)
+      blocked = []
+      blocked << "observation subject must resolve to canonical Self" unless decision.outcome == "resolved"
+      self_entity = @graph_reader.self_entity
+      blocked << "observation subject does not match canonical Self" if self_entity && decision.selected_entity_id != self_entity.id
+      matches = @graph_reader.search(fact.predicate.tr("_", " "), entity_type: "dataset")
+      blocked << "target Dataset must exist in the graph registry" if matches.empty?
+      values = fact.object.normalized_value || fact.object.value
+      intent = KnowledgeGraph::InsertDatasetRow.new(
+        dataset: fact.predicate, values: values,
+        source: document.source_type,
+        observation_id: document.metadata["observation_id"] || document.source_id,
+        intent_id: Support.stable_id("intent", document.source_id, fact.fact_id, "dataset-row")
+      )
+      confidence = [fact.confidence, decision.selected_candidate&.score].compact.min || 0.0
+      build_planned(document, intent, [fact], confidence, blocked_reasons: blocked)
     end
 
     def blocked_intent(document, fact, reason)

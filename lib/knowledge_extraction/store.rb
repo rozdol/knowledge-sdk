@@ -95,10 +95,12 @@ module KnowledgeExtraction
       raise ApprovalSubmissionFailure, "unknown planned Intent IDs: #{unknown.join(', ')}" unless unknown.empty?
       raise ApprovalSubmissionFailure, "actor_id is required" if actor_id.to_s.strip.empty?
 
+      approved_at = @clock.call.iso8601
       receipt = {
+        "approval_id" => Support.stable_id("approval", proposal_id, proposal_fingerprint(proposal), actor_id, approved_at),
         "proposal_id" => proposal_id, "proposal_fingerprint" => proposal_fingerprint(proposal),
         "approved_intent_ids" => requested.sort, "actor_id" => actor_id.to_s,
-        "approved_at" => @clock.call.iso8601
+        "approved_at" => approved_at
       }
       atomic_write(approval_path(proposal_id), JSON.pretty_generate(receipt) + "\n")
       receipt

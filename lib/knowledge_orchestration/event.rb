@@ -85,7 +85,7 @@ module KnowledgeOrchestration
       FollowupCompleted FollowupOverdue DeadlineReached ReminderDue DigestRequested
       PlannerCompleted AnalyzerCompleted WorkflowRequested NotificationRequested
       ObservationReceived ObservationParsed ExtractionCompleted ProposalCreated
-      PolicyValidated ObservationCompleted
+      PolicyValidated ObservationCompleted DatasetChanged
     ].freeze
 
     def self.default

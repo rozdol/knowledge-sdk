@@ -81,7 +81,7 @@ module KnowledgeGraph
     end
 
     def strong_values(record)
-      values = []
+      values = [[:id, record.id]]
       STRONG_FIELDS.each do |field, kind|
         Array(record.data[field]).each { |value| values << [kind, value] }
       end

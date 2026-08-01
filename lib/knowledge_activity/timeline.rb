@@ -137,7 +137,8 @@ module KnowledgeActivity
       @all = if cached
                deserialize_activities(cached.value.fetch("activities"))
              else
-               activities = build_activities.freeze
+               activities = (build_activities + build_dataset_activities)
+                            .sort_by { |activity| [parse_time(activity.created_at), activity.id] }.freeze
                cache_activities(activities, key, snapshot_digest)
                activities
              end
@@ -152,6 +153,10 @@ module KnowledgeActivity
       @successful_audits ||= selected.each_with_index
         .sort_by { |(audit, index)| [parse_time(audit.fetch("timestamp")), index] }
         .map(&:first).freeze
+    end
+
+    def dataset_audits
+      @dataset_audits ||= StructuredDataset::ActivityAdapter.new(vault_root: @vault_root).audits.freeze
     end
 
     def build_activities
@@ -178,6 +183,50 @@ module KnowledgeActivity
           restore_available: planner.available?(activity, operation: :restore)
         ))
       end
+    end
+
+    def build_dataset_activities
+      dataset_events = orchestration_events.select { |event| event.type == "DatasetChanged" }
+      dataset_audits.map do |audit|
+        record = repository.find(audit.fetch("entity_ids").first)
+        privacy = record.data["sensitivity"] == "restricted" ? "redacted" : "visible"
+        action = audit.fetch("dataset_action")
+        event = dataset_events.find do |candidate|
+          candidate.payload["dataset_id"] == record.id && candidate.payload["action"] == action &&
+            candidate.payload["row_id"].to_s == audit["row_id"].to_s
+        end
+        objects = if privacy == "redacted"
+                    []
+                  else
+                    [{ id: record.id, kind: "dataset", name: record.data["name"], state: "active" }]
+                  end
+        Activity.new(
+          id: activity_id(audit), type: dataset_activity_type(action),
+          summary: dataset_summary(audit, privacy), created_at: normalized_time(audit.fetch("timestamp")),
+          source: audit.fetch("source"), actor: audit["actor_id"], proposal: audit["proposal_id"],
+          events: event ? [event.id] : [], affected_objects: objects,
+          undo_available: false, restore_available: false, privacy: privacy, audit: audit
+        )
+      rescue KnowledgeGraph::Error
+        nil
+      end.compact
+    end
+
+    def dataset_activity_type(action)
+      return "knowledge_added" if %w[create insert import].include?(action)
+      return "knowledge_archived" if action == "delete"
+
+      "knowledge_changed"
+    end
+
+    def dataset_summary(audit, privacy)
+      return "A restricted dataset change was recorded." if privacy == "redacted"
+
+      verbs = {
+        "create" => "was registered", "insert" => "received a row", "update" => "had a row updated",
+        "delete" => "had a row deleted", "import" => "received an import", "migrate" => "was migrated"
+      }
+      "#{audit.fetch('dataset_name')} #{verbs.fetch(audit.fetch('dataset_action'), 'changed')}."
     end
 
     def activity_attributes(activity)
@@ -366,7 +415,10 @@ module KnowledgeActivity
     end
 
     def current_snapshot_digest
-      KnowledgeIntelligence::GraphSnapshot.load(vault_root: @vault_root).digest
+      KnowledgeOrchestration::Stable.digest(
+        [KnowledgeIntelligence::GraphSnapshot.load(vault_root: @vault_root).digest,
+         dataset_audits.map { |audit| audit.fetch("fingerprint") }]
+      )
     end
 
     def activity_cache_key(snapshot_digest)
@@ -375,6 +427,9 @@ module KnowledgeActivity
         arguments: {
           "audit_history" => KnowledgeOrchestration::Stable.digest(
             successful_audits.map { |audit| [audit.fetch("id"), audit.fetch("fingerprint")] }
+          ),
+          "dataset_history" => KnowledgeOrchestration::Stable.digest(
+            dataset_audits.map { |audit| [audit.fetch("id"), audit.fetch("fingerprint")] }
           ),
           "proposal_history" => KnowledgeOrchestration::Stable.digest(@proposal_store.submissions),
           "event_history" => KnowledgeOrchestration::Stable.digest(
@@ -388,7 +443,7 @@ module KnowledgeActivity
     def cache_activities(activities, key, snapshot_digest)
       dependencies = KnowledgeOrchestration::ArtifactDependencies.new(
         event_ids: activities.flat_map(&:events),
-        event_types: %w[GraphChanged RelationshipUpdated ContactCreated],
+        event_types: %w[GraphChanged RelationshipUpdated ContactCreated DatasetChanged],
         entity_ids: [], snapshot_digest: snapshot_digest,
         capability_id: "kg.activity.timeline", capability_version: KnowledgeActivity::VERSION
       )
@@ -404,7 +459,7 @@ module KnowledgeActivity
     end
 
     def deserialize_activities(items)
-      audits = successful_audits.to_h { |audit| [audit.fetch("id"), audit] }
+      audits = (successful_audits + dataset_audits).to_h { |audit| [audit.fetch("id"), audit] }
       items.map do |item|
         data = AgentPlatform::Value.mutable(item)
         audit_id = data.delete("audit_id")
@@ -422,7 +477,7 @@ module KnowledgeActivity
       graph_events + orchestration_events.select do |event|
         base = graph_by_id[event.causation_id]
         base && event.trace_id == base.trace_id
-      end
+      end + orchestration_events.select { |event| event.type == "DatasetChanged" }
     end
 
     def orchestration_events

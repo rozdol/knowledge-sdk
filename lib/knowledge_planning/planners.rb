@@ -2,13 +2,14 @@
 
 module KnowledgePlanning
   class PlanningContext
-    attr_reader :snapshot, :feature_engine, :search, :as_of
+    attr_reader :snapshot, :feature_engine, :search, :as_of, :dataset_signals
 
-    def initialize(snapshot:, feature_engine:, as_of:)
+    def initialize(snapshot:, feature_engine:, as_of:, dataset_signals: [])
       @snapshot = snapshot
       @feature_engine = feature_engine
       @as_of = as_of.is_a?(Date) ? as_of : Date.iso8601(as_of.to_s)
       @search = GraphSearch.new(snapshot: snapshot, as_of: @as_of)
+      @dataset_signals = Immutable.copy(Array(dataset_signals))
       freeze
     end
   end

@@ -4,7 +4,7 @@ module KnowledgeExtraction
   class Configuration < ImmutableModel
     ENTITY_TYPES = %w[
       person organization interaction introduction place project book interest technology country city event
-      commitment follow-up relationship language profession industry
+      commitment follow-up relationship language profession industry dataset
     ].freeze
     LANGUAGES = %w[en ru el mixed und].freeze
     APPROVAL_POLICIES = %w[review_all allow_low_risk].freeze

@@ -119,7 +119,9 @@ module KnowledgeExtraction
     def candidate_for(mention, entry)
       entity = entry.fetch(:entity)
       signals = entry.fetch(:signals)
-      score = if signals.include?("email") || signals.include?("phone")
+      score = if signals.include?("id")
+                1.0
+              elsif signals.include?("email") || signals.include?("phone")
                 0.99
               elsif signals.include?("external_id") || signals.include?("domain")
                 0.98

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://knowledge.local/schemas/structured-dataset-row.json",
+  "title": "Structured Dataset Row Envelope",
+  "type": "object",
+  "required": ["row_id", "created_at", "updated_at", "created_by", "source"],
+  "properties": {
+    "row_id": { "type": "string", "pattern": "^row_[0-9A-HJKMNP-TV-Z]{26}$" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "created_by": { "type": "string", "minLength": 1 },
+    "source": { "type": "string", "minLength": 1 },
+    "observation_id": { "type": ["string", "null"] },
+    "proposal_id": { "type": ["string", "null"] },
+    "approval_id": { "type": ["string", "null"] },
+    "intent_id": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true
+}

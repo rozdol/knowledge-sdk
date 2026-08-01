@@ -37,7 +37,7 @@ class CLITest < Minitest::Test
 
       status, doctor = run_cli(root, "doctor")
       assert_equal 0, status
-      assert_equal 18, JSON.parse(doctor).fetch("schemas")
+      assert_equal 19, JSON.parse(doctor).fetch("schemas")
     end
   end
 

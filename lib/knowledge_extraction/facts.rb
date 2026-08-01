@@ -2,7 +2,7 @@
 
 module KnowledgeExtraction
   class ScalarValue < ImmutableModel
-    TYPES = %w[string number boolean date datetime date-range duration recurrence location unknown].freeze
+    TYPES = %w[string number boolean date datetime date-range duration recurrence location json unknown].freeze
     attr_reader :value, :value_type, :original_expression, :normalized_value,
                 :normalization_confidence, :uncertain
 
@@ -61,7 +61,7 @@ module KnowledgeExtraction
   end
 
   class ExtractedFact < ImmutableModel
-    TYPES = %w[entity attribute relationship interaction meeting promise follow-up introduction correction].freeze
+    TYPES = %w[entity attribute relationship interaction meeting promise follow-up introduction correction dataset_observation].freeze
     STATUSES = %w[asserted negated uncertain corrected superseded planned historical].freeze
 
     attr_reader :fact_id, :fact_type, :subject, :predicate, :object, :qualifiers,
