@@ -269,6 +269,7 @@ module KnowledgeGraph
         content = context.transaction.read(relative)
         next unless content
 
+        content = content.dup.force_encoding(Encoding::UTF_8) if content.encoding == Encoding::ASCII_8BIT
         updated = content.gsub(/\[\[#{Regexp.escape(old_target)}(?=[#|\]])/, "[[#{new_target}")
                          .gsub(/\[\[#{Regexp.escape(old_target)}\.md(?=[#|\]])/, "[[#{new_target}")
         context.transaction.write(relative, updated) unless updated == content

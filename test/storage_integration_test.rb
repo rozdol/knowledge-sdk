@@ -41,6 +41,28 @@ class StorageIntegrationTest < Minitest::Test
     end
   end
 
+  def test_rename_supports_utf8_names_when_rewriting_backlinks
+    with_schema_vault do |root|
+      FileUtils.mkdir_p(File.join(root, "Notes"))
+      File.write(File.join(root, "Notes/Unicode.md"), "# Заметка\n")
+      engine = build_engine(root)
+      engine.execute(KnowledgeGraph::CreateEntity.new(
+        entity_type: "person",
+        attributes: {
+          name: "Мария Титова", tier: "active", sensitivity: "private",
+          data_origin: "third_party", is_self: true
+        }
+      ))
+
+      renamed = engine.execute(
+        KnowledgeGraph::RenameEntity.new(entity_id: FIXED_ID, new_name: "Мария Курлычева")
+      )
+
+      assert_equal "People/Мария Курлычева.md", renamed.value.fetch(:relative_path)
+      refute File.exist?(File.join(root, "People/Мария Титова.md"))
+    end
+  end
+
   def test_invalid_candidate_is_never_committed
     with_schema_vault do |root|
       engine = build_engine(root)
