@@ -1,0 +1,23 @@
+[
+  {
+    "name": "person added",
+    "setup": "create",
+    "expected_type": "knowledge_added",
+    "expected_summary": "Ada Lovelace was added.",
+    "expected_undo_intent": "ArchiveEntity"
+  },
+  {
+    "name": "person archived",
+    "setup": "archive",
+    "expected_type": "knowledge_archived",
+    "expected_summary": "Ada Lovelace was archived.",
+    "expected_undo_intent": "RestoreEntity"
+  },
+  {
+    "name": "person restored",
+    "setup": "restore",
+    "expected_type": "knowledge_restored",
+    "expected_summary": "Ada Lovelace was restored.",
+    "expected_undo_intent": "ArchiveEntity"
+  }
+]

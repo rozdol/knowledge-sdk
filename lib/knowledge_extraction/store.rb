@@ -40,6 +40,26 @@ module KnowledgeExtraction
       proposal_path(proposal_id)
     end
 
+    def submissions
+      directory = @root.join("submissions")
+      return [] unless directory.directory?
+
+      Dir[directory.join("proposal_*.json").to_s].sort.map do |path|
+        JSON.parse(File.read(path))
+      rescue JSON::ParserError => error
+        raise ApprovalSubmissionFailure, "submission receipt is invalid: #{error.message}"
+      end.freeze
+    end
+
+    def submission(proposal_id)
+      path = submission_path(proposal_id)
+      return nil unless path.file?
+
+      JSON.parse(path.read)
+    rescue JSON::ParserError => error
+      raise ApprovalSubmissionFailure, "submission receipt is invalid: #{error.message}"
+    end
+
     def classify_source(document)
       entries = source_entries
       same_id = entries.select { |entry| entry["source_id"] == document.source_id }

@@ -73,6 +73,12 @@ Workflow definitions cannot contain `kg.proposals.submit`, and runtime invocatio
 
 The Knowledge Cache is not a fact cache and not a graph cache. It stores only derived, reproducible outputs such as analyzer results, plans, reports, briefings, digests, recommendations, and workflow outputs. Every artifact records its producing capability version, immutable graph snapshot digest, originating event IDs, invalidating event types, and optional entity scope. A new event marks only affected artifacts stale; a snapshot mismatch prevents reuse even before stale marking.
 
+## Knowledge Activity projection
+
+Phase 10A presents successful Engine changes as human-oriented activities. It joins existing audit receipts, Event Bus history, proposal/approval/submission receipts, and the current immutable graph snapshot at read time. Activity IDs are derived from audit IDs, so the projection has no store of its own.
+
+Undo and restore perform no graph write. They derive lossless existing Intents from audit/replay history, preserve exact audit evidence and confidence fields in a fresh immutable proposal, and stop at `awaiting_approval`. Only the existing approval and Proposal Submitter path may later reach the Engine.
+
 ## Modules
 
 - `intents.rb` defines immutable commands and their serialization contract.
@@ -86,6 +92,7 @@ The Knowledge Cache is not a fact cache and not a graph cache. It stores only de
 - `knowledge_planning/` owns immutable goals and plans, constraint evaluation, graph search, candidate planners, scenario simulation, shared decision policy, explanations, traces, and review-proposal adaptation. It never mutates the graph.
 - `agent_platform/` owns manifests, Registry, Gateway, policy, sessions, adapters, jobs, telemetry, plugins, and generated contract artifacts. It does not parse Markdown or YAML.
 - `knowledge_orchestration/` owns immutable events, the internal bus and dead-letter queue, trigger and workflow DSL, dependency graph, derived-artifact Knowledge Cache, durable jobs, cron scheduler, notifications, replay, and sanitized timelines. It invokes existing components only through Agent Gateway capabilities.
+- `knowledge_activity/` owns the read-time Activity projection, human summaries, temporal filtering/search/diff, privacy redaction, explainability joins, and review-only undo/restore proposal adaptation. It has no canonical writer or Activity store.
 
 ## Transaction guarantees
 

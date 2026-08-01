@@ -61,7 +61,7 @@ module KnowledgeOrchestration
     STATUSES = %w[valid stale].freeze
     TYPES = %w[
       analysis plan report briefing digest recommendation workflow_output
-      knowledge_extraction entity_resolution
+      knowledge_extraction entity_resolution activity
     ].freeze
 
     attr_reader :id, :artifact_type, :cache_key, :value, :dependencies,

@@ -16,6 +16,7 @@ ruby "_System/KnowledgeGraph/bin/kg" gateway capabilities
 ruby "_System/KnowledgeGraph/bin/kg" gateway execute kg.entities.search '{"query":"Ada"}'
 ruby "_System/KnowledgeGraph/bin/kg" workflow list
 ruby "_System/KnowledgeGraph/bin/kg" scheduler list
+ruby "_System/KnowledgeGraph/bin/kg" activity latest --json
 ruby "_System/KnowledgeGraph/bin/kg" plan compare \
   '{"description":"Reach a target","goal_type":"warm_introduction","preferences":{"target_ids":["person_<ULID>"]}}' \
   --as-of 2026-07-30
@@ -57,6 +58,7 @@ result = kg.execute(
 - `kg stats` reports canonical counts by type and status.
 - `kg search QUERY` searches exact normalized identities and names/aliases.
 - `kg replay AUDIT_ID` replays a successful audit event; the durable receipt makes this idempotent.
+- `kg activity latest|recent|today|yesterday|since|between|search|explain|undo|restore|diff` exposes human-oriented knowledge history; undo and restore create review-only proposals and never write the graph directly.
 - `kg extract TYPE --file PATH [--dry-run]` creates a reviewable extraction proposal without changing canonical notes.
 - `kg extract replay --fixture PATH` replays captured structured extraction output offline.
 - `kg extract evaluate --provider replay` runs the 50-case offline golden evaluation and refreshes reports.
@@ -90,4 +92,4 @@ ruby "_System/Tools/test_validator.rb"
 ruby "_System/Tools/validate_vault.rb"
 ```
 
-See [Architecture](docs/Architecture.md), [Intent API](docs/Intent%20API.md), [Examples](docs/Examples.md), [Migration Guide](docs/Migration%20Guide.md), [AI Integration Guide](docs/AI%20Integration%20Guide.md), the [Knowledge Extraction README](docs/Knowledge%20Extraction/README.md), the [Knowledge Intelligence README](docs/Knowledge%20Intelligence/README.md), the [Planning & Decision Engine README](docs/Planning%20Decision%20Engine/README.md), the [Agent Platform README](docs/Agent%20Platform/README.md), and the [Event-Driven Orchestration README](docs/Event-Driven%20Orchestration/README.md).
+See [Architecture](docs/Architecture.md), [Intent API](docs/Intent%20API.md), [Examples](docs/Examples.md), [Migration Guide](docs/Migration%20Guide.md), [AI Integration Guide](docs/AI%20Integration%20Guide.md), the [Knowledge Activity README](docs/Knowledge%20Activity/README.md), the [Knowledge Extraction README](docs/Knowledge%20Extraction/README.md), the [Knowledge Intelligence README](docs/Knowledge%20Intelligence/README.md), the [Planning & Decision Engine README](docs/Planning%20Decision%20Engine/README.md), the [Agent Platform README](docs/Agent%20Platform/README.md), and the [Event-Driven Orchestration README](docs/Event-Driven%20Orchestration/README.md).

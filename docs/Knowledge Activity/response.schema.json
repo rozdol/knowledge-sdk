@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://knowledge-graph.local/schemas/knowledge-activity/response.schema.json",
+  "title": "Knowledge Activity CLI Response",
+  "oneOf": [
+    {"$ref":"#/$defs/latest"},
+    {"$ref":"#/$defs/list"},
+    {"$ref":"#/$defs/proposal"},
+    {"$ref":"#/$defs/explain"},
+    {"$ref":"#/$defs/diff"}
+  ],
+  "$defs": {
+    "activity": {"$ref":"activity.schema.json"},
+    "latest": {
+      "type":"object","additionalProperties":false,"required":["status","activity"],
+      "properties":{"status":{"const":"ok"},"activity":{"oneOf":[{"$ref":"#/$defs/activity"},{"type":"null"}]}}
+    },
+    "list": {
+      "type":"object","additionalProperties":false,"required":["status","activities","count"],
+      "properties": {
+        "status":{"const":"ok"},"activities":{"type":"array","items":{"$ref":"#/$defs/activity"}},
+        "count":{"type":"integer","minimum":0}
+      }
+    },
+    "proposal": {
+      "type":"object","additionalProperties":false,
+      "required":["status","proposal","summary","approval_required","activity","operation"],
+      "properties": {
+        "status":{"const":"ok"},
+        "proposal":{"type":"string","pattern":"^proposal_[0-9A-HJKMNP-TV-Z]{26}$"},
+        "summary":{"type":"string"},"approval_required":{"const":true},
+        "activity":{"type":"string","pattern":"^activity_[0-9A-HJKMNP-TV-Z]{26}$"},
+        "operation":{"enum":["undo","restore"]}
+      }
+    },
+    "explain": {
+      "type":"object","additionalProperties":false,"required":["status","activity","explanation"],
+      "properties": {
+        "status":{"const":"ok"},"activity":{"$ref":"#/$defs/activity"},
+        "explanation": {
+          "type":"object","additionalProperties":false,
+          "required":["origin","evidence","proposal","approval","execution","resulting_changes"],
+          "properties": {
+            "origin":{"type":"object"},"evidence":{"type":"array"},"proposal":{"type":"object"},
+            "approval":{"type":"object"},"execution":{"type":"object"},"resulting_changes":{"type":"object"}
+          }
+        }
+      }
+    },
+    "diff": {
+      "type":"object","additionalProperties":false,"required":["status","from","to","changes"],
+      "properties": {
+        "status":{"const":"ok"},"from":{"$ref":"#/$defs/state"},"to":{"$ref":"#/$defs/state"},
+        "changes":{"type":"object"}
+      }
+    },
+    "state": {
+      "type":"object","additionalProperties":false,"required":["activity_id","time","state_digest"],
+      "properties": {
+        "activity_id":{"type":"string"},"time":{"type":"string","format":"date-time"},
+        "state_digest":{"type":"string","pattern":"^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

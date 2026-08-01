@@ -34,6 +34,10 @@ module KnowledgeGraph
       when "search" then search_command
       when "replay" then replay_command
       when "gateway" then gateway_command
+      when "activity" then KnowledgeActivity::CLI.new(
+        argv: @argv, out: @out, err: @err, vault_root: vault_root,
+        event_bus: orchestrator.event_bus, cache: orchestrator.cache
+      ).run
       when "events", "workflow", "scheduler", "notifications", "cache"
         KnowledgeOrchestration::CLI.new(
           group: command, argv: @argv, out: @out, err: @err, orchestrator: orchestrator
@@ -270,7 +274,7 @@ module KnowledgeGraph
 
     def print_help(option_parser)
       @out.puts(option_parser)
-      @out.puts("Commands: execute, validate, doctor, graph, stats, search, replay, chat, observe, extract, proposal, intelligence, goal, plan, gateway, events, workflow, scheduler, notifications, cache")
+      @out.puts("Commands: execute, validate, doctor, graph, stats, search, replay, activity, chat, observe, extract, proposal, intelligence, goal, plan, gateway, events, workflow, scheduler, notifications, cache")
       0
     end
   end
