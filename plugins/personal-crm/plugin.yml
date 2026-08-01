@@ -1,0 +1,8 @@
+name: personal-crm
+version: 1
+description: Optional Markdown knowledge-graph ontology and templates.
+schemas: schemas
+relationship_types: relationship_types
+templates: templates
+views: views
+validator: validators/personal_crm/validate_vault.rb

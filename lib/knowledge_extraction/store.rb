@@ -8,7 +8,7 @@ require "time"
 
 module KnowledgeExtraction
   class ProposalStore
-    RUNTIME = "_System/KnowledgeGraph/Runtime/extraction".freeze
+    RUNTIME = "#{KnowledgeSDK::RUNTIME_PATH}/extraction".freeze
 
     def initialize(vault_root:, clock: nil)
       @root = Pathname.new(vault_root).join(RUNTIME)

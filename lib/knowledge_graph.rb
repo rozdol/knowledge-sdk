@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "knowledge_sdk"
 require_relative "knowledge_graph/version"
 require_relative "knowledge_graph/errors"
 require_relative "knowledge_graph/intent"

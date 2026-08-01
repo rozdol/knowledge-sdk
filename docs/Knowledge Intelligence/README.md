@@ -94,16 +94,16 @@ An analyzer may attach a `KnowledgeGraph::IntentFactory`-compatible payload. It 
 ## CLI examples
 
 ```sh
-ruby "_System/KnowledgeGraph/bin/kg" intelligence relationships --as-of 2026-07-29
-ruby "_System/KnowledgeGraph/bin/kg" intelligence opportunities --format markdown
-ruby "_System/KnowledgeGraph/bin/kg" intelligence memory --person "Ada" --as-of 2026-07-29
-ruby "_System/KnowledgeGraph/bin/kg" intelligence digest --period weekly
-ruby "_System/KnowledgeGraph/bin/kg" intelligence digest --period daily
-ruby "_System/KnowledgeGraph/bin/kg" intelligence report personal_crm
-ruby "_System/KnowledgeGraph/bin/kg" intelligence features --person "Ada"
-ruby "_System/KnowledgeGraph/bin/kg" intelligence query "Who have I ignored the longest?"
-ruby "_System/KnowledgeGraph/bin/kg" intelligence explain finding_<ID>
-ruby "_System/KnowledgeGraph/bin/kg" intelligence proposal finding_<ID>
+kg intelligence relationships --as-of 2026-07-29
+kg intelligence opportunities --format markdown
+kg intelligence memory --person "Ada" --as-of 2026-07-29
+kg intelligence digest --period weekly
+kg intelligence digest --period daily
+kg intelligence report personal_crm
+kg intelligence features --person "Ada"
+kg intelligence query "Who have I ignored the longest?"
+kg intelligence explain finding_<ID>
+kg intelligence proposal finding_<ID>
 ```
 
 Analyzer commands are `relationships`, `opportunities`, `gaps`, `followups`, `activity`, `timeline`, `network`, `projects`, `memory`, `recommendations`, `anomalies`, `consistency`, and `all`.
@@ -115,7 +115,7 @@ The deterministic natural-query surface intentionally supports a bounded grammar
 ## Tests
 
 ```sh
-ruby -I"_System/KnowledgeGraph/test" -e 'Dir["_System/KnowledgeGraph/test/intelligence/*_test.rb"].sort.each { |file| require File.expand_path(file) }'
+ruby -I"test" -e 'Dir["test/intelligence/*_test.rb"].sort.each { |file| require File.expand_path(file) }'
 ```
 
 The suite contains unit, cross-layer integration, CLI read-only, golden-scenario, determinism, proposal-validation, and performance coverage. All fixtures are synthetic. The golden corpus covers forgotten contacts, bridge people, missing email, investor paths, broken promises, inactive relationships, stale projects, multiple introductions, network bottlenecks, and duplicate candidates.

@@ -72,12 +72,10 @@ module KnowledgeGraph
     private
 
     def default_validator
-      path = @vault_root.join("_System/Tools/validate_vault.rb")
+      path = KnowledgeSDK.validator_path(@vault_root)
       return ExternalValidator.new(vault_root: @vault_root, validator_path: path) if path.file?
 
-      lambda do |_context|
-        raise ValidationError, "required vault validator not found: #{path}"
-      end
+      lambda { |_context| raise ValidationError, "SDK validator not found: #{path}" }
     end
 
     def register_builtin_handlers(clock, id_generator)

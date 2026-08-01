@@ -181,7 +181,7 @@ module KnowledgeExtraction
 
       report = EvaluationRunner.new(
         dataset_path: options[:dataset], graph_reader: graph_reader,
-        reports_dir: @vault_root.join("_System/KnowledgeGraph/docs/Knowledge Extraction/Reports")
+        reports_dir: @vault_root.join(KnowledgeSDK::RUNTIME_PATH, "reports/knowledge_extraction")
       ).run
       @out.puts(JSON.pretty_generate(report))
       0
@@ -246,7 +246,7 @@ module KnowledgeExtraction
     end
 
     def default_dataset
-      @vault_root.join("_System/KnowledgeGraph/test/knowledge_extraction/golden/cases.json").to_s
+      KnowledgeSDK.root.join("test/knowledge_extraction/golden/cases.json").to_s
     end
   end
 end

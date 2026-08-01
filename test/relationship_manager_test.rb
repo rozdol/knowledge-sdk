@@ -109,17 +109,15 @@ class RelationshipManagerTest < Minitest::Test
   end
 
   def copy_system_files(root)
-    source_root = File.expand_path("../../..", __dir__)
     FileUtils.mkdir_p(File.join(root, "_System"))
-    FileUtils.cp_r(File.join(source_root, "_System/Schema"), File.join(root, "_System/Schema"))
+    FileUtils.mkdir_p(File.join(root, "_System/Schema"))
     FileUtils.cp_r(
-      File.join(source_root, "_System/Relationship Types"),
-      File.join(root, "_System/Relationship Types")
+      File.join(KnowledgeGraphTestSupport::PERSONAL_CRM_PLUGIN, "schemas"),
+      File.join(root, "_System/Schema/Entity Types")
     )
-    FileUtils.mkdir_p(File.join(root, "_System/Tools"))
-    FileUtils.cp(
-      File.join(source_root, "_System/Tools/validate_vault.rb"),
-      File.join(root, "_System/Tools/validate_vault.rb")
+    FileUtils.cp_r(
+      File.join(KnowledgeGraphTestSupport::PERSONAL_CRM_PLUGIN, "relationship_types"),
+      File.join(root, "_System/Relationship Types")
     )
   end
 

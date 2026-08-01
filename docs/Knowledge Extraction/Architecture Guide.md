@@ -2,7 +2,7 @@
 
 ## Modules
 
-The package entry point is `_System/KnowledgeGraph/lib/knowledge_extraction.rb`.
+The package entry point is `lib/knowledge_extraction.rb`.
 
 - `sources.rb`, `dates.rb`: source contracts, normalization, language and temporal handling.
 - `evidence.rb`, `facts.rb`: immutable source-independent evidence, mention, scalar, and fact models.

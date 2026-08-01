@@ -69,7 +69,7 @@ printf '%s' '{
       "data_origin": "given_by_subject"
     }
   }
-}' | ruby "_System/KnowledgeGraph/bin/kg" execute -
+}' | kg execute -
 ```
 
 ## Lifecycle hooks

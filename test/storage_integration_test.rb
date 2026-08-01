@@ -59,21 +59,7 @@ class StorageIntegrationTest < Minitest::Test
   private
 
   def with_schema_vault
-    with_vault do |root|
-      source_root = File.expand_path("../../..", __dir__)
-      FileUtils.mkdir_p(File.join(root, "_System"))
-      FileUtils.cp_r(File.join(source_root, "_System/Schema"), File.join(root, "_System/Schema"))
-      FileUtils.cp_r(
-        File.join(source_root, "_System/Relationship Types"),
-        File.join(root, "_System/Relationship Types")
-      )
-      FileUtils.mkdir_p(File.join(root, "_System/Tools"))
-      FileUtils.cp(
-        File.join(source_root, "_System/Tools/validate_vault.rb"),
-        File.join(root, "_System/Tools/validate_vault.rb")
-      )
-      yield root
-    end
+    super { |root| yield root }
   end
 
   def build_engine(root)

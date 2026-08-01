@@ -11,7 +11,7 @@ module KnowledgeGraph
 
     def initialize(vault_root:, clock: nil, id_generator: nil, actor_id: nil, run_id: nil)
       @vault_root = Pathname.new(vault_root)
-      @path = @vault_root.join("_System/KnowledgeGraph/Runtime/audit.jsonl")
+      @path = @vault_root.join(KnowledgeSDK::RUNTIME_PATH, "audit.jsonl")
       @clock = clock || -> { Time.now }
       @id_generator = id_generator || IdGenerator.new(clock: @clock)
       @actor_id = actor_id

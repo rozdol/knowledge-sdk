@@ -8,13 +8,13 @@ require "time"
 
 module StructuredDataset
   class Database
-    RUNTIME_PATH = "_System/KnowledgeGraph/Runtime/datasets.sqlite3".freeze
+    RUNTIME_PATH = KnowledgeSDK::DATASET_PATH
     ENGINE_SCHEMA_VERSION = 2
 
     attr_reader :path
 
     def initialize(vault_root:, path: nil, clock: nil)
-      @path = Pathname.new(path || File.join(File.expand_path(vault_root.to_s), RUNTIME_PATH)).expand_path
+      @path = Pathname.new(path || KnowledgeSDK.dataset_path(vault_root)).expand_path
       @clock = clock || -> { Time.now }
     end
 

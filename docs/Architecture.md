@@ -1,8 +1,22 @@
 # Architecture Guide
 
-## Boundary
+## Product and Vault boundary
 
-Canonical facts remain in schema-v1.0 Markdown frontmatter. The Engine is a storage boundary, not a new database: runtime receipts and the audit log contain execution metadata and can be rebuilt or removed without changing graph facts. Disposable SQLite or Neo4j indexes may be added later behind the same Intent API.
+`knowledge-sdk` is the only software product. There is no companion product or required repository named `knowledge-vault`. Any Obsidian Vault may attach as an independent client and retains its own name, layout, ontology, repository, and lifecycle.
+
+```mermaid
+flowchart TB
+  Clients["CLI, Ruby, Hermes, MCP, REST"] --> SDK["Standalone knowledge-sdk"]
+  SDK --> Config["External config and Vault registry"]
+  SDK --> Plugins["Optional plugins and validators"]
+  SDK --> VaultA["Attached Obsidian Vault A"]
+  SDK --> VaultB["Attached Obsidian Vault B"]
+  VaultA --> MarkdownA["Canonical Markdown + ontology"]
+  VaultA --> DataA[".knowledge user/runtime data"]
+  VaultB --> MarkdownB["Independent Markdown + ontology"]
+```
+
+`kg attach` updates only the external registry. It never creates Vault metadata. Canonical facts remain in Markdown frontmatter. The Engine is a storage boundary, not a new canonical database: runtime receipts and the audit log contain execution metadata and can be rebuilt or removed without changing graph facts. SQLite is canonical only for structured Dataset rows whose Dataset identity remains a Markdown note.
 
 ## One execution pipeline
 
@@ -81,6 +95,7 @@ Undo and restore perform no graph write. They derive lossless existing Intents f
 
 ## Modules
 
+- `knowledge_sdk/` owns external configuration, generic Vault attachment/discovery, lifecycle commands, optional profile discovery, and extraction migration.
 - `intents.rb` defines immutable commands and their serialization contract.
 - `executor/` owns dispatch, hooks, locks, optimistic concurrency, commit, and rollback.
 - `storage/` parses canonical notes, loads schema v1.0, generates deterministic flat YAML, resolves paths, and preserves bodies.
@@ -98,7 +113,7 @@ Undo and restore perform no graph write. They derive lossless existing Intents f
 
 Files are staged in memory. Before commit, the Engine re-reads every affected live file and compares its SHA-256 fingerprint with the inspected snapshot. A mismatch aborts without restoring stale content. Commit uses same-directory temporary files and rename; any mid-commit exception restores all pre-write snapshots. A vault-specific process lock serializes Engine writers.
 
-The candidate validator receives copies of all validation-relevant Markdown and the staged overlay. Invalid changes never touch the live vault. The validator is mandatory; a missing validator blocks execution.
+The candidate validator receives copies of all validation-relevant Markdown and the staged overlay. Validators are SDK/plugin resources, never executable files copied from an attached Vault. Invalid changes never touch the live Vault.
 
 ## YAML and bodies
 
@@ -114,6 +129,6 @@ Exact IDs and merged redirects resolve first, followed by strong normalized iden
 
 ## Idempotency and audit
 
-An Intent fingerprint is SHA-256 over canonical JSON serialization. A successful command stages `_System/KnowledgeGraph/Runtime/receipts/<fingerprint>.json` in the same transaction as graph changes. Re-execution validates the vault and returns the stored result with `replayed: true`.
+An Intent fingerprint is SHA-256 over canonical JSON serialization. A successful command stages `.knowledge/runtime/receipts/<fingerprint>.json` in the same transaction as graph changes. Re-execution validates the Vault and returns the stored result with `replayed: true`.
 
-Each attempt appends a local JSONL audit event containing timestamp, Intent payload, affected IDs, result, duration, rollback flag, replay flag, run ID, and future actor ID. Runtime data is local and Git-ignored; it is operational history, never a source of canonical facts.
+Each attempt appends a local JSONL audit event containing timestamp, Intent payload, affected IDs, result, duration, rollback flag, replay flag, run ID, and actor ID. Runtime data lives under `.knowledge/runtime/`, is local and Git-ignored by the bundled migration guidance, and is operational history rather than a source of canonical facts. Dataset rows live separately at `.knowledge/datasets.sqlite3`.

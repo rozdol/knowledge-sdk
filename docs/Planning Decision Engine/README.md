@@ -41,7 +41,7 @@ The term `decision_approved` is intentionally narrower than proposal approval. I
 
 ## Models
 
-`Goal` is immutable and contains an ID, description, goal type, priority, optional deadline, constraints, preferences, success criteria, and status. Goal files live only in `_System/KnowledgeGraph/Runtime/planning/goals/`, which is Git-ignored operational state rather than graph truth.
+`Goal` is immutable and contains an ID, description, goal type, priority, optional deadline, constraints, preferences, success criteria, and status. Goal files live only in `.knowledge/runtime/planning/goals/`, which is Git-ignored operational state rather than graph truth.
 
 `ConstraintSet` supports:
 
@@ -110,22 +110,22 @@ planning proposal
 Create or manage operational goals:
 
 ```sh
-ruby "_System/KnowledgeGraph/bin/kg" goal create \
+kg goal create \
   '{"description":"Reach a target","goal_type":"warm_introduction","constraints":{"no_cold_outreach":true},"preferences":{"target_ids":["person_<ULID>"]}}'
-ruby "_System/KnowledgeGraph/bin/kg" goal list
-ruby "_System/KnowledgeGraph/bin/kg" goal archive goal_<ULID>
+kg goal list
+kg goal archive goal_<ULID>
 ```
 
 Plan from a stored goal ID or inline JSON:
 
 ```sh
-ruby "_System/KnowledgeGraph/bin/kg" plan goal goal_<ULID> --as-of 2026-07-30
-ruby "_System/KnowledgeGraph/bin/kg" plan scenarios goal_<ULID> --as-of 2026-07-30
-ruby "_System/KnowledgeGraph/bin/kg" plan compare goal_<ULID> --as-of 2026-07-30
-ruby "_System/KnowledgeGraph/bin/kg" plan simulate goal_<ULID> --as-of 2026-07-30
-ruby "_System/KnowledgeGraph/bin/kg" plan explain goal_<ULID> --as-of 2026-07-30
-ruby "_System/KnowledgeGraph/bin/kg" plan trace goal_<ULID> --as-of 2026-07-30
-ruby "_System/KnowledgeGraph/bin/kg" plan proposal goal_<ULID> --as-of 2026-07-30 --persist
+kg plan goal goal_<ULID> --as-of 2026-07-30
+kg plan scenarios goal_<ULID> --as-of 2026-07-30
+kg plan compare goal_<ULID> --as-of 2026-07-30
+kg plan simulate goal_<ULID> --as-of 2026-07-30
+kg plan explain goal_<ULID> --as-of 2026-07-30
+kg plan trace goal_<ULID> --as-of 2026-07-30
+kg plan proposal goal_<ULID> --as-of 2026-07-30 --persist
 ```
 
 ## Gateway
@@ -145,9 +145,9 @@ The four reasoning capabilities are read-only. Proposal creation has `proposal_w
 The Phase 8 suite covers goals, constraints, planner separation, multi-planner comparison, graph search, ranking, Pareto alternatives, simulation, proposal validation, CLI/Gateway integration, graph non-mutation, deterministic replay, and eight synthetic golden scenarios: conference, sales, fundraising, recruiting, customer recovery, warm introduction, project launch, and travel.
 
 ```sh
-ruby -I"_System/KnowledgeGraph/lib" -I"_System/KnowledgeGraph/test" \
-  -e 'Dir["_System/KnowledgeGraph/test/planning/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
-ruby -I"_System/KnowledgeGraph/lib" -I"_System/KnowledgeGraph/test" \
-  -e 'Dir["_System/KnowledgeGraph/test/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
-ruby "_System/Tools/validate_vault.rb"
+ruby -I"lib" -I"test" \
+  -e 'Dir["test/planning/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
+ruby -I"lib" -I"test" \
+  -e 'Dir["test/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
+ruby "validators/personal_crm/validate_vault.rb"
 ```

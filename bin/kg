@@ -1,6 +1,9 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require_relative "../lib/knowledge_graph"
+$LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
+
+require "knowledge_sdk"
+require "knowledge_graph"
 
 exit KnowledgeGraph::CLI.run

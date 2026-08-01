@@ -35,8 +35,8 @@ class KnowledgeExtractionSubmissionCLITest < Minitest::Test
       assert second.fetch("results").all? { |result| result.fetch("replayed") }
       assert_equal 3, KnowledgeGraph::GraphReader.new(vault_root: root).search("Alice Carter").length +
                       KnowledgeGraph::GraphReader.new(vault_root: root).search("Northstar").length + 1
-      assert File.file?(File.join(root, "_System/KnowledgeGraph/Runtime/audit.jsonl"))
-      assert_operator Dir.glob(File.join(root, "_System/KnowledgeGraph/Runtime/receipts/*.json")).length, :>=, 3
+      assert File.file?(File.join(root, ".knowledge/runtime/audit.jsonl"))
+      assert_operator Dir.glob(File.join(root, ".knowledge/runtime/receipts/*.json")).length, :>=, 3
     end
   end
 
@@ -152,6 +152,7 @@ class KnowledgeExtractionSubmissionCLITest < Minitest::Test
   end
 
   def validator_output(root)
-    IO.popen({ "VAULT_ROOT" => root }, [RbConfig.ruby, File.join(root, "_System/Tools/validate_vault.rb")], &:read)
+    validator = KnowledgeSDK.root.join("validators/personal_crm/validate_vault.rb").to_s
+    IO.popen({ "VAULT_ROOT" => root }, [RbConfig.ruby, validator], &:read)
   end
 end

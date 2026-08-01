@@ -74,14 +74,15 @@ class EngineTest < Minitest::Test
     end
   end
 
-  def test_refuses_to_execute_when_the_required_validator_is_missing
+  def test_uses_sdk_validator_without_copying_executable_code_into_vault
     with_vault do |root|
       engine = KnowledgeGraph::Engine.new(vault_root: root)
       engine.register(UnknownIntent) { :handled }
 
-      error = assert_raises(KnowledgeGraph::ValidationError) { engine.execute(UnknownIntent.new) }
+      result = engine.execute(UnknownIntent.new)
 
-      assert_includes error.message, "required vault validator not found"
+      assert_equal :handled, result.value
+      refute File.exist?(File.join(root, "_System/Tools/validate_vault.rb"))
     end
   end
 end

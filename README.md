@@ -1,47 +1,85 @@
-# Knowledge Graph Engine SDK
+# knowledge-sdk
 
-The Knowledge Graph Engine is the only automated write interface for canonical vault notes. Callers submit immutable Intents; the Engine resolves identities, stages Markdown changes, validates a candidate vault, commits atomically, and records replay metadata. Markdown remains the only canonical source of facts.
+`knowledge-sdk` is a standalone Ruby product for Obsidian knowledge workflows. It contains the CLI, transactional Engine, Agent Gateway, Knowledge Extraction Pipeline, intelligence and planning layers, event orchestration, Knowledge Activity, plugins, validators, and Structured Dataset Engine.
 
-The package runs on Ruby 2.6 or newer. The Structured Dataset Engine additionally requires the local `sqlite3` Ruby binding; it uses SQLite in-process and no external DBMS or network service.
+An Obsidian Vault is a client of the SDK. It keeps its own name, repository, folder layout, ontology, notes, attachments, and Obsidian settings. The SDK never requires a project named `knowledge-vault`, never creates `.vault.yml`, and `kg attach` does not modify the Vault.
 
-## Quick start
-
-From the vault root:
-
-```sh
-ruby "_System/KnowledgeGraph/bin/kg" doctor
-ruby "_System/KnowledgeGraph/bin/kg" stats
-ruby "_System/KnowledgeGraph/bin/kg" search "Ada"
-ruby "_System/KnowledgeGraph/bin/kg" gateway capabilities
-ruby "_System/KnowledgeGraph/bin/kg" gateway execute kg.entities.search '{"query":"Ada"}'
-ruby "_System/KnowledgeGraph/bin/kg" workflow list
-ruby "_System/KnowledgeGraph/bin/kg" scheduler list
-ruby "_System/KnowledgeGraph/bin/kg" activity latest --json
-ruby "_System/KnowledgeGraph/bin/kg" dataset create blood_tests --json
-ruby "_System/KnowledgeGraph/bin/kg" plan compare \
-  '{"description":"Reach a target","goal_type":"warm_introduction","preferences":{"target_ids":["person_<ULID>"]}}' \
-  --as-of 2026-07-30
+```mermaid
+flowchart LR
+  CLI["kg CLI / Ruby API / Gateway"] --> SDK["knowledge-sdk"]
+  SDK --> Registry["External registry\n~/.knowledge-sdk/config.yml"]
+  SDK --> A["Any attached Obsidian Vault"]
+  SDK --> B["Another attached Obsidian Vault"]
+  A --> AK["Markdown knowledge + ontology + user data"]
+  B --> BK["Independent layout and ontology"]
 ```
 
-Execute an Intent from JSON:
+## Requirements and installation
+
+Ruby 2.6 or newer is supported. SQLite-backed dataset commands require the `sqlite3` gem.
 
 ```sh
-ruby "_System/KnowledgeGraph/bin/kg" --run-id run_<ULID> execute \
-  '{"intent":"ArchiveEntity","params":{"entity_id":"person_<ULID>"}}'
+bundle install
+bundle exec rake test
+gem build knowledge-sdk.gemspec
+gem install ./knowledge-sdk-12.0.0.gem
 ```
 
-Use the Ruby API:
+During source development, use `ruby bin/kg`; after installation, use `kg`.
+
+## Attach an existing Vault
+
+```sh
+kg attach ~/vaults/Personal
+kg attach ~/research-notes --name Research
+kg vault list
+kg vault use Research
+kg doctor
+```
+
+Attachment records the absolute path and optional profile in the SDK's external configuration. It writes nothing into the Vault. Vault selection order is:
+
+1. `--vault PATH`;
+2. `KG_VAULT`;
+3. upward discovery from the current directory using `.obsidian` or a registered root;
+4. the active attached Vault.
+
+If no Vault resolves, the CLI returns a clear error. Every knowledge command accepts `--vault PATH`; lifecycle commands do not assume a fixed path.
+
+## Create a plain Vault or opt into a profile
+
+```sh
+kg init ~/vaults/Notes
+kg init ~/vaults/CRM --profile personal-crm
+```
+
+Plain `kg init` creates only the target and its normal `.obsidian` directory, then attaches it. The bundled `personal-crm` profile is optional and installs its schemas, predicate registry, templates, and views only when explicitly requested. `kg --vault PATH plugin install personal-crm` is the equivalent operation for an existing Vault.
+
+## Core commands
+
+- SDK lifecycle: `kg init`, `attach`, `detach`, `upgrade`, `migrate`, `version`, `id`, `vault`, and `plugin`.
+- Graph: `execute`, `validate`, `doctor`, `graph`, `stats`, `search`, and `replay`.
+- Review workflow: `observe`, `extract`, `proposal`, `chat`, and `activity`.
+- Analysis and decisions: `intelligence`, `goal`, and `plan`.
+- Platform: `gateway`, `events`, `workflow`, `scheduler`, `notifications`, and `cache`.
+- Structured rows: `dataset create|list|describe|insert|update|delete|query|export|import|stats|explain`.
+
+Global options are `--vault`, `--config`, `--dataset-db`, `--run-id`, and `--actor-id`. Environment overrides are `KG_VAULT`, `KG_CONFIG`, `KG_DATASET_DB`, `KG_RUN_ID`, and `KG_ACTOR_ID`.
+
+## Ruby API
 
 ```ruby
-require_relative "_System/KnowledgeGraph/lib/knowledge_graph"
+require "knowledge_sdk"
+require "knowledge_graph"
 
-kg = KnowledgeGraph::Engine.new(
-  vault_root: Dir.pwd,
+vault = KnowledgeSDK::VaultLocator.new.resolve.path
+engine = KnowledgeSDK.engine(
+  vault: vault,
   run_id: "run_<26-character-ULID>",
-  actor_id: "codex"
+  actor_id: "local-automation"
 )
 
-result = kg.execute(
+result = engine.execute(
   KnowledgeGraph::AddRelationship.new(
     source: "person_<ULID>",
     predicate: "knows",
@@ -50,48 +88,20 @@ result = kg.execute(
 )
 ```
 
-## Commands
+`KnowledgeGraph::Engine` remains available as a backward-compatible API. All canonical writes still pass through immutable Intents, candidate-Vault validation, optimistic concurrency checks, atomic replacement, audit, and idempotency receipts.
 
-- `kg execute JSON_OR_-` executes a serialized Intent; `-` reads stdin.
-- `kg validate` runs the mandatory vault validator.
-- `kg doctor` checks validator, schema registry, predicate registry, and runtime.
-- `kg graph [ENTITY_ID]` prints asserted edges, using inverse predicate names for inbound edges.
-- `kg stats` reports canonical counts by type and status.
-- `kg search QUERY` searches exact normalized identities and names/aliases.
-- `kg replay AUDIT_ID` replays a successful audit event; the durable receipt makes this idempotent.
-- `kg dataset create|list|describe|insert|update|delete|query|export|import|stats|explain` manages typed, versioned SQLite rows whose semantic Dataset registry entries remain canonical graph notes; every command supports `--json`.
-- `kg activity latest|recent|today|yesterday|since|between|search|explain|undo|restore|diff` exposes human-oriented knowledge history; undo and restore create review-only proposals and never write the graph directly.
-- `kg extract TYPE --file PATH [--dry-run]` creates a reviewable extraction proposal without changing canonical notes.
-- `kg extract replay --fixture PATH` replays captured structured extraction output offline.
-- `kg extract evaluate --provider replay` runs the 50-case offline golden evaluation and refreshes reports.
-- `kg proposal show|export|validate PROPOSAL_ID` reviews immutable proposal artifacts.
-- `kg proposal approve PROPOSAL_ID --all --actor HUMAN_ID` records explicit approval.
-- `kg proposal submit PROPOSAL_ID [--dry-run]` hands approved Intents to the Engine; it never bypasses Engine gates.
-- `kg intelligence relationships|opportunities|gaps|network|memory|recommendations` runs deterministic read-only analyzers.
-- `kg intelligence digest|report|query|features|explain` exposes derived intelligence without writing canonical notes.
-- `kg intelligence proposal [FINDING_ID]` emits an immutable proposal; `--persist` stores only proposal JSON for the existing approval workflow and still does not execute it.
-- `kg goal create|list|archive` manages immutable operational goals under Git-ignored runtime state; goals are not canonical graph facts.
-- `kg plan goal|scenarios|compare|simulate|trace|explain GOAL_ID_OR_JSON` runs the deterministic Candidate Generator → Scenario Evaluator → Decision Engine pipeline without graph mutation.
-- `kg plan proposal GOAL_ID_OR_JSON [--persist]` converts only the decision-approved plan's generated Intents into the existing review workflow; it never executes them.
-- `kg gateway capabilities` returns policy-filtered Capability Manifests and opaque invocation tokens.
-- `kg gateway execute CAPABILITY_ID[@VERSION] [JSON]` resolves the CLI selector through discovery, validates the manifest contract, and executes through the Agent Gateway.
-- `kg gateway policy check CAPABILITY_ID[@VERSION] [JSON]` evaluates centralized policy without invoking a handler.
-- `kg gateway explain TRACE_ID` returns sanitized telemetry for one agent-owned trace.
-- `kg gateway job JOB_ID [WAIT_MS]` reads an asynchronous capability job.
-- `kg workflow list|run|replay|trace|cancel|jobs|resume|metrics` operates deterministic workflows and durable background jobs.
-- `kg events list|publish|replay|explain|dead-letters` operates the immutable internal event stream.
-- `kg scheduler list|run` inspects or runs cron-like declarative schedules.
-- `kg notifications list` returns informational runtime notifications; notifications never execute actions.
-- `kg cache list|explain|graph` inspects only derived computation artifacts and their event/snapshot dependencies.
+## Vault data boundary
 
-Global options are `--vault`, `--run-id`, and `--actor-id`. Environment equivalents for the last two are `KG_RUN_ID` and `KG_ACTOR_ID`.
+The SDK owns executable code, configuration, tests, documentation, migrations, validators, adapters, and plugins. A Vault owns its Markdown, ontology, templates/views chosen by the user, attachments, Obsidian settings, and local `.knowledge/` data. Operational state lives under `.knowledge/runtime/`; structured rows live at `.knowledge/datasets.sqlite3`. Neither is executable business logic or an alternate Markdown fact store.
 
 ## Verification
 
 ```sh
-ruby -I"_System/KnowledgeGraph/lib" -I"_System/KnowledgeGraph/test" -e 'Dir["_System/KnowledgeGraph/test/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
-ruby "_System/Tools/test_validator.rb"
-ruby "_System/Tools/validate_vault.rb"
+ruby -Ilib -Itest -e 'Dir["test/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
+ruby acceptance/test_acceptance.rb
+ruby acceptance/run_acceptance.rb --run-id run_<26-character-ULID>
+kg --vault /path/to/vault validate
+kg --vault /path/to/vault doctor
 ```
 
-See [Architecture](docs/Architecture.md), [Intent API](docs/Intent%20API.md), [Examples](docs/Examples.md), [Migration Guide](docs/Migration%20Guide.md), [AI Integration Guide](docs/AI%20Integration%20Guide.md), the [Structured Dataset Engine README](docs/Structured%20Dataset%20Engine/README.md), the [Knowledge Activity README](docs/Knowledge%20Activity/README.md), the [Knowledge Extraction README](docs/Knowledge%20Extraction/README.md), the [Knowledge Intelligence README](docs/Knowledge%20Intelligence/README.md), the [Planning & Decision Engine README](docs/Planning%20Decision%20Engine/README.md), the [Agent Platform README](docs/Agent%20Platform/README.md), and the [Event-Driven Orchestration README](docs/Event-Driven%20Orchestration/README.md).
+See [Architecture](docs/Architecture.md), [Configuration Guide](docs/Configuration%20Guide.md), [Migration Guide](docs/Migration%20Guide.md), [Plugin Guide](docs/Plugin%20Guide.md), [Developer Guide](docs/Developer%20Guide.md), and [Intent API](docs/Intent%20API.md).

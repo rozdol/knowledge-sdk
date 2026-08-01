@@ -15,12 +15,12 @@ source text -> normalization -> structured extraction -> validation
 ## Quick start
 
 ```sh
-ruby "_System/KnowledgeGraph/bin/kg" extract text --file note.txt --captured-at 2026-07-29T12:00:00+03:00 --dry-run
-ruby "_System/KnowledgeGraph/bin/kg" extract transcript --file meeting.txt
-ruby "_System/KnowledgeGraph/bin/kg" proposal show proposal_<ULID>
-ruby "_System/KnowledgeGraph/bin/kg" proposal validate proposal_<ULID>
-ruby "_System/KnowledgeGraph/bin/kg" --actor-id human:alex proposal approve proposal_<ULID> --all
-ruby "_System/KnowledgeGraph/bin/kg" proposal submit proposal_<ULID> --dry-run
+kg extract text --file note.txt --captured-at 2026-07-29T12:00:00+03:00 --dry-run
+kg extract transcript --file meeting.txt
+kg proposal show proposal_<ULID>
+kg proposal validate proposal_<ULID>
+kg --actor-id human:alex proposal approve proposal_<ULID> --all
+kg proposal submit proposal_<ULID> --dry-run
 ```
 
 ## Ruby API

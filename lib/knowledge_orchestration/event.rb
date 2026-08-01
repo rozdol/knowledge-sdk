@@ -158,21 +158,25 @@ module KnowledgeOrchestration
   end
 
   class EventStore
-    RUNTIME = "_System/KnowledgeGraph/Runtime/orchestration".freeze
+    RUNTIME = "#{KnowledgeSDK::RUNTIME_PATH}/orchestration".freeze
 
     def initialize(vault_root:, path: nil)
       @path = path || File.join(File.expand_path(vault_root.to_s), RUNTIME, "events.jsonl")
       @mutex = Mutex.new
+      @known_ids = nil
+      @last_sequence = nil
     end
 
     def append(event)
       raise InvalidEvent, "EventStore accepts Event objects only" unless event.is_a?(Event)
 
       @mutex.synchronize do
-        current = events
-        raise InvalidEvent, "event already exists: #{event.id}" if current.any? { |item| item.id == event.id }
-        stored = event.with_sequence((current.last&.sequence || 0) + 1)
+        load_index unless @known_ids
+        raise InvalidEvent, "event already exists: #{event.id}" if @known_ids.include?(event.id)
+        stored = event.with_sequence(@last_sequence + 1)
         AtomicFile.append_jsonl(@path, stored.to_h)
+        @known_ids.add(stored.id)
+        @last_sequence = stored.sequence
         stored
       end
     end
@@ -188,6 +192,14 @@ module KnowledgeOrchestration
     def fetch(event_id)
       events.find { |event| event.id == event_id.to_s } ||
         raise(EventNotFound, "event not found: #{event_id}")
+    end
+
+    private
+
+    def load_index
+      current = events
+      @known_ids = Set.new(current.map(&:id))
+      @last_sequence = current.last&.sequence || 0
     end
   end
 

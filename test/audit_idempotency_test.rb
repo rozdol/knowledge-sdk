@@ -29,7 +29,7 @@ class AuditIdempotencyTest < Minitest::Test
       assert second.replayed
       assert_equal first.changed_paths, second.changed_paths
       assert_equal 1, Dir.glob(File.join(root, "People/*.md")).length
-      assert_equal 1, Dir.glob(File.join(root, "_System/KnowledgeGraph/Runtime/receipts/*.json")).length
+      assert_equal 1, Dir.glob(File.join(root, ".knowledge/runtime/receipts/*.json")).length
 
       events = first_engine.audit_log.events
       assert_equal 2, events.length
@@ -53,7 +53,7 @@ class AuditIdempotencyTest < Minitest::Test
       assert_raises(KnowledgeGraph::ValidationError) { engine.execute(invalid) }
 
       assert_empty Dir.glob(File.join(root, "People/*.md"))
-      assert_empty Dir.glob(File.join(root, "_System/KnowledgeGraph/Runtime/receipts/*.json"))
+      assert_empty Dir.glob(File.join(root, ".knowledge/runtime/receipts/*.json"))
       event = engine.audit_log.events.last
       assert_equal "failure", event["result"]
       assert_equal true, event["rollback"]

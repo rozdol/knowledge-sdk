@@ -10,7 +10,7 @@ Phase 9 adds deterministic coordination above the stable Engine, Extraction, Int
 - Workflow validation rejects `kg.proposals.submit`; runtime invocation also rejects graph-write and existing-approval capabilities.
 - Extraction and planning workflows may create review-only proposals. Approval and submission remain separate human operations.
 - Notifications are informational runtime artifacts with `executable: false`.
-- Event, workflow, job, notification, and cache state lives under Git-ignored `_System/KnowledgeGraph/Runtime/orchestration/`; it is not canonical graph truth.
+- Event, workflow, job, notification, and cache state lives under Git-ignored `.knowledge/runtime/orchestration/`; it is not canonical graph truth.
 
 ## Event bus
 
@@ -61,16 +61,16 @@ Workflow and event timelines expose identifiers, status, dependency edges, capab
 ## CLI
 
 ```sh
-ruby "_System/KnowledgeGraph/bin/kg" workflow list
-ruby "_System/KnowledgeGraph/bin/kg" workflow run digest_requested \
+kg workflow list
+kg workflow run digest_requested \
   '{"period":"daily","as_of":"2026-07-30"}'
-ruby "_System/KnowledgeGraph/bin/kg" workflow trace workflow-run_<ULID>
-ruby "_System/KnowledgeGraph/bin/kg" workflow jobs
-ruby "_System/KnowledgeGraph/bin/kg" events list --type GraphChanged
-ruby "_System/KnowledgeGraph/bin/kg" events replay event_<ULID>
-ruby "_System/KnowledgeGraph/bin/kg" scheduler run --at 2026-07-30T07:00:00+03:00
-ruby "_System/KnowledgeGraph/bin/kg" notifications list
-ruby "_System/KnowledgeGraph/bin/kg" cache graph
+kg workflow trace workflow-run_<ULID>
+kg workflow jobs
+kg events list --type GraphChanged
+kg events replay event_<ULID>
+kg scheduler run --at 2026-07-30T07:00:00+03:00
+kg notifications list
+kg cache graph
 ```
 
 Use `kg replay AUDIT_ID` only for Engine audit replay. `kg events replay EVENT_ID` and `kg workflow replay EXECUTION_ID` are orchestration replay commands.
@@ -78,10 +78,10 @@ Use `kg replay AUDIT_ID` only for Engine audit replay. `kg events replay EVENT_I
 ## Verification
 
 ```sh
-ruby -I"_System/KnowledgeGraph/lib" -I"_System/KnowledgeGraph/test" \
-  -e 'Dir["_System/KnowledgeGraph/test/orchestration/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
-ruby -I"_System/KnowledgeGraph/lib" -I"_System/KnowledgeGraph/test" \
-  -e 'Dir["_System/KnowledgeGraph/test/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
-ruby "_System/KnowledgeGraph/bin/kg" doctor
-ruby "_System/Tools/validate_vault.rb"
+ruby -I"lib" -I"test" \
+  -e 'Dir["test/orchestration/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
+ruby -I"lib" -I"test" \
+  -e 'Dir["test/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
+kg doctor
+ruby "validators/personal_crm/validate_vault.rb"
 ```

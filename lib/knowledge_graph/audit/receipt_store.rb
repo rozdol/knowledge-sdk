@@ -6,7 +6,7 @@ require "pathname"
 
 module KnowledgeGraph
   class ReceiptStore
-    RUNTIME_PREFIX = "_System/KnowledgeGraph/Runtime/".freeze
+    RUNTIME_PREFIX = "#{KnowledgeSDK::RUNTIME_PATH}/".freeze
 
     def initialize(vault_root:)
       @vault_root = Pathname.new(vault_root)

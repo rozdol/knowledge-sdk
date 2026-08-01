@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "json"
+require "digest"
+require "fileutils"
 require "open3"
 require "optparse"
 require "pathname"
@@ -17,15 +19,30 @@ module KnowledgeGraph
       @out = out
       @err = err
       @stdin = stdin
-      @options = { vault_root: Dir.pwd, run_id: ENV["KG_RUN_ID"], actor_id: ENV["KG_ACTOR_ID"] }
+      @options = {
+        vault_root: nil, config_path: ENV["KG_CONFIG"],
+        dataset_db: ENV["KG_DATASET_DB"],
+        run_id: ENV["KG_RUN_ID"], actor_id: ENV["KG_ACTOR_ID"]
+      }
     end
 
     def run
       parser.order!(@argv)
+      KnowledgeSDK.config_path = @options[:config_path] if @options[:config_path]
+      KnowledgeSDK.dataset_path_override = @options[:dataset_db]
       command = @argv.shift
       return print_help(parser) unless command
 
       case command
+      when "init" then init_command
+      when "attach" then attach_command
+      when "detach" then detach_command
+      when "upgrade" then upgrade_command
+      when "migrate" then migrate_command
+      when "version" then version_command
+      when "id" then id_command
+      when "vault" then vault_command
+      when "plugin" then plugin_command
       when "execute" then execute_command
       when "validate" then validate_command
       when "doctor" then doctor_command
@@ -74,7 +91,7 @@ module KnowledgeGraph
       else
         raise InvalidIntent, "unknown command #{command.inspect}"
       end
-    rescue OptionParser::ParseError, JSON::ParserError, InvalidIntent => error
+    rescue OptionParser::ParseError, JSON::ParserError, InvalidIntent, KnowledgeSDK::Error => error
       @err.puts(JSON.generate(error: error.message))
       2
     rescue KnowledgeGraph::Error => error
@@ -99,10 +116,127 @@ module KnowledgeGraph
         options.on("--vault PATH", "Vault root (default: current directory)") do |path|
           @options[:vault_root] = path
         end
+        options.on("--config PATH", "SDK configuration file") { |path| @options[:config_path] = path }
+        options.on("--dataset-db PATH", "Override the active Vault dataset database") do |path|
+          @options[:dataset_db] = path
+        end
         options.on("--run-id RUN_ID", "Agent run ID") { |value| @options[:run_id] = value }
         options.on("--actor-id ACTOR_ID", "Future actor/audit identifier") { |value| @options[:actor_id] = value }
         options.on("-h", "--help", "Show help") { @options[:help] = true }
       end
+    end
+
+    def init_command
+      options = { attach: true, profile: nil, name: nil }
+      OptionParser.new do |parser|
+        parser.on("--[no-]attach", "Register the new Vault (default: true)") { |value| options[:attach] = value }
+        parser.on("--profile NAME", "Install an optional Vault profile") { |value| options[:profile] = value }
+        parser.on("--name NAME", "Display name in the SDK registry") { |value| options[:name] = value }
+      end.parse!(@argv)
+      target = Pathname.new(@argv.shift || ".").expand_path
+      FileUtils.mkdir_p(target)
+      FileUtils.mkdir_p(target.join(".obsidian"))
+      installed = options[:profile] ? plugin_registry.install(options[:profile], target) : []
+      record = options[:attach] ? registry.attach(target, name: options[:name], profile: options[:profile]) : nil
+      emit_json(vault: target.to_s, attached: !!record, profile: options[:profile], installed: installed)
+      0
+    end
+
+    def attach_command
+      options = { name: nil, profile: nil }
+      OptionParser.new do |parser|
+        parser.on("--name NAME", "Registry display name") { |value| options[:name] = value }
+        parser.on("--profile NAME", "Optional SDK plugin/profile") { |value| options[:profile] = value }
+      end.parse!(@argv)
+      path = @argv.shift || raise(KnowledgeSDK::VaultNotFound, "attach expects a Vault path")
+      plugin_registry.fetch(options[:profile]) if options[:profile]
+      emit_json(vault: registry.attach(path, name: options[:name], profile: options[:profile]))
+      0
+    end
+
+    def detach_command
+      reference = @argv.shift || raise(KnowledgeSDK::VaultNotFound, "detach expects a Vault name, ID, or path")
+      record = registry.detach(reference)
+      emit_json(detached: record, vault_modified: false)
+      0
+    end
+
+    def upgrade_command
+      emit_json(
+        sdk_version: KnowledgeSDK::VERSION,
+        config_version: KnowledgeSDK::Configuration::FORMAT_VERSION,
+        registered_vaults: registry.all.length,
+        status: "ok"
+      )
+      0
+    end
+
+    def migrate_command
+      options = { prune_embedded: false, rollback: nil }
+      OptionParser.new do |parser|
+        parser.on("--prune-embedded-sdk", "Move embedded SDK/tooling to a rollback backup") do
+          options[:prune_embedded] = true
+        end
+        parser.on("--rollback PATH", "Restore a migration backup") { |value| options[:rollback] = value }
+      end.parse!(@argv)
+      record = registry.find(vault_root.to_s)
+      backup_key = record ? record.fetch("id") : Digest::SHA256.hexdigest(vault_root.to_s)[0, 16]
+      migration = KnowledgeSDK::Migration.new(
+        vault_root: vault_root,
+        backup_root: Pathname.new(KnowledgeSDK.config_path).expand_path.dirname.join("backups", backup_key)
+      )
+      result = if options[:rollback]
+                 { vault: vault_root.to_s, restored: migration.rollback!(options[:rollback]) }
+               else
+                 migration.migrate!(prune_embedded: options[:prune_embedded])
+               end
+      emit_json(result)
+      0
+    end
+
+    def version_command
+      emit_json(product: "knowledge-sdk", version: KnowledgeSDK::VERSION)
+      0
+    end
+
+    def id_command
+      prefix = @argv.shift || raise(InvalidIntent, "id expects a lowercase prefix")
+      raise InvalidIntent, "invalid ID prefix" unless prefix.match?(/\A[a-z][a-z0-9-]{0,31}\z/)
+
+      @out.puts(KnowledgeGraph::IdGenerator.new.generate(prefix))
+      0
+    end
+
+    def vault_command
+      action = @argv.shift || "list"
+      case action
+      when "list"
+        emit_json(active_vault: registry.current && registry.current.fetch("id"), vaults: registry.all)
+      when "use"
+        emit_json(vault: registry.use(@argv.shift || raise(KnowledgeSDK::VaultNotFound, "vault use expects a reference")))
+      when "current"
+        record = registry.current || raise(KnowledgeSDK::VaultNotFound, "no active Vault is configured")
+        emit_json(vault: record)
+      else
+        raise InvalidIntent, "unknown vault command #{action.inspect}"
+      end
+      0
+    end
+
+    def plugin_command
+      action = @argv.shift || "list"
+      case action
+      when "list"
+        emit_json(plugins: plugin_registry.all.map { |plugin| plugin.reject { |key, _value| key == "root" } })
+      when "install"
+        name = @argv.shift || raise(InvalidIntent, "plugin install expects a name")
+        installed = plugin_registry.install(name, vault_root)
+        registry.attach(vault_root, profile: name) if registry.find(vault_root.to_s)
+        emit_json(plugin: name, vault: vault_root.to_s, installed: installed)
+      else
+        raise InvalidIntent, "unknown plugin command #{action.inspect}"
+      end
+      0
     end
 
     def execute_command
@@ -129,6 +263,10 @@ module KnowledgeGraph
       dataset_status = dataset_health
       emit_json(
         status: status.success? && dataset_status.fetch(:status) == "ok" ? "ok" : "failed",
+        sdk_version: KnowledgeSDK::VERSION,
+        vault: vault_root.to_s,
+        vault_source: vault_resolution.source,
+        vault_profile: KnowledgeSDK.profile_for(vault_root) || "generic",
         ruby_version: RUBY_VERSION,
         schemas: registry.keys.length,
         predicates: relationships.predicates.length,
@@ -294,12 +432,26 @@ module KnowledgeGraph
     end
 
     def vault_root
-      @vault_root ||= Pathname.new(@options[:vault_root]).expand_path
+      vault_resolution.path
+    end
+
+    def vault_resolution
+      @vault_resolution ||= KnowledgeSDK::VaultLocator.new(registry: registry).resolve(
+        explicit: @options[:vault_root]
+      )
+    end
+
+    def registry
+      @registry ||= KnowledgeSDK::VaultRegistry.new(configuration: KnowledgeSDK.configuration)
+    end
+
+    def plugin_registry
+      @plugin_registry ||= KnowledgeSDK::PluginRegistry.new
     end
 
     def run_validator
-      validator = vault_root.join("_System/Tools/validate_vault.rb")
-      raise ValidationError, "required vault validator not found: #{validator}" unless validator.file?
+      validator = KnowledgeSDK.validator_path(vault_root)
+      raise ValidationError, "SDK validator not found: #{validator}" unless validator.file?
 
       Open3.capture3({ "VAULT_ROOT" => vault_root.to_s }, RbConfig.ruby, validator.to_s)
     end
@@ -322,7 +474,8 @@ module KnowledgeGraph
 
     def print_help(option_parser)
       @out.puts(option_parser)
-      @out.puts("Commands: execute, validate, doctor, graph, stats, search, replay, dataset, activity, chat, observe, extract, proposal, intelligence, goal, plan, gateway, events, workflow, scheduler, notifications, cache")
+      @out.puts("SDK: init, attach, detach, upgrade, migrate, version, id, vault, plugin")
+      @out.puts("Knowledge: execute, validate, doctor, graph, stats, search, replay, dataset, activity, chat, observe, extract, proposal, intelligence, goal, plan, gateway, events, workflow, scheduler, notifications, cache")
       0
     end
   end

@@ -48,9 +48,9 @@ Twenty-six `1.0.0` contracts cover entity and company/project search, entity ret
 ## Quick start
 
 ```sh
-ruby "_System/KnowledgeGraph/bin/kg" gateway capabilities
-ruby "_System/KnowledgeGraph/bin/kg" gateway execute kg.entities.search '{"query":"Ada"}'
-ruby "_System/KnowledgeGraph/bin/kg" gateway policy check kg.proposals.submit \
+kg gateway capabilities
+kg gateway execute kg.entities.search '{"query":"Ada"}'
+kg gateway policy check kg.proposals.submit \
   '{"proposal_id":"proposal_<ULID>","dry_run":true}'
 ```
 
@@ -87,10 +87,10 @@ response = gateway.execute(request: request, agent: agent)
 ## Verification
 
 ```sh
-ruby -I"_System/KnowledgeGraph/lib" -I"_System/KnowledgeGraph/test" \
-  -e 'Dir["_System/KnowledgeGraph/test/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
-ruby "_System/Tools/test_validator.rb"
-ruby "_System/Tools/validate_vault.rb"
+ruby -I"lib" -I"test" \
+  -e 'Dir["test/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
+ruby test/validator_test.rb
+ruby "validators/personal_crm/validate_vault.rb"
 ```
 
 The Phase 7 suite includes Gateway, manifest, policy, session, adapter, plugin, job, golden-scenario, compatibility, security, regression, and scale tests.

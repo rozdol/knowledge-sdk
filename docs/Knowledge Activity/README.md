@@ -61,7 +61,7 @@ Schemas are defined in [activity.schema.json](activity.schema.json) and [respons
 ## Examples
 
 ```sh
-ruby "_System/KnowledgeGraph/bin/kg" activity latest --json
+kg activity latest --json
 ```
 
 ```json
@@ -85,7 +85,7 @@ ruby "_System/KnowledgeGraph/bin/kg" activity latest --json
 ```
 
 ```sh
-ruby "_System/KnowledgeGraph/bin/kg" activity undo --latest --json
+kg activity undo --latest --json
 ```
 
 ```json
@@ -100,7 +100,7 @@ ruby "_System/KnowledgeGraph/bin/kg" activity undo --latest --json
 ```
 
 ```sh
-ruby "_System/KnowledgeGraph/bin/kg" activity today --json
+kg activity today --json
 ```
 
 ```json
@@ -108,7 +108,7 @@ ruby "_System/KnowledgeGraph/bin/kg" activity today --json
 ```
 
 ```sh
-ruby "_System/KnowledgeGraph/bin/kg" activity explain activity_01KYYA00000000000000000000 --json
+kg activity explain activity_01KYYA00000000000000000000 --json
 ```
 
 The explanation response preserves the same Activity object and adds `origin`, `evidence`, `proposal`, `approval`, `execution`, and `resulting_changes`. Restricted evidence is represented as `{"redacted":true}`.

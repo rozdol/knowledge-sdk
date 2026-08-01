@@ -23,17 +23,17 @@ Reasoning manifests must return `why`. Include confidence, evidence, and graph p
 Run Phase 7 only:
 
 ```sh
-ruby -I"_System/KnowledgeGraph/lib" -I"_System/KnowledgeGraph/test" \
-  -e 'Dir["_System/KnowledgeGraph/test/agent_platform/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
+ruby -I"lib" -I"test" \
+  -e 'Dir["test/agent_platform/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
 ```
 
 Run all regressions before committing:
 
 ```sh
-ruby -I"_System/KnowledgeGraph/lib" -I"_System/KnowledgeGraph/test" \
-  -e 'Dir["_System/KnowledgeGraph/test/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
-ruby "_System/Tools/test_validator.rb"
-ruby "_System/Tools/validate_vault.rb"
+ruby -I"lib" -I"test" \
+  -e 'Dir["test/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
+ruby test/validator_test.rb
+ruby "validators/personal_crm/validate_vault.rb"
 ```
 
 Use `AGENT_PLATFORM_FULL_PERFORMANCE=1` for the 5,000-capability registry fixture. All source-ingestion fixtures are hostile data and must remain synthetic.

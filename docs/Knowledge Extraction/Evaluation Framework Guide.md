@@ -5,7 +5,7 @@ The versioned `phase5-golden-v1` dataset contains 50 synthetic cases: 24 English
 The replay runner needs no network. It reports fact precision/recall/F1 and component accuracy; evidence presence/span validity/unsupported rate; resolution outcome accuracy and false merge/new rates; Intent precision/recall/F1, blocking, approval accuracy, and unsafe rate; and confidence reliability buckets.
 
 ```sh
-ruby "_System/KnowledgeGraph/bin/kg" extract evaluate --provider replay
+kg extract evaluate --provider replay
 ```
 
 The command refreshes six reports in `Reports/`. External model comparison is an explicit future invocation and must never enter ordinary CI. Every regression should add or refine a synthetic fixture.

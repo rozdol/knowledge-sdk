@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../knowledge_sdk/version"
+
 module KnowledgeGraph
-  VERSION = "0.1.0"
+  VERSION = KnowledgeSDK::VERSION
 end

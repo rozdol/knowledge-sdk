@@ -30,7 +30,7 @@ The operational SQLite catalog uses the immutable Dataset ID as its key. It reta
 
 ## Database schema
 
-One ignored, device-local database is stored at `_System/KnowledgeGraph/Runtime/datasets.sqlite3`.
+One ignored, device-local database is stored at `.knowledge/datasets.sqlite3`.
 
 ```sql
 sde_datasets(

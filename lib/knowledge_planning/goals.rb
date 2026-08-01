@@ -8,7 +8,7 @@ require "time"
 
 module KnowledgePlanning
   class GoalStore
-    RUNTIME = "_System/KnowledgeGraph/Runtime/planning/goals".freeze
+    RUNTIME = "#{KnowledgeSDK::RUNTIME_PATH}/planning/goals".freeze
 
     def initialize(vault_root:, id_generator: nil, clock: nil)
       @root = Pathname.new(vault_root).join(RUNTIME)

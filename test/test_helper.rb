@@ -6,23 +6,23 @@ require "tmpdir"
 require_relative "../lib/knowledge_graph"
 
 module KnowledgeGraphTestSupport
+  SDK_ROOT = File.expand_path("..", __dir__).freeze
+  PERSONAL_CRM_PLUGIN = File.join(SDK_ROOT, "plugins/personal-crm").freeze
+
   def with_vault
     Dir.mktmpdir("knowledge-graph-engine-") { |root| yield root }
   end
 
   def with_schema_vault
     with_vault do |root|
-      source_root = File.expand_path("../../..", __dir__)
       FileUtils.mkdir_p(File.join(root, "_System"))
-      FileUtils.cp_r(File.join(source_root, "_System/Schema"), File.join(root, "_System/Schema"))
+      FileUtils.mkdir_p(File.join(root, "_System/Schema"))
       FileUtils.cp_r(
-        File.join(source_root, "_System/Relationship Types"),
-        File.join(root, "_System/Relationship Types")
+        File.join(PERSONAL_CRM_PLUGIN, "schemas"), File.join(root, "_System/Schema/Entity Types")
       )
-      FileUtils.mkdir_p(File.join(root, "_System/Tools"))
-      FileUtils.cp(
-        File.join(source_root, "_System/Tools/validate_vault.rb"),
-        File.join(root, "_System/Tools/validate_vault.rb")
+      FileUtils.cp_r(
+        File.join(PERSONAL_CRM_PLUGIN, "relationship_types"),
+        File.join(root, "_System/Relationship Types")
       )
       yield root
     end
