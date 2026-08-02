@@ -34,6 +34,7 @@ Accepted decisions are normative until superseded by a later ADR and a compatibl
 | SDK-ADR-017 | Make Dataset registration and additive schema evolution approval-gated lifecycle Intents | Accepted |
 | SDK-ADR-018 | Provide deterministic plugin-based analysis across graph, Dataset, and derived evidence | Accepted |
 | SDK-ADR-019 | Keep analytical recommendations non-executable until a separate concrete Intent proposal | Accepted |
+| SDK-ADR-020 | Classify semantic domain before intent and make graph observation the last resort | Accepted |
 
 ## SDK-ADR-001 — One standalone SDK and arbitrary Vault clients
 
@@ -148,3 +149,9 @@ Accepted decisions are normative until superseded by a later ADR and a compatibl
 **Decision.** Analytical recommendations are derived, noncanonical, and non-executable. The optional recommendation proposal is a review envelope with no executable Intent. A recommendation becomes actionable only through a later concrete immutable Intent proposal, exact human approval, and Engine submission.
 
 **Consequences.** Analysis cannot grant itself execution authority. `RecommendationGenerated` may appear in Knowledge Activity, while approval and execution remain visibly separate operations.
+
+## SDK-ADR-020 — Hierarchical intent classification
+
+**Decision.** Conversational routing first detects one semantic domain from `health`, `finance`, `crm`, `trading`, `knowledge`, and `generic`. It then invokes all trusted classifier plugins registered for the winning domain and selects the highest-confidence `intent`, `confidence`, and `explanation` result. If none matches, generic analysis, planning, proposal, Dataset-table, and search plugins run. The generic `graph.observe` classifier occupies a separate last-resort tier and cannot compete as a default route.
+
+**Consequences.** Declarative versus interrogative form is no longer the primary routing signal. Structured medication schedules, measurements, laboratory results, body metrics, and similar observations reach domain plugins before graph extraction, including supported English, Russian, and Greek forms. Domain and classifier plugins remain deterministic SDK-owned code; imported or attached-Vault content cannot register executable matchers.

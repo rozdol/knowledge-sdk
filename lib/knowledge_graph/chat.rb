@@ -9,8 +9,8 @@ module KnowledgeGraph
       keyword_init: true
     )
 
-    PLAN_REQUEST = /\A(?:please\s+)?(?:(?:make|create|build|draft|develop|prepare)\b.*\bplan\b|plan\b)/i.freeze
-    SEARCH_REQUEST = /\A(?:who|what|where|when|which|why|how|does|do|did|is|are|was|were|can|could|would|tell\s+me|show\s+me|find)\b/i.freeze
+    PLAN_REQUEST = /\A(?:(?:please\s+)?(?:(?:make|create|build|draft|develop|prepare)\b.*\bplan\b|plan\b)|(?:пожалуйста\s+)?(?:создай|составь|подготовь)\b.*\bплан\b|(?:παρακαλώ\s+)?(?:δημιούργησε|ετοίμασε|σύνταξε)\b.*\bσχέδιο\b)/i.freeze
+    SEARCH_REQUEST = /\A(?:who|what|where|when|which|why|how|does|do|did|is|are|was|were|can|could|would|tell\s+me|show\s+me|find|кто|что|где|когда|какой|почему|как|найди|покажи|расскажи|ποιος|ποια|ποιο|τι|πού|πότε|γιατί|πώς|βρες|δείξε)\b/i.freeze
     UNSUPPORTED_ACTION = /\A(?:please\s+)?(?:add|archive|approve|call|change|delete|edit|email|execute|merge|remove|rename|schedule|send|submit|update)\b/i.freeze
 
     CAPABILITIES = {
@@ -30,39 +30,39 @@ module KnowledgeGraph
       def install_defaults(classifier)
         StructuredDataset::IntentClassifierPlugin.register(classifier)
         KnowledgeAnalysis::IntentClassifierPlugin.register(classifier)
-        classifier.register(name: "core-observe", route: "observe") do |source, _context|
-          next nil if proposal_request?(source) || PLAN_REQUEST.match?(source)
-          next nil if SEARCH_REQUEST.match?(source) || source.end_with?("?")
-          next nil if UNSUPPORTED_ACTION.match?(source) || source.split(/\s+/).length < 3
-
-          {
-            "intent" => "graph.observe", "confidence" => 0.85,
-            "reason" => "declarative message suitable for the graph observation pipeline"
-          }
-        end
-        classifier.register(name: "core-search", route: "search") do |source, _context|
+        classifier.register(name: "core-search", domain: "generic", route: "search") do |source, _context|
           next nil if proposal_request?(source)
           next nil unless SEARCH_REQUEST.match?(source) || source.end_with?("?")
 
           {
             "intent" => "graph.search", "confidence" => 0.90,
-            "reason" => "informational question about existing knowledge"
+            "explanation" => "informational question about existing knowledge"
           }
         end
-        classifier.register(name: "core-plan", route: "plan") do |source, _context|
+        classifier.register(name: "core-plan", domain: "generic", route: "plan") do |source, _context|
           next nil unless PLAN_REQUEST.match?(source)
 
           {
             "intent" => "planner.goal", "confidence" => 0.95,
-            "reason" => "explicit request to create a plan"
+            "explanation" => "explicit request to create a plan"
           }
         end
-        classifier.register(name: "core-proposal", route: "proposal") do |source, _context|
+        classifier.register(name: "core-proposal", domain: "generic", route: "proposal") do |source, _context|
           next nil unless proposal_request?(source)
 
           {
             "intent" => "proposal.status", "confidence" => 0.98,
-            "reason" => "request concerns an existing proposal"
+            "explanation" => "request concerns an existing proposal"
+          }
+        end
+        classifier.register(
+          name: "core-graph-observe", domain: "generic", route: "observe", fallback: true
+        ) do |source, _context|
+          next nil if UNSUPPORTED_ACTION.match?(source) || source.split(/\s+/).length < 3
+
+          {
+            "intent" => "graph.observe", "confidence" => 0.20,
+            "explanation" => "no specialized, planning, or search classifier matched; using graph observation as a last resort"
           }
         end
       end

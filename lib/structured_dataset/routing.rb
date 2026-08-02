@@ -83,12 +83,28 @@ module StructuredDataset
       waist chest hip hips neck arm thigh calf height body-fat bodyfat
     ].freeze
     TABLE_HEADER = /\b(?:amount|currency|value|unit|marker|measurement|medication|dose|date)\b/i.freeze
-    STRUCTURED_UNIT = /(?:\b(?:kg|lbs?|pounds?|cm|mm|bpm|mg|mcg|mg\/dL|mmol\/L|g\/dL|ng\/mL|USD|EUR|GBP)\b|[%$€£₽]|\b(?:кг|см|мм|мг|давление|вес|анализ|измерение|лекарств\w*)\b|(?:πίεση|βάρος|εξέταση|μέτρηση|φάρμακο))/i.freeze
+    HEALTH_UNIT = /(?:\b(?:kg|lbs?|pounds?|cm|mm|bpm|mg|mcg|mg\/dL|mmol\/L|g\/dL|ng\/mL|hours?|steps?|kcal)\b|%|°[CF]|(?:кг|см|мм|мг|мкг|час[[:alpha:]]*|шаг[[:alpha:]]*|давление|вес|анализ|измерение|лекарств[[:alpha:]]*)|(?:κιλά|κιλό|ώρ[[:alpha:]]*|βήμα[[:alpha:]]*|πίεση|βάρος|εξέταση|μέτρηση|φάρμακο))/i.freeze
+    FINANCE_UNIT = /(?:[$€£₽]|\b(?:USD|EUR|GBP)\b|(?:рубл|евро|доллар|сумм)|(?:ευρώ|δολάρ|ποσό))/i.freeze
+    STRUCTURED_UNIT = /(?:#{HEALTH_UNIT}|#{FINANCE_UNIT})/i.freeze
+    HEALTH_STATEMENT = /(?:\b(?:medication\s+schedule|lab(?:oratory)?\s+(?:result|measurement)|body\s+measurement)\b|(?:расписание\s+лекарств|лабораторн[[:alpha:]]+\s+(?:результат|измерение)|измерение\s+тела)|(?:πρόγραμμα\s+φαρμάκων|εργαστηριακ[[:alpha:]]+\s+(?:αποτέλεσμα|μέτρηση)|μέτρηση\s+σώματος))/i.freeze
+    FINANCE_STATEMENT = /(?:\bfinance\s+table\b|финансов[[:alpha:]]+\s+таблиц[[:alpha:]]+|οικονομικ[[:alpha:]]+\s+πίνακ[[:alpha:]]+)/i.freeze
 
     class << self
       def register(classifier = KnowledgeSDK.intent_classifier)
-        classifier.register(name: "structured-dataset-core", route: "dataset") do |text, context|
-          new.classify(text, context)
+        classifier.register(
+          name: "structured-dataset-health", domain: "health", route: "dataset"
+        ) do |text, context|
+          new.classify_health(text, context)
+        end
+        classifier.register(
+          name: "structured-dataset-finance", domain: "finance", route: "dataset"
+        ) do |text, context|
+          new.classify_finance(text, context)
+        end
+        classifier.register(
+          name: "structured-dataset-generic", domain: "generic", route: "dataset"
+        ) do |text, context|
+          new.classify_generic(text, context)
         end
       end
     end
@@ -102,19 +118,45 @@ module StructuredDataset
         structured_guard(source)
     end
 
+    def classify_health(text, context = {})
+      source = text.to_s.strip
+      timestamp = observed_time(context)
+      medication(source, timestamp) || blood_pressure(source, timestamp) ||
+        weight(source, timestamp) || blood_test(source, timestamp) ||
+        body_measurement(source, timestamp) || structured_guard(source, "health")
+    end
+
+    def classify_finance(text, context = {})
+      source = text.to_s.strip
+      expense(source, observed_time(context)) || structured_guard(source, "finance")
+    end
+
+    def classify_generic(text, _context = {})
+      structured_guard(text.to_s.strip)
+    end
+
     private
 
     def medication(source, timestamp)
-      pattern = /\bi\s+(?:take|am\s+taking)\s+([a-z][a-z0-9 .'-]*?)(?:\s+(\d+(?:\.\d+)?)\s*(mg|mcg|g|ml))?\s+(every\s+(?:morning|afternoon|evening|night|day)|once\s+daily|twice\s+daily|at\s+\d{1,2}(?::\d{2})?(?:\s*[ap]m)?)\b/i
-      match = pattern.match(source)
+      match = /\bi\s+(?:take|am\s+taking)\s+([a-z][a-z0-9 .'-]*?)(?:\s+(\d+(?:\.\d+)?)\s*(mg|mcg|g|ml))?\s+(every\s+(?:morning|afternoon|evening|night|day)|once\s+daily|twice\s+daily|at\s+\d{1,2}(?::\d{2})?(?:\s*[ap]m)?)\b/i.match(source)
+      language = "en"
+      unless match
+        match = /(?:\A|\s)(?:я\s+)?принимаю\s+([[:alpha:]][[:alpha:]0-9 .'-]*?)(?:\s+(\d+(?:[.,]\d+)?)\s*(мг|мкг|г|мл|mg|mcg|g|ml))?\s+(каждое\s+утро|каждый\s+день|каждый\s+вечер|каждую\s+ночь|ежедневно|дважды\s+в\s+день)(?:[.!]?\z|\s)/i.match(source)
+        language = "ru"
+      end
+      unless match
+        match = /(?:\A|\s)(?:εγώ\s+)?(?:παίρνω|λαμβάνω)\s+([[:alpha:]][[:alpha:]0-9 .'-]*?)(?:\s+(\d+(?:[.,]\d+)?)\s*(mg|mcg|g|ml|μg))?\s+(κάθε\s+(?:πρωί|μέρα|απόγευμα|βράδυ)|μία\s+φορά\s+την\s+ημέρα|δύο\s+φορές\s+την\s+ημέρα)(?:[.!]?\z|\s)/i.match(source)
+        language = "el"
+      end
       return nil unless match
 
       slots = {
-        "medication" => title_word(match[1]), "schedule" => match[4].downcase,
+        "medication" => title_word(match[1]),
+        "schedule" => normalize_schedule(match[4], language),
         "effective_on" => timestamp.to_date.iso8601
       }
-      slots["dose"] = match[2].to_f if match[2]
-      slots["unit"] = match[3].downcase if match[3]
+      slots["dose"] = number(match[2]) if match[2]
+      slots["unit"] = normalize_health_unit(match[3]) if match[3]
       result(
         "dataset.medication_schedule", 0.98, slots,
         "recognized a recurring medication schedule as structured Dataset data"
@@ -122,8 +164,9 @@ module StructuredDataset
     end
 
     def blood_pressure(source, timestamp)
-      pattern = /\b(?:today['’]?s\s+)?(?:my\s+)?blood\s+pressure(?:\s+today)?\s+(?:was|is)\s+(\d{2,3})\s*(?:over|\/)\s*(\d{2,3})(?:\s+(?:with\s+(?:a\s+)?pulse(?:\s+of)?|pulse)\s+(\d{2,3}))?/i
-      match = pattern.match(source)
+      match = /\b(?:today['’]?s\s+)?(?:my\s+)?blood\s+pressure(?:\s+today)?\s+(?:was|is)\s+(\d{2,3})\s*(?:over|\/)\s*(\d{2,3})(?:\s+(?:with\s+(?:a\s+)?pulse(?:\s+of)?|pulse)\s+(\d{2,3}))?/i.match(source)
+      match ||= /(?:мо[её]\s+)?(?:артериальное\s+)?давление(?:\s+сегодня)?\s*(?:было|составило|равно|:|—|-)?\s*(\d{2,3})\s*(?:\/|на)\s*(\d{2,3})(?:[,;]?\s*пульс\s*(?:был|составил|:)?\s*(\d{2,3}))?/i.match(source)
+      match ||= /(?:η\s+)?(?:πίεσ(?:η|ή)\s+μου|πίεση)(?:\s+σήμερα)?\s*(?:ήταν|είναι|:|—|-)?\s*(\d{2,3})\s*(?:\/|με)\s*(\d{2,3})(?:[,;]?\s*(?:με\s+)?σφυγμ(?:ό|ος)\s*(?:ήταν|είναι|:)?\s*(\d{2,3}))?/i.match(source)
       return nil unless match
 
       slots = {
@@ -138,12 +181,15 @@ module StructuredDataset
     end
 
     def weight(source, timestamp)
-      pattern = /\b(?:today['’]?s\s+)?my\s+weight(?:\s+today)?\s+(?:was|is)\s+(\d+(?:\.\d+)?)\s*(kg|kilograms?|lbs?|pounds?)\b/i
-      match = pattern.match(source)
+      match = /\b(?:today['’]?s\s+)?my\s+weight(?:\s+today)?\s+(?:was|is)\s+(\d+(?:\.\d+)?)\s*(kg|kilograms?|lbs?|pounds?)\b/i.match(source)
+      match ||= /(?:мой\s+)?вес(?:\s+сегодня)?\s*(?:был|составил|равен|:|—|-)?\s*(\d+(?:[.,]\d+)?)\s*(кг|килограмм(?:а|ов)?)/i.match(source)
+      match ||= /(?:το\s+)?(?:βάρος\s+μου|βάρος)(?:\s+σήμερα)?\s*(?:ήταν|είναι|:|—|-)?\s*(\d+(?:[.,]\d+)?)\s*(kg|κιλά|κιλό(?:γραμμα)?)/i.match(source)
       return nil unless match
 
-      value = match[1].to_f
-      kilograms = match[2].downcase.start_with?("kg", "kilogram") ? value : (value * 0.45359237).round(6)
+      value = number(match[1])
+      unit = match[2].downcase
+      pounds = unit.start_with?("lb", "pound")
+      kilograms = pounds ? (value * 0.45359237).round(6) : value
       result(
         "dataset.weight_measurement", 0.98,
         { "observed_at" => timestamp.iso8601, "weight_kg" => kilograms },
@@ -154,18 +200,35 @@ module StructuredDataset
     def blood_test(source, timestamp)
       pattern = /\b(?:today['’]?s\s+)?(?:my\s+)?(?:blood\s+test\s+(?:for\s+)?)?([a-z][a-z0-9 -]{0,40}?)\s+(?:was|is)\s+(-?\d+(?:\.\d+)?)(?:\s*(mg\/dL|mmol\/L|g\/dL|ng\/mL|pg\/mL|mIU\/L|U\/L|%))?\b/i
       match = pattern.match(source)
-      return nil unless match
+      if match
+        marker_key = match[1].strip.downcase.tr(" ", "-")
+        explicit_blood_test = source.match?(/\bblood\s+test\b/i)
+        match = nil unless explicit_blood_test || LAB_MARKERS.include?(marker_key)
+      end
 
-      marker_key = match[1].strip.downcase.tr(" ", "-")
-      explicit_blood_test = source.match?(/\bblood\s+test\b/i)
-      return nil unless explicit_blood_test || LAB_MARKERS.include?(marker_key)
+      localized = nil
+      unless match
+        localized = /(?:результат\s+(?:анализа|лабораторного\s+анализа)\s*)?(лпнп|лпвп|ldl|hdl|глюкоза|гемоглобин|холестерин)\s*(?:был|составил|равен|:|—|-)?\s*(-?\d+(?:[.,]\d+)?)\s*(мг\/дл|ммоль\/л|г\/дл|нг\/мл|mg\/dL|mmol\/L|g\/dL|ng\/mL|%)?/i.match(source)
+        localized ||= /(?:αποτέλεσμα\s+(?:εξέτασης|εργαστηριακής\s+εξέτασης)\s*)?(ldl|hdl|γλυκόζη|αιμοσφαιρίνη|χοληστερόλη)\s*(?:ήταν|είναι|:|—|-)?\s*(-?\d+(?:[.,]\d+)?)\s*(mg\/dL|mmol\/L|g\/dL|ng\/mL|%)?/i.match(source)
+      end
+      return nil unless match || localized
 
-      marker = marker_key.length <= 5 ? marker_key.upcase : title_word(match[1])
+      if localized
+        marker = normalize_lab_marker(localized[1])
+        value = number(localized[2])
+        unit = normalize_lab_unit(localized[3]) if localized[3]
+      else
+        marker_key = match[1].strip.downcase.tr(" ", "-")
+        marker = marker_key.length <= 5 ? marker_key.upcase : title_word(match[1])
+        value = match[2].to_f
+        unit = match[3]
+      end
+
       slots = {
         "observed_at" => timestamp.iso8601, "marker" => marker,
-        "value" => match[2].to_f
+        "value" => value
       }
-      slots["unit"] = match[3] if match[3]
+      slots["unit"] = unit if unit
       result(
         "dataset.blood_test_result", 0.97, slots,
         "recognized a laboratory measurement as structured Dataset data"
@@ -175,16 +238,33 @@ module StructuredDataset
     def body_measurement(source, timestamp)
       pattern = /\b(?:today['’]?s\s+)?my\s+([a-z -]+?)\s+(?:measurement\s+)?(?:was|is)\s+(\d+(?:\.\d+)?)\s*(cm|mm|m|in|inches|%)\b/i
       match = pattern.match(source)
-      return nil unless match
+      localized = nil
+      localized ||= /(?:обхват\s+)?(талии|груди|б[её]дер|шеи)|\b(рост)\b/i.match(source)
+      if !match && localized
+        localized = /((?:обхват\s+)?(?:талии|груди|б[её]дер|шеи)|рост)\s*(?:был|составил|равен|:|—|-)?\s*(\d+(?:[.,]\d+)?)\s*(см|мм|м|%)/i.match(source)
+      end
+      unless match || localized
+        localized = /(?:η\s+)?(μέση|στήθος|γοφοί|λαιμός|ύψος)(?:\s+μου)?\s*(?:ήταν|είναι|:|—|-)?\s*(\d+(?:[.,]\d+)?)\s*(cm|mm|m|εκ\.?|χιλ\.?|%)/i.match(source)
+      end
+      return nil unless match || localized
 
-      measurement = match[1].strip.downcase.tr(" ", "-")
-      return nil unless BODY_MEASUREMENTS.include?(measurement)
+      if localized
+        measurement = normalize_body_measurement(localized[1])
+        value = number(localized[2])
+        unit = normalize_health_unit(localized[3])
+      else
+        measurement = match[1].strip.downcase.tr(" ", "-")
+        return nil unless BODY_MEASUREMENTS.include?(measurement)
+
+        value = match[2].to_f
+        unit = match[3].downcase
+      end
 
       result(
         "dataset.body_measurement", 0.96,
         {
           "observed_at" => timestamp.iso8601, "measurement" => measurement.tr("-", "_"),
-          "value" => match[2].to_f, "unit" => match[3].downcase
+          "value" => value, "unit" => unit
         },
         "recognized a physical measurement as structured Dataset data"
       )
@@ -208,14 +288,26 @@ module StructuredDataset
       )
     end
 
-    def structured_guard(source)
+    def structured_guard(source, domain = nil)
       lines = source.lines.map(&:strip).reject(&:empty?)
       table = lines.length >= 2 && TABLE_HEADER.match?(lines.first) &&
               (lines.first.include?("|") || lines.first.include?(","))
-      structured_statement = source.match?(
-        /(?:\b(?:medication\s+schedule|lab(?:oratory)?\s+(?:result|measurement)|finance\s+table|body\s+measurement)\b|(?:расписание\s+лекарств|лабораторн\w+\s+(?:результат|измерение)|финансов\w+\s+таблиц\w+|измерение\s+тела)|(?:πρόγραμμα\s+φαρμάκων|εργαστηριακ\w+\s+(?:αποτέλεσμα|μέτρηση)|οικονομικ\w+\s+πίνακ\w+|μέτρηση\s+σώματος))/i
-      )
-      declarative_numeric = !source.end_with?("?") && source.match?(/\d/) && STRUCTURED_UNIT.match?(source)
+      statement_pattern = if domain == "health"
+                            HEALTH_STATEMENT
+                          elsif domain == "finance"
+                            FINANCE_STATEMENT
+                          else
+                            /(?:#{HEALTH_STATEMENT}|#{FINANCE_STATEMENT})/i
+                          end
+      unit_pattern = if domain == "health"
+                       HEALTH_UNIT
+                     elsif domain == "finance"
+                       FINANCE_UNIT
+                     else
+                       STRUCTURED_UNIT
+                     end
+      structured_statement = statement_pattern.match?(source)
+      declarative_numeric = !source.end_with?("?") && source.match?(/\d/) && unit_pattern.match?(source)
       return nil unless table || structured_statement || declarative_numeric
 
       result(
@@ -235,7 +327,67 @@ module StructuredDataset
     end
 
     def result(intent, confidence, slots, reason)
-      { "intent" => intent, "confidence" => confidence, "slots" => slots, "reason" => reason }
+      {
+        "intent" => intent, "confidence" => confidence,
+        "slots" => slots, "explanation" => reason
+      }
+    end
+
+    def number(value)
+      value.to_s.tr(",", ".").to_f
+    end
+
+    def normalize_schedule(value, language)
+      key = value.to_s.downcase
+      schedules = {
+        "ru" => {
+          "каждое утро" => "every morning", "каждый день" => "every day",
+          "каждый вечер" => "every evening", "каждую ночь" => "every night",
+          "ежедневно" => "once daily", "дважды в день" => "twice daily"
+        },
+        "el" => {
+          "κάθε πρωί" => "every morning", "κάθε μέρα" => "every day",
+          "κάθε απόγευμα" => "every afternoon", "κάθε βράδυ" => "every evening",
+          "μία φορά την ημέρα" => "once daily", "δύο φορές την ημέρα" => "twice daily"
+        }
+      }
+      schedules.fetch(language, {}).fetch(key, key)
+    end
+
+    def normalize_health_unit(value)
+      unit = value.to_s.downcase.delete_suffix(".")
+      {
+        "мг" => "mg", "мкг" => "mcg", "г" => "g", "мл" => "ml",
+        "кг" => "kg", "см" => "cm", "мм" => "mm", "μg" => "mcg",
+        "εκ" => "cm", "χιλ" => "mm"
+      }.fetch(unit, unit)
+    end
+
+    def normalize_lab_marker(value)
+      {
+        "лпнп" => "LDL", "лпвп" => "HDL", "ldl" => "LDL", "hdl" => "HDL",
+        "глюкоза" => "Glucose", "γλυκόζη" => "Glucose",
+        "гемоглобин" => "Hemoglobin", "αιμοσφαιρίνη" => "Hemoglobin",
+        "холестерин" => "Cholesterol", "χοληστερόλη" => "Cholesterol"
+      }.fetch(value.to_s.downcase)
+    end
+
+    def normalize_lab_unit(value)
+      {
+        "мг/дл" => "mg/dL", "ммоль/л" => "mmol/L",
+        "г/дл" => "g/dL", "нг/мл" => "ng/mL"
+      }.fetch(value.to_s.downcase, value)
+    end
+
+    def normalize_body_measurement(value)
+      {
+        "талии" => "waist", "обхват талии" => "waist",
+        "груди" => "chest", "обхват груди" => "chest",
+        "бёдер" => "hips", "бедер" => "hips", "обхват бёдер" => "hips",
+        "обхват бедер" => "hips", "шеи" => "neck", "обхват шеи" => "neck",
+        "рост" => "height", "μέση" => "waist", "στήθος" => "chest",
+        "γοφοί" => "hips", "λαιμός" => "neck", "ύψος" => "height"
+      }.fetch(value.to_s.downcase)
     end
 
     def title_word(value)

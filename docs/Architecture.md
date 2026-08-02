@@ -57,13 +57,22 @@ immutable Goal + composable Constraints
 
 ## Intent classification and Dataset routing
 
-`kg chat` and `kg observe` use one SDK-owned `KnowledgeSDK::IntentClassifier`. Trusted code plugins register deterministic matchers with a route; the classifier evaluates routes in this fixed order:
+`kg chat` and `kg observe` use one SDK-owned hierarchical `KnowledgeSDK::IntentClassifier`. Phase 1 detects one semantic domain:
 
 ```text
-dataset -> analyze -> observe -> search -> plan -> proposal
+health | finance | crm | trading | knowledge | generic
 ```
 
-Structured observations are classified before graph extraction. Medication schedules, measurements, laboratory results, body measurements, and financial rows use `kg.datasets.propose`, which creates an immutable proposal through the existing Proposal Store and validator. Ambiguous structured tables remain on the Dataset route for schema clarification and never fall through to graph extraction.
+Phase 2 evaluates every registered non-fallback classifier plugin for the winning domain and selects the result with the highest confidence. A plugin registration declares its domain and route; its matcher returns `intent`, `confidence`, and `explanation`, plus optional slots. If no winning-domain plugin matches, generic analysis, planning, proposal, Dataset-table, and search plugins are evaluated. The generic graph classifier is marked as a separate fallback tier and runs only when every applicable specialized and generic plugin returned no result.
+
+```text
+semantic domain detection
+  -> winning-domain plugins (highest confidence)
+  -> generic analysis / planning / proposal / Dataset-table / search plugins
+  -> graph.observe classifier of last resort
+```
+
+Sentence type is not a domain or routing decision. In particular, a declarative sentence cannot outrank a health Dataset plugin merely because it lacks a question mark. Structured observations are classified before graph extraction. Medication schedules, measurements, laboratory results, body measurements, and financial rows use `kg.datasets.propose`, which creates an immutable proposal through the existing Proposal Store and validator. Ambiguous structured tables remain on the Dataset route for schema clarification and never fall through to graph extraction.
 
 ```text
 structured message -> Dataset classification -> named immutable Dataset Intent
@@ -176,7 +185,7 @@ Undo and restore perform no graph write. They derive lossless existing Intents f
 - `agent_platform/` owns manifests, Registry, Gateway, policy, sessions, adapters, jobs, telemetry, plugins, and generated contract artifacts. It does not parse Markdown or YAML.
 - `knowledge_orchestration/` owns immutable events, the internal bus and dead-letter queue, trigger and workflow DSL, dependency graph, derived-artifact Knowledge Cache, durable jobs, cron scheduler, notifications, replay, and sanitized timelines. It invokes existing components only through Agent Gateway capabilities.
 - `knowledge_activity/` owns the read-time Activity projection, human summaries, temporal filtering/search/diff, privacy redaction, explainability joins, and review-only undo/restore proposal adaptation. It has no canonical writer or Activity store.
-- `knowledge_sdk/intent_classifier.rb` owns the route-priority registry and immutable classification contract used by chat, observation, and trusted domain plugins.
+- `knowledge_sdk/intent_classifier.rb` owns semantic-domain detection, domain-scoped plugin confidence arbitration, the explicit generic fallback tier, and the immutable classification contract used by chat and observation.
 - `structured_dataset/routing.rb` owns Dataset classifiers, named Dataset Intent proposal construction, and the handlers registered on the existing Engine. It never invokes graph extraction for row data.
 - `structured_dataset/evolution.rb` owns read-only autonomous lifecycle planning and emits `CreateDataset` or `UpgradeDatasetSchema` prerequisites. Only the approval-gated Dataset handler executes them.
 - `knowledge_analysis/` owns the cross-subsystem analysis context, deterministic Correlation Engine, analysis plugin registry, response aggregation, derived caching, recommendation envelopes, and `kg analyze` CLI. It never writes graph facts or Dataset rows.

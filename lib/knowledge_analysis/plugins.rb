@@ -34,13 +34,17 @@ module KnowledgeAnalysis
 
     class << self
       def register(classifier = KnowledgeSDK.intent_classifier)
-        classifier.register(name: "knowledge-analysis-core", route: "analyze") do |text, _context|
-          next nil unless PATTERN.match?(text)
+        KnowledgeSDK::IntentClassifier::DOMAINS.each do |domain|
+          classifier.register(
+            name: "knowledge-analysis-core-#{domain}", domain: domain, route: "analyze"
+          ) do |text, _context|
+            next nil unless PATTERN.match?(text)
 
-          {
-            "intent" => "analysis.cross_knowledge", "confidence" => 0.96,
-            "reason" => "question requests deterministic cross-source analysis"
-          }
+            {
+              "intent" => "analysis.cross_knowledge", "confidence" => 0.96,
+              "explanation" => "question requests deterministic cross-source analysis"
+            }
+          end
         end
       end
     end

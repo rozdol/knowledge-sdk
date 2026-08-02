@@ -19,20 +19,24 @@ The bundled `personal-crm` plugin packages the current ontology, templates, view
 
 ## Intent Classifier extensions
 
-Trusted SDK code plugins can add a domain without changing `kg chat` by registering a deterministic matcher on the shared classifier. The fixed route priority is `dataset`, `analyze`, `observe`, `search`, `plan`, then `proposal`.
+Trusted SDK code plugins can add an intent recognizer without changing `kg chat` by registering a deterministic matcher for one semantic domain. The classifier first selects `health`, `finance`, `crm`, `trading`, `knowledge`, or `generic`, invokes all plugins for the winning domain, and selects their highest-confidence result. Only when no winning-domain plugin matches does it evaluate generic analysis, planning, proposal, Dataset-table, and search plugins. The generic graph classifier is an explicit last-resort plugin, not the default route.
 
 ```ruby
-KnowledgeSDK.intent_classifier.register(name: "nutrition-observations", route: "dataset") do |text, context|
+KnowledgeSDK.intent_classifier.register(
+  name: "nutrition-observations", domain: "health", route: "dataset"
+) do |text, context|
   next unless text.match?(/\bprotein\b/i)
 
   {
     "intent" => "dataset.nutrition",
     "confidence" => 0.93,
-    "reason" => "recognized a structured nutrition observation",
+    "explanation" => "recognized a structured nutrition observation",
     "slots" => { "captured_at" => context["captured_at"] }
   }
 end
 ```
+
+The `domain` registration field is required for specialized plugins. Omitting it retains compatibility by registering the matcher in `generic`; it does not make the matcher a graph fallback. Fallback classifiers are SDK-owned, explicitly registered with `fallback: true`, and restricted to the generic domain.
 
 The plugin must also register an SDK-owned immutable Dataset Intent/proposal mapping and an Engine handler that delegates to the Structured Dataset Engine. Classifier registration does not grant approval or execution authority. Matchers and handlers may come only from trusted installed SDK code, never from an attached Vault or imported content.
 

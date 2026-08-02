@@ -31,37 +31,50 @@ class StructuredDatasetRoutingTest < Minitest::Test
     }
   ].freeze
 
-  def test_classifier_uses_declared_route_priority_and_supports_plugin_registration
+  def test_classifier_uses_domain_plugins_confidence_and_graph_last_resort
     resolver = KnowledgeGraph::ChatIntentResolver.new
     assert_equal "dataset", resolver.resolve("My weight is 82.3 kg").route
-    assert_equal "observe", resolver.resolve("Ivan Petrov works at Microsoft.").route
+    graph_fallback = resolver.resolve("Ivan Petrov works at Microsoft.")
+    assert_equal "observe", graph_fallback.route
+    assert_equal 0.20, graph_fallback.confidence
+    assert_includes graph_fallback.reason, "last resort"
     assert_equal "search", resolver.resolve("Who is Ivan Petrov?").route
     assert_equal "plan", resolver.resolve("Create a plan for Ivan.").route
     assert_equal "proposal", resolver.resolve("Show pending proposals.").route
     protected = resolver.resolve("Мой вес сегодня 82 кг")
     assert_equal "dataset", protected.route
-    assert_equal "dataset.structured_observation", protected.intent
+    assert_equal "dataset.weight_measurement", protected.intent
 
     classifier = KnowledgeSDK::IntentClassifier.new
-    classifier.register(name: "nutrition-plugin", route: "dataset") do |text, _context|
+    classifier.register(name: "nutrition-plugin", domain: "health", route: "dataset") do |text, _context|
       next nil unless text == "Breakfast contained 30 g protein"
 
       {
         "intent" => "dataset.nutrition", "confidence" => 0.93,
-        "reason" => "plugin-owned structured nutrition observation"
+        "explanation" => "plugin-owned structured nutrition observation"
       }
     end
-    classifier.register(name: "nutrition-low-confidence", route: "dataset") do |text, _context|
+    classifier.register(name: "nutrition-low-confidence", domain: "health", route: "dataset") do |text, _context|
       next nil unless text == "Breakfast contained 30 g protein"
 
       {
         "intent" => "dataset.generic_food", "confidence" => 0.60,
-        "reason" => "lower-confidence overlapping plugin"
+        "explanation" => "lower-confidence overlapping plugin"
+      }
+    end
+    classifier.register(name: "finance-not-applicable", domain: "finance", route: "dataset") do |text, _context|
+      next nil unless text == "Breakfast contained 30 g protein"
+
+      {
+        "intent" => "dataset.expense", "confidence" => 1.0,
+        "explanation" => "synthetic classifier from the losing domain"
       }
     end
     classification = classifier.classify("Breakfast contained 30 g protein")
     assert_equal "dataset.nutrition", classification.intent
     assert_equal 0.93, classification.confidence
+    assert_equal "health", classification.domain
+    assert_equal "plugin-owned structured nutrition observation", classification.explanation
 
     registry = StructuredDataset::RoutingRegistry.new
     registry.register(
@@ -79,6 +92,74 @@ class StructuredDatasetRoutingTest < Minitest::Test
     )
     assert_instance_of InsertProteinMeasurement, rebuilt
     assert_equal "nutrition", registry.fetch("dataset.nutrition").dataset
+  end
+
+  def test_structured_health_observations_route_by_semantics_in_english_russian_and_greek
+    examples = {
+      "en" => {
+        "I take Berberine 500 mg every morning" => "dataset.medication_schedule",
+        "My blood pressure is 128/81 with pulse 64" => "dataset.blood_pressure_measurement",
+        "My weight is 82.3 kg" => "dataset.weight_measurement",
+        "My LDL is 110 mg/dL" => "dataset.blood_test_result",
+        "My waist is 84 cm" => "dataset.body_measurement"
+      },
+      "ru" => {
+        "Я принимаю метформин 500 мг каждое утро" => "dataset.medication_schedule",
+        "Моё давление сегодня 128/81, пульс 64" => "dataset.blood_pressure_measurement",
+        "Мой вес сегодня 82,3 кг" => "dataset.weight_measurement",
+        "ЛПНП: 110 мг/дл" => "dataset.blood_test_result",
+        "Обхват талии: 84 см" => "dataset.body_measurement"
+      },
+      "el" => {
+        "Παίρνω μετφορμίνη 500 mg κάθε πρωί" => "dataset.medication_schedule",
+        "Η πίεσή μου σήμερα ήταν 128/81 με σφυγμό 64" => "dataset.blood_pressure_measurement",
+        "Το βάρος μου σήμερα είναι 82,3 κιλά" => "dataset.weight_measurement",
+        "LDL: 110 mg/dL" => "dataset.blood_test_result",
+        "Η μέση μου είναι 84 cm" => "dataset.body_measurement"
+      }
+    }
+    classifier = KnowledgeGraph::ChatIntentResolver.classifier
+
+    examples.each do |language, observations|
+      observations.each do |text, intent|
+        domain = classifier.detect_domain(text)
+        classification = classifier.classify(text, "captured_at" => "2026-08-02T09:30:00Z")
+        assert_equal "health", domain.domain, "#{language}: #{text}"
+        assert_equal "health", classification.domain, "#{language}: #{text}"
+        assert_equal "dataset", classification.route, "#{language}: #{text}"
+        assert_equal intent, classification.intent, "#{language}: #{text}"
+        refute_equal "graph.observe", classification.intent, "#{language}: #{text}"
+      end
+    end
+
+    guarded = [
+      "Body temperature is 38 °C",
+      "Температура тела 38,2 °C",
+      "Ο κορεσμός οξυγόνου είναι 98%"
+    ]
+    guarded.each do |text|
+      classification = classifier.classify(text)
+      assert_equal "health", classification.domain, text
+      assert_equal "dataset", classification.route, text
+      assert_equal "dataset.structured_observation", classification.intent, text
+      refute_equal "graph.observe", classification.intent, text
+    end
+  end
+
+  def test_semantic_domain_detection_covers_every_supported_domain
+    classifier = KnowledgeSDK::IntentClassifier.new
+    examples = {
+      "health" => "My glucose is 95 mg/dL",
+      "finance" => "I paid €20 for the subscription",
+      "crm" => "Follow up with the customer contact",
+      "trading" => "Place a limit order for the stock",
+      "knowledge" => "Show me the project notes",
+      "generic" => "A quiet afternoon under clear skies"
+    }
+
+    examples.each do |domain, text|
+      assert_equal domain, classifier.detect_domain(text).domain, text
+    end
   end
 
   def test_chat_creates_named_dataset_intents_without_graph_extraction

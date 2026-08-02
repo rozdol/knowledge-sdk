@@ -77,7 +77,7 @@ kg analyze "Which medications correlate with improved sleep?" \
 kg analyze "What changed after my vacation?" --propose-recommendations --json
 ```
 
-`kg chat` uses the same shared classifier. Analytical language routes to `kg.analysis.run`; ordinary lookups remain on search, and declarative structured observations remain on Dataset routing.
+`kg chat` uses the same shared hierarchical classifier. Analytical language routes to `kg.analysis.run`; ordinary lookups remain on search, and semantically structured observations remain on Dataset routing instead of being routed from sentence form alone.
 
 ## Correlation Engine
 
