@@ -30,7 +30,7 @@ module KnowledgeAnalysis
   end
 
   class IntentClassifierPlugin
-    PATTERN = /\b(?:why|correlat(?:e|es|ed|ion)|possible reasons?|contributing factors?|what changed|shortly before|after i|after my|deteriorat(?:e|ed)|improv(?:e|ed)|increas(?:e|ed)|decreas(?:e|ed)|preceded|longest time|trend across|compare datasets?)\b/i.freeze
+    PATTERN = /\b(?:why|correlat(?:e|es|ed|ion)|possible reasons?|contributing factors?|what changed|shortly before|after i|after my|deteriorat(?:e|ed)|improv(?:e|ed)|increas(?:e|ed)|decreas(?:e|ed)|preceded|longest time|trend across|compare datasets?|medications?\s+(?:were\s+)?active|medications?\s+(?:was|were|am|is)\s+i\s+taking|taking\s+in\s+[a-z]+)\b/i.freeze
 
     class << self
       def register(classifier = KnowledgeSDK.intent_classifier)
@@ -193,7 +193,7 @@ module KnowledgeAnalysis
 
     class Health < Base
       NAME = "health"
-      KEYWORDS = /\b(?:ldl|hdl|cholesterol|blood pressure|weight|sleep|medication|berberine|blood marker|lab|health)\b/i.freeze
+      KEYWORDS = /\b(?:ldl|hdl|cholesterol|blood pressure|weight|sleep|medications?|berberine|blood marker|lab|health)\b/i.freeze
 
       def supports?(question, context)
         KEYWORDS.match?(question) && %w[blood_tests blood_pressure weight sleep medication_log medication_schedules].any? do |slug|
@@ -212,6 +212,7 @@ module KnowledgeAnalysis
 
       def analyze(context)
         target = target_series(context)
+        return medication_inventory_fragment(context) if !target && medication_question?(context.question)
         return fragment(
           summary: "The available health datasets do not contain enough matching observations.",
           confidence: 0.0,
@@ -231,6 +232,9 @@ module KnowledgeAnalysis
             evidence: trend, window: windows.last, direction: trend.fetch("direction"),
             limitations: ["The trend compares observations and does not identify a cause."]
           )
+          medication_interval_factors(context, trend.fetch("from"), trend.fetch("to")).each do |factor|
+            factors << factor
+          end
         end
 
         candidate_series(context, target).first(30).each do |candidate|
@@ -288,6 +292,83 @@ module KnowledgeAnalysis
 
       private
 
+      def medication_question?(question)
+        question.match?(/\b(?:medication|medications|medicine|taking|dose|berberine)\b/i)
+      end
+
+      def medication_inventory_fragment(context)
+        rows = active_medication_rows(context, context.from, context.to)
+        factors = rows.map do |row|
+          medication_factor(context, row, context.from, context.to)
+        end
+        names = rows.map { |row| row["medication"].to_s }.reject(&:empty?).uniq.sort
+        summary = if names.empty?
+                    "No active medication schedules overlapped the requested interval."
+                  else
+                    "Active medication schedules in the requested interval: #{names.join(', ')}."
+                  end
+        fragment(
+          summary: summary, confidence: factors.empty? ? 0.0 : 0.95,
+          factors: factors, windows: [{
+            "from" => context.from && context.from.iso8601,
+            "to" => context.to && context.to.iso8601,
+            "observations" => rows.length
+          }],
+          activity_evidence: context.relevant_activities(["medication schedules"], limit: 20),
+          limitations: [
+            "Medication membership is determined from structured effective intervals; unrecorded treatment is not included.",
+            "The result describes recorded schedules and is not medical advice."
+          ]
+        )
+      end
+
+      def medication_interval_factors(context, from, to)
+        active_medication_rows(context, from, to).map do |row|
+          medication_factor(context, row, from, to)
+        end
+      end
+
+      def active_medication_rows(context, from, to)
+        source = context.dataset("medication_schedules")
+        return [] unless source
+
+        source.fetch("rows").select do |row|
+          enabled = row["active"] == true || row["active"] == 1
+          enabled && KnowledgeSDK::Schedule.active_during?(
+            row["effective_from"] || row["effective_on"], row["effective_until"],
+            from: from, to: to
+          )
+        end.sort_by do |row|
+          [row["medication"].to_s.downcase, row["effective_from"].to_s, row["schedule_id"].to_s]
+        end
+      end
+
+      def medication_factor(context, row, from, to)
+        schedule = row["schedule_json"]
+        begin
+          schedule = KnowledgeSDK::Schedule.from_h(schedule).to_h if schedule
+        rescue ArgumentError
+          schedule = nil
+        end
+        interval = {
+          "effective_from" => row["effective_from"] || row["effective_on"],
+          "effective_until" => row["effective_until"],
+          "analysis_from" => from && from.to_s, "analysis_to" => to && to.to_s
+        }
+        evidence = interval.merge(
+          "schedule_id" => row["schedule_id"] || row["row_id"],
+          "dose" => row["dose"], "unit" => row["unit"],
+          "route" => row["route"], "schedule" => schedule
+        ).reject { |_key, value| value.nil? }
+        context.factor(
+          label: row["medication"].to_s,
+          association: "#{row['medication']} had an active structured schedule overlapping the analysis window.",
+          confidence: 0.95, datasets: ["medication_schedules"],
+          evidence: evidence, window: interval,
+          limitations: ["Temporal overlap does not establish that the medication caused the observed change."]
+        )
+      end
+
       def target_series(context)
         question = context.question.downcase
         tests = context.dataset("blood_tests")
@@ -296,7 +377,7 @@ module KnowledgeAnalysis
           marker = markers.sort_by { |value| [-value.length, value] }.find do |value|
             question.include?(value.downcase)
           end
-          marker ||= markers.sort.first if question.match?(/blood marker|blood test|lab/)
+          marker ||= markers.sort.first if question.match?(/blood marker|biomarker|blood test|lab/)
           if marker
             rows = tests.fetch("rows").select { |row| row["marker"].to_s.casecmp?(marker) }
             return {
@@ -361,7 +442,7 @@ module KnowledgeAnalysis
       end
 
       def event_factors(context, target)
-        medication = context.question[/\b(?:stopped|stop|removed|taking)\s+(?:taking\s+)?([A-Za-z][A-Za-z0-9 .'-]{1,40})/i, 1]
+        medication = context.question[/\b(?:stopped|stop|removed|taking|increased|increase|increasing|decreased|decrease)\s+(?:taking\s+|the\s+dose\s+of\s+)?([A-Za-z][A-Za-z0-9 .'-]{1,40})/i, 1]
         return [] unless medication
 
         rows = []
@@ -374,7 +455,7 @@ module KnowledgeAnalysis
           end
         end
         rows.each_with_object([]) do |(slug, row), result|
-          event_time = row["observed_at"] || row["effective_on"] || row["updated_at"]
+          event_time = row["observed_at"] || row["effective_from"] || row["effective_on"] || row["updated_at"]
           comparison = event_time && context.correlations.compare_around(
             target.fetch("points"), event_time: event_time, before_days: 90, after_days: 90
           )

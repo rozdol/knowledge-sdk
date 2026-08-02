@@ -22,7 +22,7 @@ Ruby 2.6 or newer is supported. SQLite-backed dataset commands require the `sqli
 bundle install
 bundle exec rake test
 gem build knowledge-sdk.gemspec
-gem install ./knowledge-sdk-13.0.0.gem
+gem install ./knowledge-sdk-14.0.0.gem
 ```
 
 During source development, use `ruby bin/kg`; after installation, use `kg`.
@@ -78,6 +78,12 @@ kg analyze "What subscriptions increased my monthly expenses?" --json
 ```
 
 Answers identify the datasets, graph facts, time windows, confidence, and limitations used. Correlations are labeled as possible contributing factors and never presented as causality. Recommendations remain non-executable unless explicitly persisted as a review-only proposal with `--propose-recommendations`.
+
+Medication schedules use the generic `KnowledgeSDK::Schedule` value object and immutable
+`medschedule_<ULID>` versions. Multiple rows for the same medication are valid; recurrence and
+effective intervals are structured rather than inferred from prose during analysis. Legacy
+`schedule`/`effective_on` datasets are migrated through an exact-approved, copy-and-verify
+`UpgradeDatasetSchema` prerequisite. See [Health Plugin](docs/Health%20Plugin/README.md).
 
 ## Ruby API
 

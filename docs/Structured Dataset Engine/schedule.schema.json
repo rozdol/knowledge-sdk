@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://knowledge.local/schemas/schedule.json",
+  "title": "Generic Schedule",
+  "type": "object",
+  "required": ["version", "frequency"],
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+    "frequency": {
+      "type": "string",
+      "enum": ["daily", "weekly", "monthly", "every_n_days", "cron", "prn", "custom_interval"]
+    },
+    "times": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "time_of_day": { "type": "string", "enum": ["morning", "day", "evening", "night"] },
+          "local_time": { "type": "string", "pattern": "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$" },
+          "meal_relation": { "type": "string", "enum": ["before_food", "with_food", "after_food", "independent"] },
+          "fasting": { "type": "boolean" },
+          "extensions": { "type": "object" }
+        },
+        "anyOf": [
+          { "required": ["time_of_day"] },
+          { "required": ["local_time"] }
+        ],
+        "additionalProperties": false
+      }
+    },
+    "days_of_week": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] },
+      "uniqueItems": true
+    },
+    "days_of_month": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 1, "maximum": 31 },
+      "uniqueItems": true
+    },
+    "interval": {
+      "type": "object",
+      "required": ["every", "unit"],
+      "properties": {
+        "every": { "type": "integer", "minimum": 1 },
+        "unit": { "type": "string", "enum": ["minute", "minutes", "hour", "hours", "day", "days", "week", "weeks", "month", "months"] },
+        "anchor_date": { "type": "string", "format": "date" }
+      },
+      "additionalProperties": false
+    },
+    "cron": { "type": "string", "pattern": "^\\S+\\s+\\S+\\s+\\S+\\s+\\S+\\s+\\S+$" },
+    "occurrences_per_period": { "type": "integer", "minimum": 1 },
+    "constraints": { "type": "object" },
+    "extensions": { "type": "object" }
+  },
+  "allOf": [
+    { "if": { "properties": { "frequency": { "const": "weekly" } } }, "then": { "required": ["days_of_week"] } },
+    { "if": { "properties": { "frequency": { "const": "monthly" } } }, "then": { "required": ["days_of_month"] } },
+    { "if": { "properties": { "frequency": { "enum": ["every_n_days", "custom_interval"] } } }, "then": { "required": ["interval"] } },
+    { "if": { "properties": { "frequency": { "const": "cron" } } }, "then": { "required": ["cron"] } }
+  ],
+  "additionalProperties": false
+}

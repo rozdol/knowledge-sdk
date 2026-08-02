@@ -86,6 +86,39 @@ structured message -> Dataset classification -> named immutable Dataset Intent
 
 Named Dataset Intents contain row values and provenance but no graph attributes. Their Engine result identifies the canonical Dataset registry note; raw row values remain exclusively in SQLite. An optional graph statement such as “Alex has a medication schedule” is a separate semantic proposal and never contains the schedule rows.
 
+## Structured recurrence and Health schedule evolution
+
+`KnowledgeSDK::Schedule` is a generic immutable value object, not a Health entity. Its versioned JSON
+supports `daily`, `weekly`, `monthly`, `every_n_days`, `cron`, `prn`, and `custom_interval`
+recurrence, multiple symbolic or local-time slots, constraints, and extension data. Medication dose,
+unit, route, reason, provider, and notes stay outside this generic object.
+
+```mermaid
+flowchart TD
+  NL["Natural Language"] --> HP["Health Plugin"]
+  HP --> SP["Schedule Parser"]
+  SP --> SO["Schedule Object"]
+  SO --> PR["Proposal"]
+  PR --> AP["Exact Human Approval"]
+  AP --> DE["Dataset Engine via existing Engine"]
+  DE --> KA["Knowledge Activity"]
+  KA --> AN["Analysis"]
+```
+
+Medication schedule versions use `medschedule_<ULID>` business IDs. `medication` is indexed but not
+unique. Inclusive `effective_from` and `effective_until` fields define temporal validity. An omitted
+end is open-ended. Schedule replacement, dose changes, pause, resume, and discontinuation close the
+applicable interval and retain prior versions; they do not delete history. A paused version carries
+`active: false`, while active course versions carry `active: true`.
+
+Legacy medication tables are a bounded exception to additive-only Dataset migration. When the
+trusted planner detects the exact `effective_on`/`schedule` legacy shape, it emits an
+`UpgradeDatasetSchema` prerequisite with `migration_id: medication_schedules_v2`. After exact
+approval, the Dataset Engine rebuilds the physical table inside one SQLite transaction, transforms
+each row to structured JSON, preserves logical row/provenance IDs, verifies the row count, records a
+schema version and Dataset activity, and then executes the dependent observation. No arbitrary
+transform is accepted from an attached Vault.
+
 ## Autonomous Dataset lifecycle
 
 Dataset absence and additive schema drift are proposal prerequisites, not terminal blockers:
@@ -188,7 +221,9 @@ Undo and restore perform no graph write. They derive lossless existing Intents f
 - `knowledge_orchestration/` owns immutable events, the internal bus and dead-letter queue, trigger and workflow DSL, dependency graph, derived-artifact Knowledge Cache, durable jobs, cron scheduler, notifications, replay, and sanitized timelines. It invokes existing components only through Agent Gateway capabilities.
 - `knowledge_activity/` owns the read-time Activity projection, human summaries, temporal filtering/search/diff, privacy redaction, explainability joins, and review-only undo/restore proposal adaptation. It has no canonical writer or Activity store.
 - `knowledge_sdk/intent_classifier.rb` owns semantic-domain detection, domain-scoped plugin confidence arbitration, the explicit generic fallback tier, and the immutable classification contract used by chat and observation.
+- `knowledge_sdk/schedule.rb` owns the generic immutable recurrence value and interval-overlap semantics; it has no writer or medication dependency.
 - `structured_dataset/routing.rb` owns Dataset classifiers, named Dataset Intent proposal construction, and the handlers registered on the existing Engine. It never invokes graph extraction for row data.
+- `structured_dataset/medication_schedules.rb` owns trusted Health schedule row evolution and the one versioned legacy-table transform.
 - `structured_dataset/evolution.rb` owns read-only autonomous lifecycle planning and emits `CreateDataset` or `UpgradeDatasetSchema` prerequisites. Only the approval-gated Dataset handler executes them.
 - `knowledge_analysis/` owns the cross-subsystem analysis context, deterministic Correlation Engine, analysis plugin registry, response aggregation, derived caching, recommendation envelopes, and `kg analyze` CLI. It never writes graph facts or Dataset rows.
 

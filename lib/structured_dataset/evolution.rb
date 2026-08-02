@@ -54,6 +54,20 @@ module StructuredDataset
       row = stringify(values)
       description = @engine.describe(slug)
       current = definition_from_description(description)
+      if slug == "medication_schedules" && MedicationScheduleSchemaMigration.legacy?(current)
+        replacement = MedicationScheduleSchemaMigration.target(current)
+        added = replacement.columns.map(&:name) - current.columns.map(&:name)
+        intent = KnowledgeGraph::UpgradeDatasetSchema.new(
+          dataset: slug, from_version: description.fetch("schema_version"),
+          schema: replacement.to_h, added_columns: added.sort,
+          migration_id: MedicationScheduleSchemaMigration::ID,
+          source: source, proposal_id: proposal_id
+        )
+        return DatasetSchemaUpgradeProposal.new(
+          kind: "schema_migration", dataset: slug, definition: replacement,
+          intent: intent, added_columns: added.sort
+        )
+      end
       unknown = unknown_columns(current, row)
       return CurrentDatasetPlan.new(kind: "current", dataset: slug, definition: current) if unknown.empty?
 

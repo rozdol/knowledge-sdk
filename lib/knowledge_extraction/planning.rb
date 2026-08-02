@@ -8,7 +8,9 @@ module KnowledgeExtraction
       MergeEntities SplitEntity RemoveRelationship RenameEntity ArchiveEntity ReplaceRelationship
     ].freeze
     MEDIUM_RISK = %w[
-      UpdateEntity RecordPromise CompleteFollowUp InsertDatasetRow ReplaceMedicationSchedule
+      UpdateEntity RecordPromise CompleteFollowUp InsertDatasetRow CreateMedicationSchedule
+      ReplaceMedicationSchedule PauseMedicationSchedule ResumeMedicationSchedule StopMedication
+      ModifyMedicationDose ModifyMedicationSchedule
       InsertBloodPressureMeasurement InsertWeightMeasurement InsertBloodTestResult
       InsertBodyMeasurement InsertExpense CreateDataset UpgradeDatasetSchema
     ].freeze

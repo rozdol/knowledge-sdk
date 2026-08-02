@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Status | Living product rationale |
-| SDK version | `13.0.0` |
+| SDK version | `14.0.0` |
 | Baseline extraction revision | `8dba780` |
 | Updated | `2026-08-02` |
 
@@ -35,6 +35,7 @@ Accepted decisions are normative until superseded by a later ADR and a compatibl
 | SDK-ADR-018 | Provide deterministic plugin-based analysis across graph, Dataset, and derived evidence | Accepted |
 | SDK-ADR-019 | Keep analytical recommendations non-executable until a separate concrete Intent proposal | Accepted |
 | SDK-ADR-020 | Classify semantic domain before intent and make graph observation the last resort | Accepted |
+| SDK-ADR-021 | Represent recurrence generically and medication history as immutable effective intervals | Accepted |
 
 ## SDK-ADR-001 — One standalone SDK and arbitrary Vault clients
 
@@ -155,3 +156,19 @@ Accepted decisions are normative until superseded by a later ADR and a compatibl
 **Decision.** Conversational routing first detects one semantic domain from `health`, `finance`, `crm`, `trading`, `knowledge`, and `generic`. It then invokes all trusted classifier plugins registered for the winning domain and selects the highest-confidence `intent`, `confidence`, and `explanation` result. If none matches, generic analysis, planning, proposal, Dataset-table, and search plugins run. The generic `graph.observe` classifier occupies a separate last-resort tier and cannot compete as a default route.
 
 **Consequences.** Declarative versus interrogative form is no longer the primary routing signal. Structured medication schedules, measurements, laboratory results, body metrics, and similar observations reach domain plugins before graph extraction, including supported English, Russian, and Greek forms. Domain and classifier plugins remain deterministic SDK-owned code; imported or attached-Vault content cannot register executable matchers.
+
+## SDK-ADR-021 — Generic recurrence and immutable medication intervals
+
+**Decision.** Recurrence is an immutable `KnowledgeSDK::Schedule` value object with versioned JSON,
+generic frequency and time-slot fields, optional recurrence-specific fields, constraints, and
+extensions. Medication schedule rows use immutable schedule IDs and inclusive
+`effective_from`/`effective_until` intervals. Medication is indexed but not unique; schedule
+evolution closes prior versions and appends successors rather than deleting history.
+
+**Consequences.** Multiple daily doses and overlapping future/temporary schedule records are valid.
+The Health plugin supplies medication-specific dose, route, provider, and reason fields outside the
+generic recurrence object. Pause and resume are represented as inactive and active interval
+versions. Analysis and reminder consumers read typed recurrence data without NLP. Legacy
+`schedule`/`effective_on` storage is upgraded only by the trusted `medication_schedules_v2`
+copy-and-verify transform selected by an exact-approved `UpgradeDatasetSchema` Intent; arbitrary
+schema replacement remains unsupported.

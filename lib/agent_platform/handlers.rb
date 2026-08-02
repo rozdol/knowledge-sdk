@@ -67,7 +67,7 @@ module AgentPlatform
         raise InvalidArguments, error.message
       end
 
-      registry.register("kg.datasets.propose", version: "1.1.0") do |arguments, context|
+      registry.register("kg.datasets.propose", version: "1.2.0") do |arguments, context|
         result = services.dataset_proposal_builder(context).create(arguments)
         HandlerResult.new(
           payload: result,

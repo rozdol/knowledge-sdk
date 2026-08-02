@@ -277,13 +277,18 @@ module StructuredDataset
         observed = ->(extra) { [{ name: "observed_at", type: "DATETIME", required: true, index: true }] + extra }
         {
           "medication_schedules" => spec(
-            "Medication Schedules", "medication_schedules", "Track active medication schedules", [
-              { name: "effective_on", type: "DATE", required: true, index: true },
-              { name: "medication", type: "TEXT", required: true, unique: true },
+            "Medication Schedules", "medication_schedules", "Track versioned medication schedules", [
+              { name: "schedule_id", type: "TEXT", required: true, unique: true },
+              { name: "medication", type: "TEXT", required: true, index: true },
               { name: "dose", type: "REAL" }, { name: "unit", type: "TEXT" },
-              { name: "schedule", type: "TEXT", required: true },
-              { name: "schedule_details", type: "JSON" },
-              { name: "active", type: "BOOLEAN", required: true }
+              { name: "route", type: "TEXT" },
+              { name: "schedule_json", type: "JSON", required: true },
+              { name: "effective_from", type: "DATE", required: true, index: true },
+              { name: "effective_until", type: "DATE", index: true },
+              { name: "active", type: "BOOLEAN", required: true, index: true },
+              { name: "reason", type: "TEXT" },
+              { name: "prescribing_provider", type: "TEXT" },
+              { name: "notes", type: "TEXT" }
             ]
           ),
           "medication_log" => spec("Medication Log", "medication_log", "Track medication adherence", observed.call([

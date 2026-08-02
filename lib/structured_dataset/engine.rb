@@ -144,7 +144,7 @@ module StructuredDataset
 
     def insert(reference, values, provenance = {})
       record, storage, definition = resolve(reference)
-      row = definition.coerce_row(values)
+      row = validate_dataset_row!(definition, definition.coerce_row(values))
       row_id = @id_generator.generate("row")
       audit = audit_values(provenance)
       now = timestamp
@@ -184,7 +184,7 @@ module StructuredDataset
 
     def replace(reference, match:, values:, provenance: {})
       record, storage, definition = resolve(reference)
-      replacement = definition.coerce_row(values)
+      replacement = validate_dataset_row!(definition, definition.coerce_row(values))
       matching = definition.coerce_row(match, partial: true)
       raise InvalidRow, "replace requires at least one matching column" if matching.empty?
 
@@ -237,7 +237,12 @@ module StructuredDataset
 
     def update(reference, row_id, values, provenance = {})
       record, storage, definition = resolve(reference)
-      row = definition.coerce_row(values, partial: true)
+      if definition.slug == "medication_schedules" && values.keys.map(&:to_s).include?("schedule_id")
+        raise InvalidRow, "schedule_id is immutable"
+      end
+      row = validate_dataset_row!(
+        definition, definition.coerce_row(values, partial: true), partial: true
+      )
       raise InvalidRow, "update requires at least one column" if row.empty?
 
       audit = audit_values(provenance)
@@ -376,6 +381,143 @@ module StructuredDataset
       describe(reference).merge("dataset_activity_id" => activity_id)
     end
 
+    def migrate_medication_schedules(reference, schema, provenance = {})
+      record, storage, current = resolve(reference)
+      unless MedicationScheduleSchemaMigration.legacy?(current)
+        raise MigrationError, "medication schedule migration requires the legacy schedule schema"
+      end
+      replacement = definition_from(schema, slug: current.slug)
+      unless replacement.to_h == MedicationScheduleSchemaMigration.target(current).to_h
+        raise MigrationError, "medication schedule migration target does not match the SDK schema"
+      end
+
+      audit = audit_values(provenance)
+      next_version = storage.fetch("schema_version").to_i + 1
+      activity_id = nil
+      database.with_connection do |connection|
+        database.transaction(connection) do
+          database.replace_schema_version(
+            connection, dataset_id: record.id, definition: replacement, version: next_version
+          ) { |row| MedicationScheduleSchemaMigration.transform(row) }
+          activity_id = database.record_activity(
+            connection, dataset_id: record.id, action: "migrate", row_id: nil,
+            actor_id: audit.fetch("created_by"), source: audit.fetch("source"),
+            observation_id: audit["observation_id"], proposal_id: audit["proposal_id"],
+            approval_id: audit["approval_id"], run_id: @run_id
+          )
+        end
+      end
+      publish_change("migrate", record.id, nil, provenance: audit)
+      describe(reference).merge("dataset_activity_id" => activity_id)
+    end
+
+    # Atomically closes matching immutable schedule versions and inserts their
+    # successor. This is generic Dataset behavior; medication semantics remain
+    # in the trusted route handler.
+    def evolve(reference, match:, close_values:, values:, provenance: {}, require_match: true)
+      record, storage, definition = resolve(reference)
+      matching = definition.coerce_row(match, partial: true)
+      closing = definition.coerce_row(close_values, partial: true)
+      replacement = validate_dataset_row!(definition, definition.coerce_row(values))
+      raise InvalidRow, "evolve requires at least one matching column" if matching.empty?
+      raise InvalidRow, "evolve requires at least one closing column" if closing.empty?
+
+      row_id = @id_generator.generate("row")
+      audit = audit_values(provenance)
+      now = timestamp
+      existing = nil
+      matched = 0
+      activity_id = nil
+      database.with_connection do |connection|
+        database.transaction(connection) do
+          if audit["intent_id"]
+            existing = connection.get_first_row(
+              "SELECT * FROM #{database.quote_identifier(storage.fetch('table_name'))} WHERE intent_id = ?",
+              [audit.fetch("intent_id")]
+            )
+          end
+          unless existing
+            clause, binds = matching_clause(matching)
+            matched = connection.get_first_value(
+              "SELECT COUNT(*) FROM #{database.quote_identifier(storage.fetch('table_name'))} WHERE #{clause}", binds
+            ).to_i
+            raise RowNotFound, "no schedule version matched the approved evolution" if require_match && matched.zero?
+
+            unless matched.zero?
+              assignments = closing.keys.map { |key| "#{database.quote_identifier(key)} = ?" }
+              assignments << "updated_at = ?"
+              connection.execute(
+                "UPDATE #{database.quote_identifier(storage.fetch('table_name'))} " \
+                "SET #{assignments.join(', ')} WHERE #{clause}",
+                closing.values + [now] + binds
+              )
+            end
+            insert_row(connection, storage.fetch("table_name"), row_id, replacement, audit, now)
+            activity_id = database.record_activity(
+              connection, dataset_id: record.id, action: matched.positive? ? "update" : "insert",
+              row_id: row_id, actor_id: audit.fetch("created_by"), source: audit.fetch("source"),
+              observation_id: audit["observation_id"], proposal_id: audit["proposal_id"],
+              approval_id: audit["approval_id"], run_id: @run_id
+            )
+          end
+        end
+      end
+      if existing
+        return definition.decode_row(existing).merge(
+          "dataset_activity_id" => nil, "replayed" => true, "closed_rows" => 0
+        )
+      end
+      publish_change(matched.positive? ? "update" : "insert", record.id, row_id, provenance: audit)
+      query(reference, row_id: row_id, limit: 1).first.merge(
+        "dataset_activity_id" => activity_id, "replayed" => false, "closed_rows" => matched
+      )
+    rescue sqlite_error => error
+      raise InvalidRow, safe_sqlite_message(error)
+    end
+
+    def update_matching_ids(reference, identifier:, ids:, values:, provenance: {})
+      record, storage, definition = resolve(reference)
+      column = definition.column(identifier)
+      identifiers = Array(ids).map { |value| column.coerce(value) }.uniq
+      changes = definition.coerce_row(values, partial: true)
+      raise InvalidRow, "update_matching_ids requires IDs" if identifiers.empty?
+      raise InvalidRow, "update_matching_ids requires changed columns" if changes.empty?
+
+      audit = audit_values(provenance)
+      now = timestamp
+      count = 0
+      activity_id = nil
+      database.with_connection do |connection|
+        database.transaction(connection) do
+          assignments = changes.keys.map { |key| "#{database.quote_identifier(key)} = ?" }
+          assignments << "updated_at = ?"
+          connection.execute(
+            "UPDATE #{database.quote_identifier(storage.fetch('table_name'))} " \
+            "SET #{assignments.join(', ')} WHERE #{database.quote_identifier(column.name)} " \
+            "IN (#{(['?'] * identifiers.length).join(', ')})",
+            changes.values + [now] + identifiers
+          )
+          count = connection.changes
+          unless count == identifiers.length
+            raise RowNotFound, "not every approved Dataset row matched the update"
+          end
+          activity_id = database.record_activity(
+            connection, dataset_id: record.id, action: "update", row_id: nil,
+            actor_id: audit.fetch("created_by"), source: audit.fetch("source"),
+            observation_id: audit["observation_id"], proposal_id: audit["proposal_id"],
+            approval_id: audit["approval_id"], run_id: @run_id
+          )
+        end
+      end
+      publish_change("update", record.id, nil, provenance: audit, row_count: count)
+      {
+        "dataset_id" => record.id, "updated" => count,
+        "dataset_activity_id" => activity_id, "replayed" => false
+      }
+    rescue sqlite_error => error
+      raise InvalidRow, safe_sqlite_message(error)
+    end
+
     def import_rows(reference, rows, provenance = {})
       record, storage, definition = resolve(reference)
       audit = audit_values(provenance)
@@ -383,7 +525,7 @@ module StructuredDataset
         values = row.each_with_object({}) do |(key, value), result|
           result[key] = value unless Definition::RESERVED_COLUMNS.include?(key.to_s) || key.to_s == "dataset_activity_id"
         end
-        definition.coerce_row(values)
+        validate_dataset_row!(definition, definition.coerce_row(values))
       end
       inserted = []
       now = timestamp
@@ -500,6 +642,26 @@ module StructuredDataset
             "(#{columns.map { |key| database.quote_identifier(key) }.join(', ')}) " \
             "VALUES (#{(['?'] * columns.length).join(', ')})"
       connection.execute(sql, columns.map { |key| values[key] })
+    end
+
+    def matching_clause(values)
+      clauses = []
+      binds = []
+      values.each do |key, value|
+        if value.nil?
+          clauses << "#{database.quote_identifier(key)} IS NULL"
+        else
+          clauses << "#{database.quote_identifier(key)} = ?"
+          binds << value
+        end
+      end
+      [clauses.join(" AND "), binds]
+    end
+
+    def validate_dataset_row!(definition, row, partial: false)
+      return row unless definition.slug == "medication_schedules"
+
+      MedicationScheduleOperations.validate_row!(row, partial: partial)
     end
 
     def validate_additive_migration!(current, replacement)

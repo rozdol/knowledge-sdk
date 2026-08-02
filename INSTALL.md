@@ -16,7 +16,7 @@ cd knowledge-sdk
 bundle install
 bundle exec rake test
 gem build knowledge-sdk.gemspec
-gem install ./knowledge-sdk-13.0.0.gem
+gem install ./knowledge-sdk-14.0.0.gem
 kg version
 ```
 

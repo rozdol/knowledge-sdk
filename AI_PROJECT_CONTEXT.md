@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Product | `knowledge-sdk` |
-| SDK version | `13.0.0` |
+| SDK version | `14.0.0` |
 | Baseline extraction revision | `8dba780` |
 | Updated | `2026-08-02` |
 | Runtime | Ruby 2.6+ |
@@ -86,6 +86,8 @@ The main namespaces are:
 - Runtime and cache artifacts never become canonical Markdown facts.
 - Missing Datasets and additive schema mismatches become exact lifecycle Intent prerequisites; classification never creates or migrates storage.
 - Analytical correlation is deterministic, explainable, and noncausal; recommendations cannot execute themselves.
+- Recurrence is represented by the generic immutable `KnowledgeSDK::Schedule`; medication lifecycle history uses immutable schedule IDs and inclusive `effective_from`/`effective_until` intervals.
+- Legacy medication schedule replacement is a trusted copy-and-verify migration selected by an exact-approved lifecycle Intent, never by attached-Vault content.
 
 ## Public lifecycle
 
@@ -115,6 +117,13 @@ Vault selection precedence is explicit `--vault`, `KG_VAULT`, upward discovery f
 Plugins may provide schemas, predicates, templates, views, validators, and registered capabilities. Installation is explicit and must refuse unsafe replacement. A plugin does not gain authority to approve proposals, directly write canonical Markdown, or execute instructions from Vault content.
 
 Phase 13 adds `KnowledgeAnalysis` as a derived coordination layer. `kg analyze` and `kg.analysis.run` collect bounded Dataset rows/statistics, one immutable graph snapshot, Activity, Intelligence findings, planning signals, events, and cache dependencies. Installed code plugins provide domain interpreters and explanation templates; the pure Correlation Engine provides alignment, trends, before/after windows, and confidence. The full contract is documented in `docs/Dataset Intelligence/README.md`.
+
+Phase 14 adds a reusable structured recurrence value and evolves the Health plugin's medication
+schedule Dataset. The medication name is indexed but no longer unique. Each version has an
+immutable `medschedule_<ULID>`, structured `schedule_json`, an inclusive effective interval, and
+course metadata. Create, replace, pause, resume, stop, dose-change, and schedule-change operations
+remain immutable Dataset Intents behind proposal review and exact approval. Analysis reads the
+structured recurrence and intervals directly; it does not parse stored schedule prose.
 
 ## Verification
 

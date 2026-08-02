@@ -106,13 +106,83 @@ module KnowledgeGraph
     field :proposal_id, default: nil
   end
 
-  class ReplaceMedicationSchedule < DatasetIntent
+  class CreateMedicationSchedule < DatasetIntent
+    field :schedule_id
     field :medication
-    field :schedule
-    field :effective_on
+    field :schedule_json
+    field :effective_from
+    field :effective_until, default: nil
     field :dose, default: nil
     field :unit, default: nil
+    field :route, default: nil
+    field :active, default: true
+    field :reason, default: nil
+    field :prescribing_provider, default: nil
+    field :notes, default: nil
+  end
+
+  # The legacy schedule/effective_on fields remain readable so approved Phase
+  # 13 proposals and direct Ruby callers can be replayed. New proposals use
+  # schedule_json and effective_from exclusively.
+  class ReplaceMedicationSchedule < DatasetIntent
+    field :medication
+    field :schedule_id, default: nil
+    field :replacement_schedule_id, default: nil
+    field :replace_all, default: false
+    field :schedule_json, default: nil
+    field :effective_from, default: nil
+    field :effective_until, default: nil
+    field :dose, default: nil
+    field :unit, default: nil
+    field :route, default: nil
+    field :reason, default: nil
+    field :prescribing_provider, default: nil
+    field :notes, default: nil
+    field :schedule, default: nil
+    field :effective_on, default: nil
     field :schedule_details, default: nil
+  end
+
+  class PauseMedicationSchedule < DatasetIntent
+    field :schedule_id, default: nil
+    field :medication, default: nil
+    field :paused_on
+    field :replacement_schedule_id
+    field :reason, default: nil
+  end
+
+  class ResumeMedicationSchedule < DatasetIntent
+    field :schedule_id, default: nil
+    field :medication, default: nil
+    field :resumed_on
+    field :replacement_schedule_id
+    field :effective_until, default: nil
+    field :reason, default: nil
+  end
+
+  class StopMedication < DatasetIntent
+    field :medication
+    field :stopped_on
+    field :reason, default: nil
+  end
+
+  class ModifyMedicationDose < DatasetIntent
+    field :schedule_id, default: nil
+    field :medication, default: nil
+    field :replacement_schedule_id
+    field :dose
+    field :effective_from
+    field :unit, default: nil
+    field :reason, default: nil
+  end
+
+  class ModifyMedicationSchedule < DatasetIntent
+    field :schedule_id, default: nil
+    field :medication, default: nil
+    field :replacement_schedule_id
+    field :schedule_json
+    field :effective_from
+    field :reason, default: nil
   end
 
   class InsertBloodPressureMeasurement < DatasetIntent
@@ -169,5 +239,6 @@ module KnowledgeGraph
     field :from_version
     field :schema
     field :added_columns
+    field :migration_id, default: nil
   end
 end

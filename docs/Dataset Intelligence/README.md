@@ -102,7 +102,13 @@ Trusted SDK code registers plugins through `KnowledgeAnalysis.registry`. A plugi
 - recommendation generators;
 - explanation templates.
 
-The bundled health plugin interprets laboratory, blood-pressure, weight, sleep, exercise, nutrition, and medication datasets. The finance plugin interprets expense, income, and subscription datasets. The CRM plugin combines graph people with interaction history. The generic plugin performs thresholded exploratory cross-dataset numeric correlation when no domain plugin applies. New installed code plugins require no `kg analyze` change.
+The bundled health plugin interprets laboratory, blood-pressure, weight, sleep, exercise, nutrition,
+and medication datasets. Medication membership is computed directly from structured
+`effective_from`/`effective_until` intervals and `schedule_json`; stored free text is never parsed by
+analysis. The finance plugin interprets expense, income, and subscription datasets. The CRM plugin
+combines graph people with interaction history. The generic plugin performs thresholded exploratory
+cross-dataset numeric correlation when no domain plugin applies. New installed code plugins require
+no `kg analyze` change.
 
 Plugins are SDK-owned trusted code. Attached-Vault notes, imported content, and Dataset values are hostile data and are never loaded as executable rules or instructions.
 
@@ -142,6 +148,13 @@ Phase 13 is additive:
 4. Dataset upgrades append optional SQLite columns and add a new `sde_schema_versions` record.
 5. Existing Activity rows with action `create` or `migrate` gain proposal/approval provenance when produced by the autonomous flow.
 6. Analysis artifacts are derived cache files and may be deleted/rebuilt without changing canonical graph or Dataset facts.
+
+Version 14 adds one explicit non-additive lifecycle migration for the exact legacy medication
+schedule shape. The planner emits the same `UpgradeDatasetSchema` prerequisite with
+`migration_id: medication_schedules_v2`; exact approval selects a trusted copy-and-verify handler.
+The handler preserves legacy row/provenance IDs, validates every structured schedule, verifies row
+counts, and commits the replacement table and schema history atomically. Unknown migration IDs and
+arbitrary schema transforms remain rejected.
 
 Destructive schema changes remain unsupported. A future destructive migration must use copy, verification, explicit approval, and rollback rather than weakening the additive invariant.
 

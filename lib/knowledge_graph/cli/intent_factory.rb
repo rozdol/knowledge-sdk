@@ -6,7 +6,9 @@ module KnowledgeGraph
       CreateEntity, UpdateEntity, RenameEntity, ArchiveEntity, RestoreEntity, MergeEntities, SplitEntity,
       AddRelationship, RemoveRelationship, ReplaceRelationship, CreateMeeting, ImportTranscript,
       AttachEvidence, RecordInteraction, RecordPromise, CompleteFollowUp, InsertDatasetRow,
-      ReplaceMedicationSchedule, InsertBloodPressureMeasurement, InsertWeightMeasurement,
+      CreateMedicationSchedule, ReplaceMedicationSchedule, PauseMedicationSchedule,
+      ResumeMedicationSchedule, StopMedication, ModifyMedicationDose,
+      ModifyMedicationSchedule, InsertBloodPressureMeasurement, InsertWeightMeasurement,
       InsertBloodTestResult, InsertBodyMeasurement, InsertExpense,
       CreateDataset, UpgradeDatasetSchema
     ].to_h { |intent_class| [intent_class.name.split("::").last, intent_class] }.freeze

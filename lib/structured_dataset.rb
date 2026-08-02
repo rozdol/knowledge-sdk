@@ -6,11 +6,12 @@ require_relative "structured_dataset/database"
 require_relative "structured_dataset/query"
 require_relative "structured_dataset/import_export"
 require_relative "structured_dataset/engine"
+require_relative "structured_dataset/medication_schedules"
 require_relative "structured_dataset/integrations"
 require_relative "structured_dataset/evolution"
 require_relative "structured_dataset/routing"
 require_relative "structured_dataset/cli"
 
 module StructuredDataset
-  VERSION = "11.0.0".freeze
+  VERSION = "14.0.0".freeze
 end

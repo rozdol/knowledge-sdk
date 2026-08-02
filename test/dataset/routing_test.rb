@@ -11,7 +11,7 @@ class StructuredDatasetRoutingTest < Minitest::Test
   EXAMPLES = [
     {
       text: "I take Berberine every morning",
-      classifier: "dataset.medication_schedule", intent: "ReplaceMedicationSchedule",
+      classifier: "dataset.medication_schedule.create", intent: "CreateMedicationSchedule",
       dataset: "medication_schedules"
     },
     {
@@ -97,21 +97,21 @@ class StructuredDatasetRoutingTest < Minitest::Test
   def test_structured_health_observations_route_by_semantics_in_english_russian_and_greek
     examples = {
       "en" => {
-        "I take Berberine 500 mg every morning" => "dataset.medication_schedule",
+        "I take Berberine 500 mg every morning" => "dataset.medication_schedule.create",
         "My blood pressure is 128/81 with pulse 64" => "dataset.blood_pressure_measurement",
         "My weight is 82.3 kg" => "dataset.weight_measurement",
         "My LDL is 110 mg/dL" => "dataset.blood_test_result",
         "My waist is 84 cm" => "dataset.body_measurement"
       },
       "ru" => {
-        "Я принимаю метформин 500 мг каждое утро" => "dataset.medication_schedule",
+        "Я принимаю метформин 500 мг каждое утро" => "dataset.medication_schedule.create",
         "Моё давление сегодня 128/81, пульс 64" => "dataset.blood_pressure_measurement",
         "Мой вес сегодня 82,3 кг" => "dataset.weight_measurement",
         "ЛПНП: 110 мг/дл" => "dataset.blood_test_result",
         "Обхват талии: 84 см" => "dataset.body_measurement"
       },
       "el" => {
-        "Παίρνω μετφορμίνη 500 mg κάθε πρωί" => "dataset.medication_schedule",
+        "Παίρνω μετφορμίνη 500 mg κάθε πρωί" => "dataset.medication_schedule.create",
         "Η πίεσή μου σήμερα ήταν 128/81 με σφυγμό 64" => "dataset.blood_pressure_measurement",
         "Το βάρος μου σήμερα είναι 82,3 κιλά" => "dataset.weight_measurement",
         "LDL: 110 mg/dL" => "dataset.blood_test_result",
@@ -187,7 +187,7 @@ class StructuredDatasetRoutingTest < Minitest::Test
     examples.each do |text|
       classification = classifier.classify(text, "captured_at" => "2026-08-02T09:30:00Z")
       assert_equal "dataset", classification.route, text
-      assert_equal "dataset.medication_schedule", classification.intent, text
+      assert_equal "dataset.medication_schedule.create", classification.intent, text
       assert_operator classification.confidence, :>=, 0.90, text
     end
   end
@@ -214,8 +214,8 @@ class StructuredDatasetRoutingTest < Minitest::Test
         payload = JSON.parse(output)
         assert_equal "ok", payload.fetch("status")
         assert_equal "dataset", payload.fetch("route")
-        assert_equal "dataset.medication_schedule", payload.dig("explain", "intent")
-        assert_equal "dataset.medication_schedule", payload.dig("explain", "selected_intent")
+        assert_equal "dataset.medication_schedule.create", payload.dig("explain", "intent")
+        assert_equal "dataset.medication_schedule.create", payload.dig("explain", "selected_intent")
         assert_kind_of String, payload.dig("explain", "normalized_text")
         health_domain = payload.dig("explain", "domain_candidates").find do |item|
           item["domain"] == "health"
@@ -225,7 +225,7 @@ class StructuredDatasetRoutingTest < Minitest::Test
         assert_includes payload.dig("explain", "loaded_classifier_plugins"),
                         "structured-dataset-health"
         candidate = payload.dig("explain", "intent_candidates").find do |item|
-          item["intent"] == "dataset.medication_schedule"
+          item["intent"] == "dataset.medication_schedule.create"
         end
         refute_nil candidate
         assert_operator candidate.fetch("confidence"), :>=, 0.90
@@ -236,7 +236,7 @@ class StructuredDatasetRoutingTest < Minitest::Test
           assert_equal "я принимаю утром натощак berberine 1 капсулу.",
                        payload.dig("explain", "normalized_text")
         end
-        assert_equal "dataset.medication_schedule", payload.dig("result", "intent")
+        assert_equal "dataset.medication_schedule.create", payload.dig("result", "intent")
         assert_equal "dataset_update", payload.dig("result", "proposal", "type")
         assert_equal "awaiting_approval", payload.dig("result", "proposal", "status")
         refute payload.fetch("result").key?("observation_id")
@@ -245,7 +245,7 @@ class StructuredDatasetRoutingTest < Minitest::Test
           payload.dig("result", "proposal_id")
         )
         assert_equal "intent-classifier", proposal.dig("model_metadata", "provider")
-        assert_equal "ReplaceMedicationSchedule",
+        assert_equal "CreateMedicationSchedule",
                      proposal.dig("planned_intents", 0, "intent", "type")
       end
 
@@ -277,7 +277,7 @@ class StructuredDatasetRoutingTest < Minitest::Test
       assert_empty errors
       payload = JSON.parse(output)
       assert_equal "dataset", payload.fetch("route")
-      assert_equal "dataset.medication_schedule", payload.dig("explain", "selected_intent")
+      assert_equal "dataset.medication_schedule.create", payload.dig("explain", "selected_intent")
 
       entries = payload.dig("result", "classification", "slots", "entries")
       assert_equal 5, entries.length
@@ -296,12 +296,16 @@ class StructuredDatasetRoutingTest < Minitest::Test
         payload.dig("result", "proposal_id")
       )
       planned = proposal.fetch("planned_intents")
-      assert_equal 4, planned.length
-      assert planned.all? { |item| item.dig("intent", "type") == "ReplaceMedicationSchedule" }
-      berberine_intent = planned.find do |item|
+      assert_equal 5, planned.length
+      assert planned.all? { |item| item.dig("intent", "type") == "CreateMedicationSchedule" }
+      berberine_intents = planned.select do |item|
         item.dig("intent", "params", "medication") == "Berberine"
       end
-      assert_equal 2, berberine_intent.dig("intent", "params", "schedule_details").length
+      assert_equal 2, berberine_intents.length
+      berberine_times = berberine_intents.map do |item|
+        item.dig("intent", "params", "schedule_json", "times", 0, "time_of_day")
+      end
+      assert_equal %w[morning day], berberine_times
       assert_empty datasets.query("medication_schedules")
       event_types = KnowledgeOrchestration::EventStore.new(vault_root: root).events.map(&:type)
       refute_includes event_types, "ExtractionCompleted"

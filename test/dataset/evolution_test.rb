@@ -127,10 +127,13 @@ class StructuredDatasetEvolutionTest < Minitest::Test
       assert_equal 0, status, errors
       proposal_id = JSON.parse(output).dig("result", "proposal_id")
       proposal = KnowledgeExtraction::ProposalStore.new(vault_root: root).load(proposal_id)
-      assert_equal %w[UpgradeDatasetSchema ReplaceMedicationSchedule],
+      assert_equal %w[UpgradeDatasetSchema CreateMedicationSchedule],
                    proposal.fetch("planned_intents").map { |item| item.dig("intent", "type") }
-      assert_equal ["schedule_details"],
-                   proposal.dig("planned_intents", 0, "intent", "params", "added_columns")
+      migration = proposal.fetch("planned_intents").first
+      assert_equal StructuredDataset::MedicationScheduleSchemaMigration::ID,
+                   migration.dig("intent", "params", "migration_id")
+      assert_includes migration.dig("intent", "params", "added_columns"), "schedule_json"
+      assert_includes migration.dig("intent", "params", "added_columns"), "effective_from"
       assert_empty datasets.query("medication_schedules")
     end
   end

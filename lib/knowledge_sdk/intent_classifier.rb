@@ -38,7 +38,7 @@ module KnowledgeSDK
     DOMAINS = %w[health finance crm trading knowledge generic].freeze
     DOMAIN_RULES = {
       "health" => [
-        /(?:medicat|medicine|dosage|dose|tablet|\b(?:take|taking)\b.*\b(?:every\s+(?:morning|afternoon|evening|night|day)|once\s+daily|twice\s+daily)|blood\s+pressure|heart\s+rate|pulse|weight|waist|body[ -]fat|body\s+temperature|oxygen\s+saturation|laboratory|\blab\b|cholesterol|glucose|insulin|hemoglobin|haemoglobin|\bldl\b|\bhdl\b|nutrition|protein|sleep\s+duration)/i,
+        /(?:medicat|medicine|dosage|dose|tablet|(?:pause|resume|stop|discontinue).{0,24}(?:taking|medicat|medicine|schedule)|(?:increase|decrease|change|modify).{0,40}(?:\bdose\b|\bschedule\b|\b(?:mg|mcg|g|ml|iu)\b)|\b(?:take|taking)\b.*\b(?:every\s+(?:morning|afternoon|evening|night|day)|once\s+daily|twice\s+daily)|blood\s+pressure|heart\s+rate|pulse|weight|waist|body[ -]fat|body\s+temperature|oxygen\s+saturation|laboratory|\blab\b|cholesterol|glucose|insulin|hemoglobin|haemoglobin|\bldl\b|\bhdl\b|nutrition|protein|sleep\s+duration)/i,
         /(?:лекарств|препарат|принима|при[её]м|пью|выпива|принял|приняла|таблет|капсул|доз|давлен|пульс|частот[[:alpha:]]*\s+сердц|\bвес\b|тали|температур[[:alpha:]]*\s+тел|сатурац|анализ|лаборатор|холестерин|глюкоз|гемоглобин|лпнп|лпвп)/i,
         /(?:φάρμακ|παίρνω|λαμβάνω|δόση|χάπι|πίεσ|σφυγμ|καρδιακ[[:alpha:]]*\s+ρυθμ|βάρος|μέση|θερμοκρασ[[:alpha:]]*\s+σώματος|κορεσμ[[:alpha:]]*\s+οξυγόν|εξέτασ|εργαστηριακ|χοληστερ|γλυκόζ|αιμοσφαιρ|διατροφ|πρωτεΐν)/i
       ],

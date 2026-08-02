@@ -4,6 +4,7 @@ require "pathname"
 
 require_relative "knowledge_sdk/version"
 require_relative "knowledge_sdk/intent_classifier"
+require_relative "knowledge_sdk/schedule"
 
 module KnowledgeSDK
   class Error < StandardError; end

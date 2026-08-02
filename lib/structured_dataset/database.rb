@@ -105,6 +105,55 @@ module StructuredDataset
       raise MigrationError, safe_sqlite_message(error)
     end
 
+    # Rebuilds one physical Dataset table inside the caller's transaction. The
+    # transformer is trusted SDK code selected by an approved lifecycle Intent;
+    # migration behavior is never loaded from attached-Vault data.
+    def replace_schema_version(database, dataset_id:, definition:, version:)
+      record = dataset(database, dataset_id) || raise(DatasetNotFound, "dataset storage is missing: #{dataset_id}")
+      table_name = record.fetch("table_name")
+      legacy_name = safe_index_name("#{table_name}_legacy_v#{version}")
+      rows = database.execute("SELECT * FROM #{quote_identifier(table_name)}")
+
+      database.execute(
+        "ALTER TABLE #{quote_identifier(table_name)} RENAME TO #{quote_identifier(legacy_name)}"
+      )
+      database.execute("PRAGMA index_list(#{quote_identifier(legacy_name)})").each do |index|
+        next unless index["origin"] == "c"
+
+        database.execute("DROP INDEX #{quote_identifier(index.fetch('name'))}")
+      end
+      database.execute(create_table_sql(table_name, definition))
+      create_indexes(database, table_name, definition)
+      rows.each do |raw|
+        original = stringify_row(raw)
+        transformed = yield(original)
+        values = transformed.each_with_object({}) do |(key, value), result|
+          result[key.to_s] = value
+        end
+        insert_rebuilt_row(database, table_name, values)
+      end
+      migrated_count = database.get_first_value(
+        "SELECT COUNT(*) FROM #{quote_identifier(table_name)}"
+      ).to_i
+      unless migrated_count == rows.length
+        raise MigrationError, "Dataset migration row-count verification failed"
+      end
+
+      database.execute("DROP TABLE #{quote_identifier(legacy_name)}")
+      schema_json = JSON.generate(definition.to_h)
+      now = timestamp
+      database.execute(
+        "INSERT INTO sde_schema_versions (dataset_id, version, schema_json, created_at) VALUES (?, ?, ?, ?)",
+        [dataset_id, version, schema_json, now]
+      )
+      database.execute(
+        "UPDATE sde_datasets SET schema_version = ?, schema_json = ?, updated_at = ? WHERE dataset_id = ?",
+        [version, schema_json, now, dataset_id]
+      )
+    rescue sqlite_exception => error
+      raise MigrationError, safe_sqlite_message(error)
+    end
+
     def record_activity(database, dataset_id:, action:, row_id:, actor_id:, source:,
                         observation_id: nil, proposal_id: nil, approval_id: nil, run_id: nil,
                         activity_id: nil, created_at: timestamp)
@@ -224,6 +273,16 @@ module StructuredDataset
         "intent_id TEXT"
       ]
       "CREATE TABLE #{quote_identifier(table_name)} (#{columns.join(', ')})"
+    end
+
+    def insert_rebuilt_row(database, table_name, values)
+      columns = values.keys
+      database.execute(
+        "INSERT INTO #{quote_identifier(table_name)} " \
+        "(#{columns.map { |key| quote_identifier(key) }.join(', ')}) " \
+        "VALUES (#{(['?'] * columns.length).join(', ')})",
+        columns.map { |key| values[key] }
+      )
     end
 
     def column_sql(database, column)

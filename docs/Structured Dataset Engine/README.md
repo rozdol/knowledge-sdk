@@ -1,6 +1,6 @@
 # Structured Dataset Engine
 
-Version 13 adds autonomous registry/schema evolution and cross-subsystem Dataset Intelligence to the device-local SQLite backend while preserving the Knowledge Graph as the semantic system of record. Dataset routing classifies structured observations before the Knowledge Graph extraction pipeline.
+Version 14 adds generic structured recurrence and immutable medication schedule intervals to the device-local SQLite backend while preserving the Knowledge Graph as the semantic system of record. Dataset routing classifies structured observations before the Knowledge Graph extraction pipeline.
 
 ## Architecture
 
@@ -64,7 +64,11 @@ SQLite foreign keys, WAL journaling, busy timeouts, transactions, unique indexes
 
 Supported column types are `TEXT`, `INTEGER`, `REAL`, `BOOLEAN`, `DATE`, `DATETIME`, and `JSON`.
 
-Medication schedules may include optional JSON `schedule_details`. It preserves multiple time slots, fasting conditions, and administration routes while the existing unique medication row remains the active combined schedule. Existing medication datasets receive this optional column through the normal approval-gated additive schema-evolution proposal.
+Medication schedules use required JSON `schedule_json`, immutable `schedule_id`, and inclusive
+`effective_from`/`effective_until` intervals. `medication` is indexed and is not unique, so multiple
+same-medication time slots or doses are valid. The generic recurrence contract is published in
+`schedule.schema.json`; medication-specific dose, route, reason, provider, and notes remain separate
+columns. SQLite implicit rowids are never selected or exposed.
 
 ## Commands
 
@@ -94,14 +98,19 @@ CSV and JSON use Ruby standard-library parsers. XLSX uses a minimal Office Open 
 
 ## Schema migration
 
-The database has an engine-level `PRAGMA user_version` and an independent version history for each dataset. Dataset upgrades may append optional columns only. Existing columns cannot be removed, reordered, renamed, retyped, or have constraints changed. Required added columns are rejected because they would invalidate existing rows. Destructive upgrades require a future explicit copy-and-verify migration design.
+The database has an engine-level `PRAGMA user_version` and an independent version history for each dataset. Dataset upgrades may append optional columns only. Existing columns cannot be removed, reordered, renamed, retyped, or have constraints changed. Required added columns are rejected because they would invalidate existing rows.
+
+The exact legacy medication schedule shape is the only bounded exception. An approved
+`UpgradeDatasetSchema(migration_id: "medication_schedules_v2")` performs a trusted SDK-owned
+copy-and-verify rebuild in one transaction, preserves logical row and provenance IDs, verifies the
+row count, records schema/activity history, and rejects any target other than the SDK schema.
 
 For proposal-driven rows, unknown columns generate `DatasetSchemaUpgradeProposal` metadata and an immutable `UpgradeDatasetSchema` prerequisite. The Intent records the observed `from_version`, complete additive replacement definition, and added columns. Execution rechecks the version, performs the approved migration through the Dataset lifecycle handler, records `migrate` activity, and only then retries the original row dependency.
 
 ## Platform integration
 
 - Observation: deterministic classification proposes a named Dataset Intent (or the compatibility `InsertDatasetRow`) before graph extraction. The proposal preserves exact evidence and confidence, requires human review, and writes the row only after immutable approval. The immutable Intent ID is stored with the row, so resubmitting or replaying the approved proposal returns the original row instead of duplicating it.
-- Routing: `KnowledgeSDK::IntentClassifier` detects `health`, `finance`, `crm`, `trading`, `knowledge`, or `generic`, then selects the highest-confidence plugin result for the winning domain. Named Dataset Intents include `ReplaceMedicationSchedule`, `InsertBloodPressureMeasurement`, `InsertWeightMeasurement`, `InsertBloodTestResult`, `InsertBodyMeasurement`, and `InsertExpense`. Generic analysis/planning/search plugins run only if the domain plugins do not match, and `graph.observe` is the final fallback. Dataset proposals use the existing proposal, approval, submission, Engine, Event Bus, and Activity components.
+- Routing: `KnowledgeSDK::IntentClassifier` detects `health`, `finance`, `crm`, `trading`, `knowledge`, or `generic`, then selects the highest-confidence plugin result for the winning domain. Named medication Intents cover create, replace, pause, resume, stop, dose evolution, and recurrence evolution; measurement and finance Intents remain unchanged. Generic analysis/planning/search plugins run only if the domain plugins do not match, and `graph.observe` is the final fallback. Dataset proposals use the existing proposal, approval, submission, Engine, Event Bus, and Activity components.
 - Search/Hermes: `kg.datasets.query` answers supported latest-value and trend questions, then falls back to graph query/search.
 - Planning: a read-only adapter computes neutral dataset signals such as numeric change, missed-dose counts, and recurring expense candidates. Signals appear in the planning trace; SQLite performs no interpretation.
 - Activity: every dataset change is recorded in `sde_activity`, publishes `DatasetChanged`, and appears in Knowledge Activity with the Dataset registry object and row/event reference.
@@ -126,9 +135,15 @@ route: dataset -> InsertBloodPressureMeasurement -> review-only Proposal
   -> explicit approval -> existing Engine -> SQLite row -> DatasetChanged -> Knowledge Activity
 ```
 
-English, Russian, and Greek recurring medication statements use bounded deterministic normalization and morphology patterns. Compound Russian input may create several immutable `ReplaceMedicationSchedule` Intents in one review proposal; repeated medications are combined into one active row with per-slot `schedule_details`. Past-tense administration events do not become schedules: until a named medication-log Intent is installed, they return structured clarification and never fall through to graph observation.
+English, Russian, and Greek recurring medication statements use bounded deterministic normalization
+and morphology patterns. Compound input may create several immutable schedule Intents in one review
+proposal, including several rows for the same medication. `kg chat --explain` reports the parsed
+schedule, Schedule object, effective interval, and generated Intent types. Past-tense administration
+events do not become schedules: until a named medication-log Intent is installed, they return
+structured clarification and never fall through to graph observation.
 
 `kg observe` uses the same classifier, so recognized structured observations take this Dataset path as well. Ambiguous CSV or Markdown tables request a Dataset schema; they are never sent to graph extraction. Individual measurements, medication schedules, and financial rows never appear in Dataset registry Markdown.
 
-Machine-readable contracts are in `dataset-definition.schema.json`, `dataset-row.schema.json`, and `response.schema.json` in this directory.
+Machine-readable contracts are in `dataset-definition.schema.json`, `dataset-row.schema.json`,
+`schedule.schema.json`, and `response.schema.json` in this directory.
 Dataset evolution and analysis contracts are in `docs/Dataset Intelligence/`.

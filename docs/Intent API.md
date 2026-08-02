@@ -32,7 +32,13 @@ Relationship attributes may include `confidence`, `sensitivity`, `data_origin`, 
 
 Dataset Intents are immutable commands executed through the same `KnowledgeGraph::Engine` receipt and audit lifecycle. Registered Dataset handlers delegate typed row persistence to the Structured Dataset Engine; they do not create graph entities for individual rows.
 
-- `ReplaceMedicationSchedule(medication:, schedule:, effective_on:, dose: nil, unit: nil, schedule_details: nil, source:, observation_id:, proposal_id: nil)` replaces the active SQLite schedule row for one medication. `schedule_details` preserves optional per-time-slot conditions and administration routes for compound schedules.
+- `CreateMedicationSchedule(schedule_id:, medication:, schedule_json:, effective_from:, effective_until: nil, dose: nil, unit: nil, route: nil, active: true, reason: nil, prescribing_provider: nil, notes: nil, source:, observation_id:, proposal_id: nil)` appends an immutable schedule version.
+- `ReplaceMedicationSchedule(medication:, schedule_id: nil, replacement_schedule_id: nil, replace_all: false, schedule_json: nil, effective_from: nil, effective_until: nil, dose: nil, unit: nil, route: nil, reason: nil, prescribing_provider: nil, notes: nil, source:, observation_id:, proposal_id: nil)` closes a targeted version and appends its successor. `replace_all: true` closes the medication's current open schedule set, which supports one future structured replacement for several daily rows. The legacy `schedule`, `effective_on`, and `schedule_details` parameters remain accepted for replay compatibility.
+- `PauseMedicationSchedule(schedule_id: nil, medication: nil, paused_on:, replacement_schedule_id:, reason: nil, source:, observation_id:, proposal_id: nil)` appends an inactive interval version.
+- `ResumeMedicationSchedule(schedule_id: nil, medication: nil, resumed_on:, replacement_schedule_id:, effective_until: nil, reason: nil, source:, observation_id:, proposal_id: nil)` appends an active successor.
+- `StopMedication(medication:, stopped_on:, reason: nil, source:, observation_id:, proposal_id: nil)` closes active intervals for a medication without deleting rows.
+- `ModifyMedicationDose(schedule_id: nil, medication: nil, replacement_schedule_id:, dose:, effective_from:, unit: nil, reason: nil, source:, observation_id:, proposal_id: nil)` versions a dose change.
+- `ModifyMedicationSchedule(schedule_id: nil, medication: nil, replacement_schedule_id:, schedule_json:, effective_from:, reason: nil, source:, observation_id:, proposal_id: nil)` versions a recurrence change.
 - `InsertBloodPressureMeasurement(observed_at:, systolic:, diastolic:, pulse: nil, source:, observation_id:, proposal_id: nil)` inserts a blood-pressure row.
 - `InsertWeightMeasurement(observed_at:, weight_kg:, source:, observation_id:, proposal_id: nil)` inserts a weight row.
 - `InsertBloodTestResult(observed_at:, marker:, value:, unit: nil, source:, observation_id:, proposal_id: nil)` inserts a laboratory row; an omitted unit is stored explicitly as `unspecified` for compatibility with existing Dataset schemas.
@@ -47,9 +53,9 @@ Classifier-generated Dataset Intents are always stored as review-only proposals 
 Dataset lifecycle mutations are also immutable, exact-approval-gated Intents. `AutonomousRegistry` generates them as dependencies; public conversational adapters do not execute them directly.
 
 - `CreateDataset(dataset_id:, dataset:, schema:, owner_id: nil, source:, proposal_id: nil)` creates the canonical Dataset registry entity and its SQLite catalog/table from one approved definition.
-- `UpgradeDatasetSchema(dataset:, from_version:, schema:, added_columns:, source:, proposal_id: nil)` applies an additive definition only if the current version still equals `from_version`.
+- `UpgradeDatasetSchema(dataset:, from_version:, schema:, added_columns:, migration_id: nil, source:, proposal_id: nil)` applies an additive definition only if the current version still equals `from_version`. The sole non-additive migration ID is the trusted `medication_schedules_v2` copy-and-verify transform; unknown IDs are rejected.
 
-The proposal dependency graph executes either lifecycle Intent before the original Dataset row. New columns must be optional. Removal, reorder, rename, retype, and constraint changes are invalid. Lifecycle results include Dataset ID, schema version, and Dataset activity ID.
+The proposal dependency graph executes either lifecycle Intent before the original Dataset row. New columns must be optional. Removal, reorder, rename, retype, and constraint changes are invalid except for the exact SDK-owned medication migration described above. Lifecycle results include Dataset ID, schema version, and Dataset activity ID.
 
 ## Results and errors
 

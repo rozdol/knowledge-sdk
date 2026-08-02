@@ -253,6 +253,17 @@ module KnowledgeAnalysis
     def resolve_window(question, from, to, as_of)
       upper = to ? parse_time(to) : Time.utc(as_of.year, as_of.month, as_of.day, 23, 59, 59)
       lower = from && parse_time(from)
+      unless from || to
+        months = %w[january february march april may june july august september october november december]
+        month_match = question.match(/\b(?:in|during)\s+(#{months.join('|')})(?:\s+(\d{4}))?\b/i)
+        if month_match
+          month = months.index(month_match[1].downcase) + 1
+          year = (month_match[2] || as_of.year).to_i
+          lower = Time.utc(year, month, 1)
+          last = Date.new(year, month, -1)
+          upper = Time.utc(last.year, last.month, last.day, 23, 59, 59)
+        end
+      end
       unless lower
         match = question.match(/\b(?:last|during the last)\s+(\d+)\s+(day|days|week|weeks|month|months|year|years)\b/i)
         if match

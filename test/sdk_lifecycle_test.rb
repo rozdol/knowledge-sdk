@@ -72,7 +72,7 @@ class SDKLifecycleTest < Minitest::Test
   def test_version_and_id_commands_do_not_require_a_vault
     status, output, error = run_cli(["version"])
     assert_equal 0, status, error
-    assert_equal "13.0.0", JSON.parse(output).fetch("version")
+    assert_equal "14.0.0", JSON.parse(output).fetch("version")
 
     status, output, error = run_cli(["id", "person"])
     assert_equal 0, status, error

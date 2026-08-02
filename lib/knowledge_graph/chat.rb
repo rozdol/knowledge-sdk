@@ -174,6 +174,8 @@ module KnowledgeGraph
           "confidence" => decision.confidence
         }
         response["explain"].merge!(decision.diagnostic_trace) if decision.diagnostic_trace
+        dataset_details = response.dig("result", "explainability")
+        response["explain"].merge!(dataset_details) if dataset_details.is_a?(Hash)
       end
       response
     end
