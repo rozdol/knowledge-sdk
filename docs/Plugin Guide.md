@@ -56,6 +56,41 @@ StructuredDataset.routing_registry.register(
 
 The routing registry adds the immutable Intent class to the existing `IntentFactory`, proposal validation, and Proposal Submitter/Engine path. The writer is called only by the approval-gated SDK Dataset handler.
 
+## Dataset Template plugins
+
+A trusted plugin may instead contribute a complete immutable Dataset template. This is the preferred extension for file/table imports because the core proposal builder can provision the Dataset and create generic evidence-backed row Intents without a new Engine handler:
+
+```ruby
+definition = StructuredDataset::Definition.from_h(
+  slug: "mood_scores", name: "Mood Scores", kind: "mood_scores",
+  purpose: "Track mood observations", sensitivity: "private",
+  columns: [
+    { name: "observed_at", type: "DATETIME", required: true, index: true },
+    { name: "score", type: "INTEGER", required: true, min: 1, max: 5 }
+  ]
+)
+
+template = StructuredDataset::DatasetTemplate.new(
+  id: "mood_scores", version: "1.0.0", domain: "health",
+  definition: definition,
+  parser: StructuredDataset::TemplateParsers::Delimited.new,
+  plugin: "mood-plugin", keywords: ["mood"],
+  header_aliases: { "date" => "observed_at", "mood" => "score" },
+  recommended_analyzers: ["mood_trend"],
+  visualizations: ["line_chart"], privacy_level: "private",
+  adapters: ["future-device"], validation_rules: ["bounded_score"],
+  recommendation_rules: ["review_only"],
+  analysis_semantics: {
+    "time_column" => "observed_at", "value_columns" => ["score"]
+  }
+)
+
+plugin = Struct.new(:name, :dataset_templates).new("mood-plugin", [template])
+StructuredDataset.template_registry.register_plugin(plugin)
+```
+
+Template IDs equal Dataset slugs and versions use semantic versioning. Registering the same ID/version with a different digest fails closed. Parsers and matchers are trusted code objects packaged with the plugin; an attached Vault cannot supply Ruby paths or executable template behavior. Selection and parsing do not write. The existing `CreateDataset`/`UpgradeDatasetSchema`, proposal approval, submission, and Dataset handler provide all mutation authority.
+
 ## Analysis plugins
 
 Trusted installed code can add domain analysis without changing `kg analyze`. Register one object with a stable name, deterministic `supports?`, and deterministic `analyze` implementation:

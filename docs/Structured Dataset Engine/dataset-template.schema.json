@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://knowledge.local/schemas/structured-dataset-template.json",
+  "title": "Immutable Dataset Template Discovery Record",
+  "type": "object",
+  "required": [
+    "id", "version", "domain", "dataset", "name", "schema", "indexes",
+    "validation", "units", "recommended_analyzers", "default_visualizations",
+    "privacy_level", "future_adapters", "recommendation_rules",
+    "analysis_semantics", "plugin"
+  ],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "domain": { "type": "string", "enum": ["health", "finance", "trading", "crm", "generic"] },
+    "dataset": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" },
+    "name": { "type": "string", "minLength": 1 },
+    "schema": { "$ref": "dataset-definition.schema.json" },
+    "indexes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "validation": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "units": { "type": "object", "additionalProperties": { "type": "string" } },
+    "recommended_analyzers": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "default_visualizations": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "privacy_level": { "type": "string", "enum": ["normal", "private", "restricted"] },
+    "future_adapters": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "recommendation_rules": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "analysis_semantics": { "type": "object" },
+    "plugin": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": false
+}

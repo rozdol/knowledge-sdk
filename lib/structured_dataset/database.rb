@@ -9,7 +9,7 @@ require "time"
 module StructuredDataset
   class Database
     RUNTIME_PATH = KnowledgeSDK::DATASET_PATH
-    ENGINE_SCHEMA_VERSION = 2
+    ENGINE_SCHEMA_VERSION = 3
 
     attr_reader :path
 
@@ -31,6 +31,7 @@ module StructuredDataset
         raise MigrationError, "dataset database is newer than this engine" if current > ENGINE_SCHEMA_VERSION
         migrate_v1(database) if current < 1
         migrate_v2(database) if current < 2
+        migrate_v3(database) if current < 3
       end
       ENGINE_SCHEMA_VERSION
     end
@@ -259,6 +260,31 @@ module StructuredDataset
       end
     end
 
+    def migrate_v3(database)
+      transaction(database) do
+        datasets(database).each do |record|
+          table_name = record.fetch("table_name")
+          columns = database.execute("PRAGMA table_info(#{quote_identifier(table_name)})").map { |row| row["name"] }
+          {
+            "evidence_id" => "TEXT", "source_uri" => "TEXT", "source_filename" => "TEXT",
+            "source_page" => "INTEGER", "source_span" => "TEXT"
+          }.each do |name, type|
+            next if columns.include?(name)
+
+            database.execute(
+              "ALTER TABLE #{quote_identifier(table_name)} ADD COLUMN #{quote_identifier(name)} #{type}"
+            )
+          end
+          index_name = safe_index_name("idx_#{table_name}_evidence_id")
+          database.execute(
+            "CREATE INDEX IF NOT EXISTS #{quote_identifier(index_name)} " \
+            "ON #{quote_identifier(table_name)} (evidence_id) WHERE evidence_id IS NOT NULL"
+          )
+        end
+        database.execute("PRAGMA user_version = 3")
+      end
+    end
+
     def create_table_sql(table_name, definition)
       columns = [
         "row_id TEXT PRIMARY KEY",
@@ -270,7 +296,12 @@ module StructuredDataset
         "observation_id TEXT",
         "proposal_id TEXT",
         "approval_id TEXT",
-        "intent_id TEXT"
+        "intent_id TEXT",
+        "evidence_id TEXT",
+        "source_uri TEXT",
+        "source_filename TEXT",
+        "source_page INTEGER",
+        "source_span TEXT"
       ]
       "CREATE TABLE #{quote_identifier(table_name)} (#{columns.join(', ')})"
     end
@@ -308,6 +339,10 @@ module StructuredDataset
       database.execute(
         "CREATE UNIQUE INDEX #{quote_identifier(safe_index_name("idx_#{table_name}_intent_id"))} " \
         "ON #{quote_identifier(table_name)} (intent_id) WHERE intent_id IS NOT NULL"
+      )
+      database.execute(
+        "CREATE INDEX #{quote_identifier(safe_index_name("idx_#{table_name}_evidence_id"))} " \
+        "ON #{quote_identifier(table_name)} (evidence_id) WHERE evidence_id IS NOT NULL"
       )
       definition.columns.each do |column|
         create_column_index(database, table_name, column) if column.indexed?

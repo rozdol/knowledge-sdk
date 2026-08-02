@@ -139,6 +139,30 @@ classified Dataset observation
 
 Schema upgrade Intents bind the observed schema version and complete additive definition. Execution rechecks the version before mutation. New columns are optional; destructive removal, reorder, rename, retype, and constraint changes remain rejected. The planner performs no write and never treats attached-Vault content as executable schema policy.
 
+## Smart Dataset templates and provisioning
+
+The Dataset Template Registry is trusted SDK/plugin code above the existing lifecycle planner. A template is immutable and versioned and declares a complete `Definition`, parser, validation and units, recommended analyzers, default visualizations, privacy level, review-only recommendation rules, and future adapter names. Template registration never reads executable behavior from an attached Vault or imported source.
+
+```mermaid
+flowchart TD
+  E["Incoming Evidence: PDF/OCR, CSV, Excel, text, transcript, email"] --> C["Intent Classifier"]
+  C --> T["Dataset Template Registry"]
+  T --> S["Template + confidence + reason"]
+  S --> P["CreateDatasetProposal and row Intent DAG"]
+  P --> A["Exact human approval"]
+  A --> D["Existing Dataset lifecycle handler"]
+  D --> R["Retry approved row Intents"]
+  R --> Q["SQLite"]
+  Q --> K["Knowledge Activity"]
+  K --> X["kg analyze / template semantics plugin"]
+```
+
+Selection and parsing are read-only. A missing Dataset adds the existing `CreateDataset` prerequisite; an existing additive mismatch adds the existing `UpgradeDatasetSchema` prerequisite. Each parsed `InsertDatasetRow` depends on that prerequisite. Approval and submission remain separate, and no Dataset or row exists before submission.
+
+Blood tests use a normalized row model. Analyte names are values, never physical columns. The model records `test_date`, `panel`, `analyte`, `value`, `unit`, numeric and textual reference intervals, `flag`, `specimen`, `laboratory`, and comments. Compatibility aliases retain Phase 13/14 approved Intent and query replay without hardcoding biomarker names.
+
+The complete normalized source rendition is stored locally as immutable Evidence with the original artifact URI. Dataset rows carry `evidence_id`, `source_uri`, `source_filename`, `source_page`, and `source_span` alongside observation, proposal, approval, and Intent IDs. The Dataset registry note contains only semantic/template metadata; raw measurements remain in SQLite and source Evidence.
+
 ## Cross-knowledge analysis pipeline
 
 `kg analyze` is a derived read pipeline that composes stable subsystems. It is not a second Intelligence, Planning, Activity, or Dataset implementation.
@@ -225,6 +249,7 @@ Undo and restore perform no graph write. They derive lossless existing Intents f
 - `structured_dataset/routing.rb` owns Dataset classifiers, named Dataset Intent proposal construction, and the handlers registered on the existing Engine. It never invokes graph extraction for row data.
 - `structured_dataset/medication_schedules.rb` owns trusted Health schedule row evolution and the one versioned legacy-table transform.
 - `structured_dataset/evolution.rb` owns read-only autonomous lifecycle planning and emits `CreateDataset` or `UpgradeDatasetSchema` prerequisites. Only the approval-gated Dataset handler executes them.
+- `structured_dataset/templates.rb` owns immutable versioned template definitions, trusted plugin registration, deterministic selection, built-in parsers, the built-in catalogue, and safe classifier integration. It has no writer or approval authority.
 - `knowledge_analysis/` owns the cross-subsystem analysis context, deterministic Correlation Engine, analysis plugin registry, response aggregation, derived caching, recommendation envelopes, and `kg analyze` CLI. It never writes graph facts or Dataset rows.
 
 ## Transaction guarantees

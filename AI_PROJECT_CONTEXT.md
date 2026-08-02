@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Product | `knowledge-sdk` |
-| SDK version | `14.0.0` |
+| SDK version | `15.0.0` |
 | Baseline extraction revision | `8dba780` |
 | Updated | `2026-08-02` |
 | Runtime | Ruby 2.6+ |
@@ -14,7 +14,7 @@ This document orients maintainers and coding agents. Executable code, published 
 
 ## Executive summary
 
-`knowledge-sdk` is an independent Ruby package for knowledge workflows over attached Obsidian Vaults. It owns the `kg` CLI, transactional Engine, Agent Gateway, extraction and proposal pipeline, intelligence and planning layers, orchestration, Knowledge Activity, plugins, validators, migrations, Structured Dataset Engine, autonomous Dataset lifecycle planning, and deterministic cross-knowledge analysis.
+`knowledge-sdk` is an independent Ruby package for knowledge workflows over attached Obsidian Vaults. It owns the `kg` CLI, transactional Engine, Agent Gateway, extraction and proposal pipeline, intelligence and planning layers, orchestration, Knowledge Activity, plugins, validators, migrations, Structured Dataset Engine, immutable Dataset Template Registry, autonomous Dataset lifecycle planning, and deterministic cross-knowledge analysis.
 
 An Obsidian Vault is a client of the SDK. It retains its own name, repository, folder layout, ontology, Markdown, attachments, settings, and lifecycle. There is no required companion repository or product named `knowledge-vault`.
 
@@ -88,6 +88,9 @@ The main namespaces are:
 - Analytical correlation is deterministic, explainable, and noncausal; recommendations cannot execute themselves.
 - Recurrence is represented by the generic immutable `KnowledgeSDK::Schedule`; medication lifecycle history uses immutable schedule IDs and inclusive `effective_from`/`effective_until` intervals.
 - Legacy medication schedule replacement is a trusted copy-and-verify migration selected by an exact-approved lifecycle Intent, never by attached-Vault content.
+- Dataset templates are immutable, versioned, trusted plugin objects; imported or attached-Vault content cannot register parsers, schemas, validation, analyzers, or recommendations.
+- Smart import selection and parsing are read-only. Provisioning and every parsed row remain immutable proposal Intents behind exact approval.
+- Imported source renditions and original-artifact URIs remain local Evidence; each imported row carries an Evidence ID and source locator through approval and execution.
 
 ## Public lifecycle
 
@@ -124,6 +127,17 @@ immutable `medschedule_<ULID>`, structured `schedule_json`, an inclusive effecti
 course metadata. Create, replace, pause, resume, stop, dose-change, and schedule-change operations
 remain immutable Dataset Intents behind proposal review and exact approval. Analysis reads the
 structured recurrence and intervals directly; it does not parse stored schedule prose.
+
+Phase 15 adds `StructuredDataset::TemplateRegistry` and the trusted template-plugin API. The built-in
+catalogue covers Health (blood tests, medication schedules, blood pressure, weight, heart rate,
+sleep, exercise, nutrition), Finance (expenses, income, subscriptions), Trading (trades, positions,
+equity curve), CRM (contacts, meetings, interactions), and Generic (key/value measurements and a
+custom observation log). A template declares its complete Dataset definition, parser, validation,
+units, analyzers, visualizations, privacy, recommendation rules, and future adapters. Selection
+returns template, confidence, and reason. Parsing produces evidence-backed `InsertDatasetRow`
+Intents; `AutonomousRegistry` adds the existing lifecycle prerequisite and the proposal submitter
+retries rows only after approved provisioning. The normalized blood-test model stores arbitrary
+analytes as rows and preserves supplied ranges, flags, specimen, laboratory, and source locators.
 
 ## Verification
 

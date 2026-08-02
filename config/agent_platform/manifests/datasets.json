@@ -56,18 +56,19 @@
     "manifest_schema_version": "1.0.0",
     "capability_id": "kg.datasets.propose",
     "name": "propose_structured_observation",
-    "version": "1.2.0",
-    "description": "Classify a structured observation and create an immutable review-only Dataset Intent proposal without graph extraction.",
+    "version": "1.3.0",
+    "description": "Select a versioned Dataset template, parse structured evidence, and create an immutable review-only provisioning/import proposal without graph extraction.",
     "input_schema": {
       "type": "object",
       "required": ["source_type", "content"],
       "properties": {
-        "source_type": { "type": "string", "enum": ["text", "chat", "meeting-notes", "email-text", "transcript", "ocr-text", "pdf-text"] },
+        "source_type": { "type": "string", "enum": ["text", "chat", "meeting-notes", "email-text", "transcript", "ocr-text", "image-ocr", "pdf-text", "csv", "excel"] },
         "content": { "type": "string", "minLength": 1, "maxLength": 1000000 },
         "language": { "type": "string", "enum": ["en", "ru", "el", "mixed", "und"] },
         "captured_at": { "type": "string", "format": "date-time" },
         "external_id": { "type": "string", "maxLength": 1000 },
         "source_uri": { "type": "string", "maxLength": 4096 },
+        "source_filename": { "type": "string", "maxLength": 1000 },
         "title": { "type": "string", "maxLength": 1000 },
         "observation_id": { "type": "string", "pattern": "^observation_[0-9A-HJKMNP-TV-Z]{26}$" },
         "origin_source": { "type": "string", "maxLength": 200 },
@@ -104,6 +105,10 @@
         "warnings": { "type": "array", "items": { "type": "string" } },
         "question": { "type": "string" },
         "dataset_evolution": { "type": "object" },
+        "template_selection": { "type": "object" },
+        "planned_dataset": { "type": "object" },
+        "planned_import": { "type": "object" },
+        "confirmation": { "type": "string" },
         "explainability": { "type": "object" }
       },
       "additionalProperties": false

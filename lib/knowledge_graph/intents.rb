@@ -96,6 +96,11 @@ module KnowledgeGraph
     field :observation_id
     field :proposal_id, default: nil
     field :approval_id, default: nil
+    field :evidence_id, default: nil
+    field :source_uri, default: nil
+    field :source_filename, default: nil
+    field :source_page, default: nil
+    field :source_span, default: nil
   end
 
   # Dataset Intents are canonical structured-row mutations. They deliberately
@@ -232,6 +237,9 @@ module KnowledgeGraph
     field :dataset
     field :schema
     field :owner_id, default: nil
+    field :template_id, default: nil
+    field :template_version, default: nil
+    field :template_digest, default: nil
   end
 
   class UpgradeDatasetSchema < DatasetLifecycleIntent

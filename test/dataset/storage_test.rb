@@ -30,7 +30,7 @@ class StructuredDatasetStorageTest < Minitest::Test
 
       engine.database.with_connection do |database|
         assert_equal 1, database.get_first_value("PRAGMA foreign_keys")
-        assert_equal 2, database.get_first_value("PRAGMA user_version")
+        assert_equal 3, database.get_first_value("PRAGMA user_version")
         assert_equal %w[blood_tests sde_activity sde_datasets sde_schema_versions],
                      database.execute("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").map { |row| row["name"] }
       end

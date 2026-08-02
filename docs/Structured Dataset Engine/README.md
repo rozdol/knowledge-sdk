@@ -1,6 +1,6 @@
 # Structured Dataset Engine
 
-Version 14 adds generic structured recurrence and immutable medication schedule intervals to the device-local SQLite backend while preserving the Knowledge Graph as the semantic system of record. Dataset routing classifies structured observations before the Knowledge Graph extraction pipeline.
+Version 15 adds immutable Dataset Templates and autonomous provisioning to the device-local SQLite backend while preserving the Knowledge Graph as the semantic system of record. Dataset routing classifies structured observations before the Knowledge Graph extraction pipeline; template selection recognizes structured files and extracted evidence before asking the user for any Dataset or schema choice.
 
 ## Architecture
 
@@ -30,6 +30,23 @@ The operational SQLite catalog uses the immutable Dataset ID as its key. It reta
 
 Conversational callers never need to run `kg dataset create`. If a classified observation targets a missing Dataset, `AutonomousRegistry` adds an immutable `CreateDataset` prerequisite to the same review proposal. Exact approval and dependency-ordered submission create the Dataset, then execute the original row Intent. No Dataset is created while classifying or proposing.
 
+## Dataset Template Registry
+
+Templates are immutable, semantic-versioned objects registered by trusted SDK plugins. Each template declares the complete Dataset definition, column constraints and units, parser, recommended analyzers, default visualizations, privacy level, review-only recommendation rules, and future adapters. The built-in catalogue is:
+
+- Health: Blood Tests, Medication Schedules, Blood Pressure, Weight, Heart Rate, Sleep, Exercise, Nutrition.
+- Finance: Expenses, Income, Subscriptions.
+- Trading: Trades, Positions, Equity Curve.
+- CRM: Contacts, Meetings, Interactions.
+- Generic: Key/Value Measurements, Custom Observation Log.
+
+Selection returns `template`, `template_version`, `confidence`, and `reason`. PDF/OCR text, image OCR, CSV, extracted Excel tables, email, transcripts, and ordinary text all use the same selection interface. Imported content is hostile data: it may be parsed by an installed template but can never register a template or executable rule.
+
+```text
+Evidence -> Intent Classifier -> Template Registry -> CreateDatasetProposal
+  -> exact approval -> Dataset -> approved row retry -> SQLite -> Activity -> kg analyze
+```
+
 ## Database schema
 
 One ignored, device-local database is stored at `.knowledge/datasets.sqlite3`.
@@ -58,6 +75,7 @@ Every dataset has its own physical table. User-defined columns are followed by:
 ```text
 row_id, created_at, updated_at, created_by, source,
 observation_id, proposal_id, approval_id, intent_id
+evidence_id, source_uri, source_filename, source_page, source_span
 ```
 
 SQLite foreign keys, WAL journaling, busy timeouts, transactions, unique indexes, requested indexes, type checks, JSON validity checks, ranges, and enumerations are enabled. Ruby-side validation adds ISO dates/timestamps, regular-expression constraints, and consistent coercion.
@@ -95,6 +113,12 @@ The `--where` grammar permits comparisons, `LIKE`, `IS NULL`, `IS NOT NULL`, and
 ## Import and export
 
 CSV and JSON use Ruby standard-library parsers. XLSX uses a minimal Office Open XML reader/writer and the operating system's `zip`/`unzip` tools; it does not require an external database or spreadsheet service. Import is all-or-nothing. Exported audit columns are ignored on re-import so the destination creates fresh provenance.
+
+Smart imports are proposal-driven rather than direct bulk writes. The selected template parses bounded rows and source spans, one immutable `InsertDatasetRow` Intent is created per row, and every row depends on the lifecycle prerequisite. This gives submission deterministic retry and per-measurement provenance. The complete normalized source rendition is stored under `.knowledge/evidence/sources/`; `source_uri` retains the original artifact location supplied by Hermes or another adapter.
+
+### Normalized blood tests
+
+Blood tests never add one column per biomarker. Arbitrary reports use rows with `test_date`, `panel`, `analyte`, `value`, `unit`, `reference_low`, `reference_high`, `reference_text`, `flag`, `specimen`, `laboratory`, and `comments`. `observed_at` and `marker` are compatibility aliases for previously approved Phase 13/14 Intents and queries. Analyte names remain data and are not hardcoded by the parser.
 
 ## Schema migration
 
@@ -144,6 +168,6 @@ structured clarification and never fall through to graph observation.
 
 `kg observe` uses the same classifier, so recognized structured observations take this Dataset path as well. Ambiguous CSV or Markdown tables request a Dataset schema; they are never sent to graph extraction. Individual measurements, medication schedules, and financial rows never appear in Dataset registry Markdown.
 
-Machine-readable contracts are in `dataset-definition.schema.json`, `dataset-row.schema.json`,
+Machine-readable contracts are in `dataset-definition.schema.json`, `dataset-template.schema.json`, `dataset-row.schema.json`,
 `schedule.schema.json`, and `response.schema.json` in this directory.
 Dataset evolution and analysis contracts are in `docs/Dataset Intelligence/`.

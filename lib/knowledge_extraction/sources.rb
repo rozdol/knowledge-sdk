@@ -4,7 +4,9 @@ require "digest"
 
 module KnowledgeExtraction
   class SourceDocument < ImmutableModel
-    TYPES = %w[text chat meeting-notes email-text transcript ocr-text pdf-text].freeze
+    TYPES = %w[
+      text chat meeting-notes email-text transcript ocr-text image-ocr pdf-text csv excel
+    ].freeze
 
     attr_reader :source_id, :source_type, :content, :language, :captured_at,
                 :source_uri, :external_id, :title, :author, :participants,

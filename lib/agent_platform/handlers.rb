@@ -19,7 +19,7 @@ module AgentPlatform
     end
 
     def register_cross_analysis_handler(registry, services)
-      registry.register("kg.analysis.run") do |arguments, context|
+      registry.register("kg.analysis.run", version: "1.1.0") do |arguments, context|
         result = services.cross_analysis(
           context, question: arguments.fetch("question"),
           from: arguments["from"], to: arguments["to"], as_of: arguments["as_of"],
@@ -67,7 +67,7 @@ module AgentPlatform
         raise InvalidArguments, error.message
       end
 
-      registry.register("kg.datasets.propose", version: "1.2.0") do |arguments, context|
+      registry.register("kg.datasets.propose", version: "1.3.0") do |arguments, context|
         result = services.dataset_proposal_builder(context).create(arguments)
         HandlerResult.new(
           payload: result,

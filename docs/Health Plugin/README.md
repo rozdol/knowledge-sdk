@@ -1,7 +1,22 @@
-# Health Plugin — Structured Medication Schedules
+# Health Plugin — Structured Health Templates
 
-Version 14 represents medication recurrence as structured data while preserving the existing
+Version 15 retains version 14 structured medication recurrence and adds plugin-owned health Dataset
+templates while preserving the existing
 Proposal, Approval, Engine, Event Bus, Activity, and analysis boundaries.
+
+## Blood Test template
+
+The Health catalogue selects `blood_tests@1.0.0` for clinical laboratory PDFs/OCR renditions and matching CSV/Excel tables. Selection is deterministic and reports confidence plus `recognized a clinical laboratory report`; it does not hardcode analyte names.
+
+```text
+test_date, panel, analyte, value, unit,
+reference_low, reference_high, reference_text, flag,
+specimen, laboratory, comments
+```
+
+Each analyte is a row, so LDL, ferritin, Vitamin D, a novel assay, and future laboratory panels use the same model. `observed_at` and `marker` remain compatibility aliases for old approved Intents. Every imported row retains the Evidence ID, original artifact URI and filename, PDF/OCR page/span, observation, proposal, approval, and Intent ID.
+
+`kg analyze` obtains time/value/label/reference semantics from the installed template analysis plugin. It can trend an arbitrary analyte and count rows outside their report-supplied reference interval. A flagged-result recommendation is review-only, contains no executable Intent, and explicitly avoids diagnosis or treatment changes.
 
 ## Pipeline
 
@@ -134,4 +149,3 @@ objects, or attached-Vault internals.
   row per medication must select by `schedule_id` or effective interval.
 - Stored free-text `schedule` and `effective_on` columns are removed only by the approved migration;
   new analysis never depends on them.
-

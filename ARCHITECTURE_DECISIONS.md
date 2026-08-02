@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Status | Living product rationale |
-| SDK version | `14.0.0` |
+| SDK version | `15.0.0` |
 | Baseline extraction revision | `8dba780` |
 | Updated | `2026-08-02` |
 
@@ -36,6 +36,7 @@ Accepted decisions are normative until superseded by a later ADR and a compatibl
 | SDK-ADR-019 | Keep analytical recommendations non-executable until a separate concrete Intent proposal | Accepted |
 | SDK-ADR-020 | Classify semantic domain before intent and make graph observation the last resort | Accepted |
 | SDK-ADR-021 | Represent recurrence generically and medication history as immutable effective intervals | Accepted |
+| SDK-ADR-022 | Select immutable plugin-owned Dataset templates before approval-gated provisioning | Accepted |
 
 ## SDK-ADR-001 — One standalone SDK and arbitrary Vault clients
 
@@ -172,3 +173,22 @@ versions. Analysis and reminder consumers read typed recurrence data without NLP
 `schedule`/`effective_on` storage is upgraded only by the trusted `medication_schedules_v2`
 copy-and-verify transform selected by an exact-approved `UpgradeDatasetSchema` Intent; arbitrary
 schema replacement remains unsupported.
+
+## SDK-ADR-022 — Immutable Dataset templates and autonomous provisioning
+
+**Decision.** Trusted SDK plugins register immutable, semantic-versioned Dataset templates. Each
+template declares its Dataset definition, parser, validation, units, analysis semantics,
+visualizations, privacy level, review-only recommendation rules, and future adapters. Deterministic
+selection returns a template, confidence, and reason from untrusted incoming evidence. Parsing is
+read-only and produces evidence-backed `InsertDatasetRow` Intents. The existing
+`AutonomousRegistry`, proposal DAG, exact approval, Dataset handler, Event Bus, and Activity
+projection perform provisioning and import; the Template Registry has no writer or approval
+authority.
+
+**Consequences.** A conversational user does not select schemas or manually run `kg dataset
+create`. A missing Dataset becomes the existing approved `CreateDataset` prerequisite and parsed
+rows retry only after it succeeds. Templates cannot be loaded from attached-Vault or imported
+content. Template identity, version, and digest are recorded on newly provisioned Dataset registry
+notes. Source renditions are stored locally as immutable Evidence, while each row retains Evidence
+ID, artifact URI/filename, page/span, observation, proposal, approval, and Intent provenance. Blood
+tests store arbitrary analytes as normalized rows; biomarkers never become physical columns.

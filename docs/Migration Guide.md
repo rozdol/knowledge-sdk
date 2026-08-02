@@ -35,3 +35,9 @@ Replace source-relative invocations such as `ruby _System/KnowledgeGraph/bin/kg`
 ## Compatibility
 
 Canonical filenames, immutable IDs, frontmatter, bodies, wiki links, Dataview views, ontology records, and Intent contracts are unchanged. The intentional incompatibilities are the removal of embedded executable paths and the Runtime relocation. The migration command handles Runtime relocation; installed `kg` replaces the embedded launcher.
+
+## Version 15 Dataset migration
+
+Opening an existing Dataset database with version 15 performs an additive engine migration to SQLite `user_version = 3`. It appends nullable Evidence locator columns (`evidence_id`, `source_uri`, `source_filename`, `source_page`, and `source_span`) to each physical Dataset table and creates a partial Evidence ID index. Existing rows, Dataset schema versions, Activity, proposals, approvals, and graph registry notes are unchanged.
+
+Existing Dataset notes without template metadata remain valid. New automatically provisioned notes record template ID, semantic version, and digest. Existing blood-test schemas continue accepting approved `observed_at`/`marker` Intents; the first approved Phase 15 templated import may add optional normalized fields through the ordinary `UpgradeDatasetSchema` prerequisite. Destructive conversion is neither required nor performed.

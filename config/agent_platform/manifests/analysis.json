@@ -3,7 +3,7 @@
     "manifest_schema_version": "1.0.0",
     "capability_id": "kg.analysis.run",
     "name": "analyze_cross_knowledge",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Run deterministic, explainable analysis across structured datasets, graph facts, activity, intelligence, planning signals, events, and derived cache state.",
     "input_schema": {
       "type": "object",

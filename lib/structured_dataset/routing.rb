@@ -827,14 +827,10 @@ module StructuredDataset
         builder: ->(common, slots) { KnowledgeGraph::InsertBloodTestResult.new(**common.merge(slots)) },
         writer: lambda do |engine, intent, provenance|
           engine.insert(
-            "blood_tests",
-            compact(
-              observed_at: intent.observed_at, marker: intent.marker,
-              value: intent.value, unit: intent.unit || "unspecified"
-            ),
-            provenance
+            "blood_tests", blood_test_values(intent), provenance
           )
-        end
+        end,
+        row_builder: ->(intent) { blood_test_values(intent) }
       )
       registry.register(
         intent: "dataset.body_measurement", dataset: "body_measurements",
@@ -872,6 +868,21 @@ module StructuredDataset
     def compact(values)
       values.reject { |_key, value| value.nil? }
     end
+
+    def blood_test_values(intent)
+      observed = Time.iso8601(intent.observed_at.to_s)
+      compact(
+        test_date: observed.to_date.iso8601, analyte: intent.marker,
+        value: intent.value, unit: intent.unit || "unspecified",
+        observed_at: observed.iso8601, marker: intent.marker
+      )
+    rescue ArgumentError
+      compact(
+        test_date: intent.observed_at.to_s[0, 10], analyte: intent.marker,
+        value: intent.value, unit: intent.unit || "unspecified",
+        observed_at: intent.observed_at, marker: intent.marker
+      )
+    end
   end
 
   class DatasetProposalBuilder
@@ -879,18 +890,38 @@ module StructuredDataset
     PROMPT_VERSION = "intent-classifier-v1".freeze
 
     def initialize(vault_root:, proposal_store:, classifier:, event_bus: nil, clock: nil,
-                   routing_registry: StructuredDataset.routing_registry)
+                   routing_registry: StructuredDataset.routing_registry,
+                   template_registry: StructuredDataset.template_registry)
       @vault_root = vault_root
       @proposal_store = proposal_store
       @classifier = classifier
       @event_bus = event_bus
       @clock = clock || -> { Time.now }
       @routing_registry = routing_registry
+      @template_registry = template_registry
     end
 
     def create(arguments)
       document = source_document(arguments)
-      classification = @classifier.classify(document.content, "captured_at" => document.captured_at)
+      classifier_context = {
+        "captured_at" => document.captured_at, "source_type" => document.source_type,
+        "source_uri" => document.source_uri, "source_filename" => document.title,
+        "title" => document.title, "language" => document.language
+      }.reject { |_key, value| value.nil? }
+      classification = @classifier.classify(document.content, classifier_context)
+      observation = TemplateObservation.from_document(document)
+      selection = @template_registry.select(observation)
+      if selection && template_import_candidate?(document, classification)
+        rows = begin
+          selection.template.parse(observation)
+        rescue InvalidRow, ImportError
+          []
+        end
+        return create_template_import(arguments, document, selection, rows) unless rows.empty?
+        if classification && classification.intent == "dataset.template_import"
+          return template_parse_clarification(selection)
+        end
+      end
       unless classification && classification.route == "dataset"
         raise InvalidRow, "message is not a structured Dataset observation"
       end
@@ -1013,6 +1044,191 @@ module StructuredDataset
 
     private
 
+    def template_import_candidate?(document, classification)
+      return true if classification && classification.intent == "dataset.template_import"
+      return true if %w[pdf-text ocr-text image-ocr csv excel].include?(document.source_type)
+
+      document.content.lines.length >= 3 && TemplateParsers.headers(document.content).length >= 2
+    end
+
+    def template_parse_clarification(selection)
+      {
+        "status" => "clarification_required",
+        "classification" => template_classification(selection).to_h,
+        "question" => "I recognised this as #{selection.template.display_name}, but could not identify complete observations. Please provide a clearer extracted table or text rendition.",
+        "executable" => false, "approval_required" => true,
+        "planned_intent_count" => 0, "template_selection" => selection.to_h
+      }
+    end
+
+    def create_template_import(arguments, document, selection, rows)
+      template = selection.template
+      classification = template_classification(selection)
+      state_signature = dataset_state_signature_for(template.definition.slug)
+      proposal_id = KnowledgeExtraction::Support.stable_id(
+        "proposal", document.source_id, "dataset.template_import", template.digest,
+        KnowledgeExtraction::Support.canonical_json(rows.map(&:values)), state_signature
+      )
+      evidences = rows.map do |row|
+        KnowledgeExtraction::EvidenceSpan.new(
+          source_id: document.source_id, start_offset: row.start_offset,
+          end_offset: row.end_offset, excerpt: row.excerpt, page: row.page
+        )
+      end
+      subject = KnowledgeExtraction::EntityMention.new(
+        entity_type: "person", display_name: "Dataset owner", evidence: [evidences.first]
+      )
+      fact = KnowledgeExtraction::ExtractedFact.new(
+        fact_type: "dataset_observation", subject: subject,
+        predicate: template.definition.slug,
+        object: KnowledgeExtraction::ScalarValue.new(
+          value: { "template" => template.id, "observations" => rows.length },
+          value_type: "json", original_expression: evidences.first.excerpt,
+          normalized_value: { "template" => template.id, "observations" => rows.length },
+          normalization_confidence: selection.confidence
+        ),
+        confidence: selection.confidence, evidence: evidences,
+        extraction_method: "dataset-template:#{template.plugin}"
+      )
+      dataset_id = KnowledgeExtraction::Support.deterministic_ulid(
+        "dataset", document.captured_at || @clock.call, document.source_id, template.definition.slug
+      )
+      evolution = AutonomousRegistry.new(
+        vault_root: @vault_root, engine: evolution_engine, clock: @clock
+      ).plan(
+        dataset: template.definition.slug, values: rows.first.values,
+        schema: template.definition, source: arguments["origin_source"] || document.source_type,
+        proposal_id: proposal_id, dataset_id: dataset_id, template: template
+      )
+      base_provenance = {
+        source_id: document.source_id, source_type: document.source_type,
+        source_uri: document.source_uri, source_filename: document.title,
+        captured_at: document.captured_at&.iso8601
+      }.reject { |_key, value| value.nil? }
+      prerequisite = evolution.prerequisite? ? KnowledgeExtraction::PlannedIntent.new(
+        planned_intent_id: KnowledgeExtraction::Support.stable_id(
+          "planned", proposal_id, evolution.intent.intent_type
+        ),
+        intent: evolution.intent, fact_ids: [fact.fact_id],
+        evidence_ids: evidences.map(&:evidence_id),
+        planning_confidence: selection.confidence, risk: "medium",
+        approval_requirement: "human_review", blocked_reasons: [], provenance: base_provenance
+      ) : nil
+      planned_rows = rows.each_with_index.map do |row, index|
+        evidence = evidences.fetch(index)
+        intent = KnowledgeGraph::InsertDatasetRow.new(
+          dataset: template.definition.slug, values: row.values,
+          source: arguments["origin_source"] || document.source_type,
+          observation_id: arguments["observation_id"] || document.source_id,
+          proposal_id: proposal_id,
+          evidence_id: evidence.evidence_id, source_uri: document.source_uri,
+          source_filename: document.title, source_page: row.page,
+          source_span: "#{row.start_offset}:#{row.end_offset}",
+          intent_id: KnowledgeExtraction::Support.stable_id(
+            "intent", document.source_id, template.id, template.version, index,
+            KnowledgeExtraction::Support.canonical_json(row.values), evidence.evidence_id
+          )
+        )
+        row_provenance = base_provenance.merge(
+          evidence_id: evidence.evidence_id, source_page: row.page,
+          source_span: "#{row.start_offset}:#{row.end_offset}"
+        )
+        KnowledgeExtraction::PlannedIntent.new(
+          planned_intent_id: KnowledgeExtraction::Support.stable_id(
+            "planned", proposal_id, intent.intent_type, index, intent.intent_id
+          ),
+          intent: intent, fact_ids: [fact.fact_id], evidence_ids: [evidence.evidence_id],
+          planning_confidence: selection.confidence, risk: "medium",
+          approval_requirement: "human_review", blocked_reasons: [],
+          dependencies: prerequisite ? [prerequisite.planned_intent_id] : [],
+          provenance: row_provenance
+        )
+      end
+      planned_intents = [prerequisite, *planned_rows].compact
+      proposal = KnowledgeExtraction::ExtractionProposal.new(
+        proposal_id: proposal_id, source: document,
+        summary: template_proposal_summary(selection, evolution, rows.length),
+        facts: [fact], entity_mentions: [subject], resolution_decisions: [],
+        planned_intents: planned_intents, warnings: evolution_warning(evolution), conflicts: [],
+        required_approvals: {
+          total: planned_intents.length, blocked: 0,
+          by_risk: { low: 0, medium: planned_intents.length, high: 0 }
+        },
+        rejected_items: [],
+        model_metadata: {
+          "provider" => "dataset-template-registry", "intent" => classification.intent,
+          "confidence" => selection.confidence, "template_selection" => selection.to_h,
+          "dataset_evolution" => evolution.to_h, "parsed_observations" => rows.length
+        },
+        prompt_version: "dataset-template-selection-v1",
+        pipeline_version: "dataset-template-provisioning-v1",
+        created_at: document.captured_at || @clock.call, status: "awaiting_approval",
+        ingestion_state: @proposal_store.classify_source(document)
+      )
+      @proposal_store.save(proposal)
+      @proposal_store.record_source(document, proposal.proposal_id)
+      KnowledgeExtraction::ProposalValidator.new.validate!(@proposal_store.load(proposal.proposal_id))
+      publish_proposal(proposal, classification, arguments)
+      confirmation = template_confirmation(selection, evolution, rows.length)
+      {
+        "status" => proposal.status, "proposal_id" => proposal.proposal_id,
+        "intent" => classification.intent,
+        "proposal" => {
+          "id" => proposal.proposal_id, "type" => "dataset_update", "status" => proposal.status
+        },
+        "classification" => classification.to_h,
+        "planned_intent_count" => planned_intents.length,
+        "parsed_entry_count" => rows.length,
+        "approval_required" => true, "executable" => false,
+        "warnings" => proposal.warnings, "dataset_evolution" => evolution.to_h,
+        "template_selection" => selection.to_h,
+        "planned_dataset" => {
+          "name" => template.display_name,
+          "action" => evolution.kind == "current" ? "use_existing" : evolution.kind
+        },
+        "planned_import" => {
+          "observation_count" => rows.length, "source_type" => document.source_type,
+          "source_filename" => document.title
+        }.reject { |_key, value| value.nil? },
+        "confirmation" => confirmation,
+        "explainability" => {
+          "template" => template.id, "selected_template" => template.id,
+          "template_version" => template.version,
+          "confidence" => selection.confidence, "reason" => selection.reason,
+          "dataset_evolution" => evolution.to_h,
+          "planned_dataset" => template.display_name,
+          "planned_import_count" => rows.length,
+          "generated_intents" => planned_intents.map { |item| item.intent.intent_type }
+        }
+      }
+    end
+
+    def template_classification(selection)
+      KnowledgeSDK::IntentClassification.new(
+        intent: "dataset.template_import", confidence: selection.confidence,
+        route: "dataset", domain: selection.template.domain,
+        explanation: selection.reason, slots: selection.to_h
+      )
+    end
+
+    def template_proposal_summary(selection, evolution, count)
+      action = evolution.kind == "current" ? "use the existing Dataset" : "provision the Dataset"
+      "Recognised #{selection.template.display_name} and planned to #{action} before importing #{count} observation#{count == 1 ? '' : 's'}."
+    end
+
+    def template_confirmation(selection, evolution, count)
+      lines = ["I recognised this as #{selection.template.display_name}."]
+      if evolution.kind == "create"
+        lines << "A new #{selection.template.display_name} collection will be created."
+      elsif %w[schema_upgrade schema_migration].include?(evolution.kind)
+        lines << "The existing #{selection.template.display_name} collection will be safely updated."
+      end
+      noun = selection.template.id == "blood_tests" ? "laboratory measurement" : "observation"
+      lines << "#{count} #{noun}#{count == 1 ? '' : 's'} will be imported."
+      lines << "Proceed?"
+      lines.join("\n\n")
+    end
+
     def source_document(arguments)
       envelope_metadata = {
         "observation_id" => arguments["observation_id"],
@@ -1025,7 +1241,8 @@ module StructuredDataset
         source_type: arguments.fetch("source_type"), content: arguments.fetch("content"),
         language: arguments.fetch("language", "und"), captured_at: arguments["captured_at"],
         external_id: arguments["external_id"], source_uri: arguments["source_uri"],
-        title: arguments["title"], author: arguments["sender"], metadata: envelope_metadata
+        title: arguments["title"] || arguments["source_filename"],
+        author: arguments["sender"], metadata: envelope_metadata
       )
     end
 
@@ -1135,6 +1352,18 @@ module StructuredDataset
       )
     rescue DatasetNotFound
       "missing:#{@routing_registry.fetch(intent_name).dataset}"
+    end
+
+
+    def dataset_state_signature_for(dataset)
+      description = evolution_engine.describe(dataset)
+      KnowledgeExtraction::Support.canonical_json(
+        "dataset_id" => description.fetch("dataset_id"),
+        "schema_version" => description.fetch("schema_version"),
+        "columns" => description.fetch("columns")
+      )
+    rescue DatasetNotFound
+      "missing:#{dataset}"
     end
 
     def evolution_engine
@@ -1257,7 +1486,9 @@ module StructuredDataset
     def create_dataset(intent)
       @dataset_engine.create(
         intent.dataset, schema: intent.schema, owner_id: intent.owner_id,
-        dataset_id: intent.dataset_id, provenance: provenance(intent)
+        dataset_id: intent.dataset_id, provenance: provenance(intent),
+        template_id: intent.template_id, template_version: intent.template_version,
+        template_digest: intent.template_digest
       )
     rescue DatasetConflict
       existing = @dataset_engine.describe(intent.dataset)
@@ -1324,14 +1555,18 @@ module StructuredDataset
     end
 
     def provenance(intent)
-      {
+      values = {
         source: intent.source,
         observation_id: intent.respond_to?(:observation_id) ? intent.observation_id : nil,
         proposal_id: @proposal_id || (intent.respond_to?(:proposal_id) && intent.proposal_id),
         approval_id: @approval && @approval["approval_id"],
         created_by: @approval && @approval["actor_id"] || "proposal-engine",
         intent_id: intent.intent_id
-      }.reject { |_key, value| value.nil? }
+      }
+      %i[evidence_id source_uri source_filename source_page source_span].each do |field|
+        values[field] = intent.public_send(field) if intent.respond_to?(field)
+      end
+      values.reject { |_key, value| value.nil? }
     end
   end
 end

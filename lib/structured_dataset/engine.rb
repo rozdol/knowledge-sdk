@@ -72,7 +72,8 @@ module StructuredDataset
     end
 
     def create(reference, schema: nil, name: nil, purpose: nil, owner_id: nil,
-               sensitivity: nil, kind: nil, dataset_id: nil, provenance: {})
+               sensitivity: nil, kind: nil, dataset_id: nil, provenance: {},
+               template_id: nil, template_version: nil, template_digest: nil)
       generated_dataset_id = dataset_id
       slug = Names.slug(reference)
       raise DatasetConflict, "dataset already exists: #{slug}" if @registry.all.any? { |item| item.data["dataset_slug"] == slug }
@@ -93,6 +94,9 @@ module StructuredDataset
         purpose: definition.purpose, sensitivity: definition.sensitivity,
         data_origin: "given_by_subject"
       }.merge(@registry.owner_attributes(owner_id))
+      attributes[:dataset_template] = template_id.to_s unless template_id.to_s.empty?
+      attributes[:dataset_template_version] = template_version.to_s unless template_version.to_s.empty?
+      attributes[:dataset_template_digest] = template_digest.to_s unless template_digest.to_s.empty?
       graph_result = nil
       activity_id = nil
       database.with_connection do |connection|
@@ -144,7 +148,9 @@ module StructuredDataset
 
     def insert(reference, values, provenance = {})
       record, storage, definition = resolve(reference)
-      row = validate_dataset_row!(definition, definition.coerce_row(values))
+      row = validate_dataset_row!(
+        definition, definition.coerce_row(normalize_compatibility_values(definition, values))
+      )
       row_id = @id_generator.generate("row")
       audit = audit_values(provenance)
       now = timestamp
@@ -184,7 +190,9 @@ module StructuredDataset
 
     def replace(reference, match:, values:, provenance: {})
       record, storage, definition = resolve(reference)
-      replacement = validate_dataset_row!(definition, definition.coerce_row(values))
+      replacement = validate_dataset_row!(
+        definition, definition.coerce_row(normalize_compatibility_values(definition, values))
+      )
       matching = definition.coerce_row(match, partial: true)
       raise InvalidRow, "replace requires at least one matching column" if matching.empty?
 
@@ -525,7 +533,9 @@ module StructuredDataset
         values = row.each_with_object({}) do |(key, value), result|
           result[key] = value unless Definition::RESERVED_COLUMNS.include?(key.to_s) || key.to_s == "dataset_activity_id"
         end
-        validate_dataset_row!(definition, definition.coerce_row(values))
+        validate_dataset_row!(
+          definition, definition.coerce_row(normalize_compatibility_values(definition, values))
+        )
       end
       inserted = []
       now = timestamp
@@ -603,7 +613,11 @@ module StructuredDataset
         "slug" => record.data["dataset_slug"], "kind" => record.data["dataset_kind"],
         "storage" => record.data["storage_backend"], "table" => record.data["storage_table"],
         "owner_id" => record.data["owner_id"], "purpose" => record.data["purpose"],
-        "sensitivity" => record.data["sensitivity"], "graph_path" => record.relative_path
+        "sensitivity" => record.data["sensitivity"],
+        "template" => record.data["dataset_template"],
+        "template_version" => record.data["dataset_template_version"],
+        "template_digest" => record.data["dataset_template_digest"],
+        "graph_path" => record.relative_path
       }.reject { |_key, value| value.nil? }
     end
 
@@ -620,12 +634,29 @@ module StructuredDataset
         "observation_id" => optional_id(data["observation_id"]),
         "proposal_id" => optional_id(data["proposal_id"]),
         "approval_id" => optional_id(data["approval_id"]),
-        "intent_id" => optional_id(data["intent_id"])
+        "intent_id" => optional_id(data["intent_id"]),
+        "evidence_id" => optional_id(data["evidence_id"]),
+        "source_uri" => optional_text(data["source_uri"]),
+        "source_filename" => optional_text(data["source_filename"]),
+        "source_page" => optional_integer(data["source_page"]),
+        "source_span" => optional_text(data["source_span"])
       }
     end
 
     def optional_id(value)
       value.nil? || value.to_s.strip.empty? ? nil : value.to_s
+    end
+
+    def optional_text(value)
+      value.nil? || value.to_s.strip.empty? ? nil : value.to_s
+    end
+
+    def optional_integer(value)
+      return nil if value.nil? || value.to_s.strip.empty?
+
+      Integer(value)
+    rescue ArgumentError, TypeError
+      raise InvalidRow, "source_page must be an integer"
     end
 
     def insert_row(connection, table_name, row_id, row, audit, now)
@@ -635,7 +666,10 @@ module StructuredDataset
         "created_at" => now, "updated_at" => now,
         "created_by" => audit.fetch("created_by"), "source" => audit.fetch("source"),
         "observation_id" => audit["observation_id"], "proposal_id" => audit["proposal_id"],
-        "approval_id" => audit["approval_id"], "intent_id" => audit["intent_id"]
+        "approval_id" => audit["approval_id"], "intent_id" => audit["intent_id"],
+        "evidence_id" => audit["evidence_id"], "source_uri" => audit["source_uri"],
+        "source_filename" => audit["source_filename"], "source_page" => audit["source_page"],
+        "source_span" => audit["source_span"]
       )
       columns = values.keys
       sql = "INSERT INTO #{database.quote_identifier(table_name)} " \
@@ -662,6 +696,22 @@ module StructuredDataset
       return row unless definition.slug == "medication_schedules"
 
       MedicationScheduleOperations.validate_row!(row, partial: partial)
+    end
+
+    def normalize_compatibility_values(definition, values)
+      data = values.each_with_object({}) { |(key, value), result| result[key.to_s] = value }
+      return data unless definition.slug == "blood_tests"
+
+      data["analyte"] ||= data["marker"] if definition.column?("analyte")
+      data["marker"] ||= data["analyte"] if definition.column?("marker")
+      if definition.column?("test_date") && data["test_date"].nil? && data["observed_at"]
+        data["test_date"] = data["observed_at"].to_s[0, 10]
+      end
+      if definition.column?("observed_at") && data["observed_at"].nil? && data["test_date"]
+        data["observed_at"] = "#{data['test_date']}T00:00:00Z"
+      end
+      data["unit"] ||= "unspecified" if definition.column?("unit")
+      data
     end
 
     def validate_additive_migration!(current, replacement)

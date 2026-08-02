@@ -119,11 +119,17 @@ module KnowledgeGraph
     end
 
     def dataset_arguments(text, options)
-      KnowledgeExtraction::ObservationEnvelope.new(
+      arguments = KnowledgeExtraction::ObservationEnvelope.new(
         text: text, source: options.fetch(:source), conversation: options[:conversation],
         message_id: options[:message_id], sender: options[:sender], timestamp: options[:timestamp],
         source_type: options[:source_type], sensitivity: options.fetch(:sensitivity)
       ).gateway_arguments
+      if options[:file]
+        source = Pathname.new(options.fetch(:file)).expand_path
+        arguments["source_uri"] = source.to_s
+        arguments["title"] = source.basename.to_s
+      end
+      arguments
     end
 
     def router
@@ -170,7 +176,13 @@ module KnowledgeGraph
           lines << "- #{option['display_name']} (#{option['entity_id']})"
         end
       else
-        lines << JSON.pretty_generate(response.fetch("result"))
+        result = response.fetch("result")
+        if result["confirmation"]
+          lines << result.fetch("confirmation")
+          lines << "proposal: #{result.fetch('proposal_id')}"
+        else
+          lines << JSON.pretty_generate(result)
+        end
       end
       if response["explain"]
         lines << "reason: #{response.dig('explain', 'reason')}"

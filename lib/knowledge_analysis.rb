@@ -17,6 +17,7 @@ module KnowledgeAnalysis
         registry.register(Plugins::Health.new)
         registry.register(Plugins::Finance.new)
         registry.register(Plugins::CRM.new)
+        registry.register(Plugins::TemplateSemantics.new)
         registry.register(Plugins::Generic.new)
       end
     end

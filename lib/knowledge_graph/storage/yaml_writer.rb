@@ -12,7 +12,8 @@ module KnowledgeGraph
       former_names nicknames transliterations emails primary_email phones primary_phone external_ids
       birth_date pronouns life_status contact_policy cadence_target_days preferred_channel timezone review_on
       org_kind country iso_alpha2 place_kind authors project_status starts_at ends_at participants
-      dataset_slug dataset_kind storage_backend storage_table purpose owner_id
+      dataset_slug dataset_kind dataset_template dataset_template_version dataset_template_digest
+      storage_backend storage_table purpose owner_id
       interaction_kind contact_weight event_kind commitment_kind promisor promise_to action commitment_status
       made_on owner followup_status due_on completed_on interest_kind technology_kind introducer introducer_id
       person_a person_a_id person_b person_b_id subject subject_id predicate object object_id recipient

@@ -38,6 +38,8 @@ Unknown columns are inferred deterministically as `BOOLEAN`, `INTEGER`, `REAL`, 
 
 The low-level `StructuredDataset::Engine#create` and `#migrate` methods remain compatibility primitives for trusted administrative callers. Conversational and proposal-driven lifecycle behavior uses `CreateDataset` and `UpgradeDatasetSchema` through the existing Engine and exact approval path.
 
+Version 15 places the immutable Dataset Template Registry before `AutonomousRegistry`. A selected template supplies the complete definition and parsed rows; the lifecycle planner remains unchanged in authority and returns the same create/current/additive-upgrade plan. Every parsed row depends on the prerequisite in the proposal DAG, so automatic provisioning is a composition of existing subsystems rather than a second Dataset writer.
+
 ## Analysis pipeline
 
 `kg analyze` is the cross-subsystem analytical interface. It coordinates existing sources rather than replacing them.
@@ -112,6 +114,8 @@ no `kg analyze` change.
 
 Plugins are SDK-owned trusted code. Attached-Vault notes, imported content, and Dataset values are hostile data and are never loaded as executable rules or instructions.
 
+The bundled `template-semantics` analysis plugin adapts template-declared time, label, value, and reference fields into the same analysis fragment contract. New trusted templates therefore become analyzable without changing `kg analyze`. Blood-test range checks and arbitrary analyte trends use this adapter; resulting recommendations remain review-only.
+
 ## Explainability and recommendations
 
 Every answer reports:
@@ -157,6 +161,8 @@ counts, and commits the replacement table and schema history atomically. Unknown
 arbitrary schema transforms remain rejected.
 
 Destructive schema changes remain unsupported. A future destructive migration must use copy, verification, explicit approval, and rollback rather than weakening the additive invariant.
+
+Version 15 raises the SQLite engine schema to 3 and additively appends nullable `evidence_id`, `source_uri`, `source_filename`, `source_page`, and `source_span` columns to every physical Dataset table. Existing rows remain valid with null locators. Existing Dataset notes do not need template metadata; newly provisioned notes record immutable template ID/version/digest. Approved legacy blood-test Intents remain replayable through compatibility aliases.
 
 ## Performance considerations
 

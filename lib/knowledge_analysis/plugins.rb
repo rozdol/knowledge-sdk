@@ -196,6 +196,8 @@ module KnowledgeAnalysis
       KEYWORDS = /\b(?:ldl|hdl|cholesterol|blood pressure|weight|sleep|medications?|berberine|blood marker|lab|health)\b/i.freeze
 
       def supports?(question, context)
+        return false if question.match?(/\b(?:outside|out of|above|below)\b.*\b(?:reference|range)\b|\b(?:abnormal|flagged)\s+(?:biomarkers?|results?)\b/i)
+
         KEYWORDS.match?(question) && %w[blood_tests blood_pressure weight sleep medication_log medication_schedules].any? do |slug|
           context.dataset(slug)
         end
@@ -373,13 +375,15 @@ module KnowledgeAnalysis
         question = context.question.downcase
         tests = context.dataset("blood_tests")
         if tests
-          markers = tests.fetch("rows").map { |row| row["marker"] }.compact.map(&:to_s).uniq
+          markers = tests.fetch("rows").map { |row| row["analyte"] || row["marker"] }.compact.map(&:to_s).uniq
           marker = markers.sort_by { |value| [-value.length, value] }.find do |value|
             question.include?(value.downcase)
           end
           marker ||= markers.sort.first if question.match?(/blood marker|biomarker|blood test|lab/)
           if marker
-            rows = tests.fetch("rows").select { |row| row["marker"].to_s.casecmp?(marker) }
+            rows = tests.fetch("rows").select do |row|
+              (row["analyte"] || row["marker"]).to_s.casecmp?(marker)
+            end
             return {
               "label" => marker, "dataset" => "blood_tests",
               "column" => "value",
@@ -647,6 +651,167 @@ module KnowledgeAnalysis
           graph_evidence: ranked.first(20).map { |person, _latest| { "record_id" => person.id, "name" => person.name } },
           limitations: ["Only graph interactions recorded in the Vault are considered."]
         )
+      end
+    end
+
+    # Adapts declarative Dataset Template semantics into the stable analysis
+    # plugin contract. Adding a template does not add a branch to kg analyze.
+    class TemplateSemantics < Base
+      NAME = "template-semantics"
+
+      def initialize(registry: StructuredDataset.template_registry)
+        @registry = registry
+      end
+
+      def supports?(question, context)
+        !selected_template(question, context).nil?
+      end
+
+      def contributions
+        templates = @registry.all
+        {
+          "analyzers" => templates.flat_map(&:recommended_analyzers).uniq.sort,
+          "correlation_rules" => ["template_declared_series"],
+          "dataset_interpreters" => templates.map(&:id).sort,
+          "recommendation_generators" => templates.flat_map(&:recommendation_rules).uniq.sort,
+          "explanation_templates" => ["template_semantic_summary"]
+        }
+      end
+
+      def analyze(context)
+        template = selected_template(context.question, context)
+        return empty_fragment unless template
+
+        source = context.dataset(template.id)
+        if template.id == "blood_tests" && reference_range_question?(context.question)
+          return reference_range_analysis(context, template, source)
+        end
+        semantic_series_analysis(context, template, source)
+      end
+
+      private
+
+      def selected_template(question, context)
+        query = question.to_s.downcase
+        candidates = @registry.all.select { |template| context.dataset(template.id) }
+        candidates = candidates.reject do |template|
+          template.id == "medication_schedules" &&
+            query.match?(/\b(?:medication|medications|medicine|taking|dose)\b/)
+        end
+        scored = candidates.map do |template|
+          score = 0
+          terms = [template.id.tr("_", " "), template.display_name.downcase] + template.keywords
+          score += terms.count { |term| query.include?(term.to_s.downcase.tr("-", " ")) } * 3
+          semantics = template.analysis_semantics
+          label_column = semantics["label_column"]
+          if label_column
+            labels = context.dataset(template.id).fetch("rows").map { |row| row[label_column] }.compact
+            score += 5 if labels.any? { |label| query.include?(label.to_s.downcase) }
+          end
+          score += 6 if template.id == "blood_tests" && reference_range_question?(query)
+          [template, score]
+        end
+        winner = scored.max_by { |template, score| [score, template.id] }
+        winner && winner.last.positive? ? winner.first : nil
+      end
+
+      def reference_range_question?(question)
+        question.to_s.match?(/\b(?:outside|out of|above|below)\b.*\b(?:reference|range)\b|\b(?:abnormal|flagged)\s+(?:biomarkers?|results?)\b/i)
+      end
+
+      def reference_range_analysis(context, template, source)
+        semantics = template.analysis_semantics
+        low = semantics.fetch("reference_low")
+        high = semantics.fetch("reference_high")
+        flag = semantics.fetch("flag_column")
+        abnormal = source.fetch("rows").select do |row|
+          flagged = !row[flag].to_s.strip.empty? && !row[flag].to_s.match?(/\A(?:normal|n)\z/i)
+          below = !row[low].nil? && !row["value"].nil? && row["value"].to_f < row[low].to_f
+          above = !row[high].nil? && !row["value"].nil? && row["value"].to_f > row[high].to_f
+          flagged || below || above
+        end
+        labels = abnormal.map { |row| row["analyte"] || row["marker"] }.compact.map(&:to_s).uniq.sort
+        evidence = abnormal.first(50).map do |row|
+          {
+            "row_id" => row["row_id"], "analyte" => row["analyte"] || row["marker"],
+            "value" => row["value"], "unit" => row["unit"],
+            "reference_low" => row[low], "reference_high" => row[high], "flag" => row[flag],
+            "evidence_id" => row["evidence_id"]
+          }.reject { |_key, value| value.nil? }
+        end
+        factor = context.factor(
+          label: "Laboratory results outside reference range",
+          association: "#{abnormal.length} of #{source.fetch('rows').length} recorded laboratory measurements were outside their supplied reference range or explicitly flagged.",
+          confidence: source.fetch("rows").empty? ? 0.0 : 0.98,
+          datasets: [template.id], evidence: evidence,
+          limitations: ["Reference ranges are report-specific and this is not a diagnosis."]
+        )
+        recommendations = if abnormal.empty?
+                            []
+                          else
+                            [recommendation(
+                              "Review the flagged laboratory measurements with a qualified clinician; no treatment change is proposed.",
+                              confidence: 0.95, evidence: evidence.map { |item| item["row_id"] }.compact
+                            )]
+                          end
+        fragment(
+          summary: "#{abnormal.length} laboratory measurement#{abnormal.length == 1 ? '' : 's'} " \
+                   "#{abnormal.length == 1 ? 'is' : 'are'} outside the supplied reference range" \
+                   "#{labels.empty? ? '.' : ": #{labels.join(', ')}."}",
+          confidence: source.fetch("rows").empty? ? 0.0 : 0.98,
+          factors: [factor], recommendations: recommendations,
+          activity_evidence: context.relevant_activities([template.display_name], limit: 20),
+          limitations: [
+            "The SDK compares recorded values only with the reference interval supplied by the source laboratory.",
+            "The result is review-only and is not medical advice or a diagnosis."
+          ]
+        )
+      end
+
+      def semantic_series_analysis(context, template, source)
+        semantics = template.analysis_semantics
+        time_column = semantics["time_column"] || source["time_column"]
+        value_columns = Array(semantics["value_columns"] || source["numeric_columns"])
+        label_column = semantics["label_column"]
+        rows = source.fetch("rows")
+        label = nil
+        if label_column
+          labels = rows.map { |row| row[label_column] }.compact.map(&:to_s).uniq.sort
+          label = labels.find { |item| context.question.downcase.include?(item.downcase) }
+          rows = rows.select { |row| row[label_column].to_s.casecmp?(label) } if label
+        end
+        value_column = value_columns.find do |column|
+          context.question.downcase.include?(column.to_s.tr("_", " "))
+        end || value_columns.first
+        points = value_column && context.series(
+          template.id, value: value_column, time: time_column, rows: rows
+        )
+        trend = points && context.correlations.trend(points, from: context.from, to: context.to)
+        display = label || value_column.to_s.tr("_", " ")
+        if trend
+          factor = context.factor(
+            label: "#{display} trend", association: "#{display} was #{trend.fetch('direction')} over the observed window.",
+            confidence: trend.fetch("confidence"), datasets: [template.id], evidence: trend,
+            window: trend.slice("from", "to", "observations"), direction: trend.fetch("direction"),
+            limitations: ["The trend describes recorded observations and does not establish a cause."]
+          )
+          return fragment(
+            summary: "#{display} was #{trend.fetch('direction')} from #{trend.fetch('from')} to #{trend.fetch('to')}.",
+            confidence: trend.fetch("confidence"), factors: [factor],
+            windows: [trend.slice("from", "to", "observations")],
+            activity_evidence: context.relevant_activities([template.display_name, display], limit: 20),
+            limitations: ["Template semantics identify the series; associations remain noncausal."]
+          )
+        end
+        fragment(
+          summary: "The #{template.display_name} template matched, but there are too few comparable observations for a trend.",
+          confidence: rows.empty? ? 0.0 : 0.4,
+          limitations: ["At least two dated numeric observations are required for a trend."]
+        )
+      end
+
+      def empty_fragment
+        fragment(summary: "No installed Dataset Template matched the question.", confidence: 0.0)
       end
     end
 

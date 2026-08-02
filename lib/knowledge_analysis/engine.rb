@@ -7,7 +7,7 @@ require "time"
 module KnowledgeAnalysis
   class Engine
     CAPABILITY_ID = "kg.analysis.run".freeze
-    CAPABILITY_VERSION = "1.0.0".freeze
+    CAPABILITY_VERSION = "1.1.0".freeze
     MAX_ROWS_PER_DATASET = 10_000
 
     def initialize(vault_root:, dataset_engine: nil, snapshot: nil, timeline: nil,

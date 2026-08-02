@@ -11,7 +11,9 @@ module KnowledgeExtraction
     RUNTIME = "#{KnowledgeSDK::RUNTIME_PATH}/extraction".freeze
 
     def initialize(vault_root:, clock: nil)
-      @root = Pathname.new(vault_root).join(RUNTIME)
+      @vault_root = Pathname.new(vault_root).expand_path
+      @root = @vault_root.join(RUNTIME)
+      @evidence_store = SourceEvidenceStore.new(vault_root: vault_root)
       @clock = clock || -> { Time.now }
     end
 
@@ -71,6 +73,7 @@ module KnowledgeExtraction
     end
 
     def record_source(document, proposal_id)
+      evidence_path = @evidence_store.save(document)
       path = @root.join("sources.json")
       with_lock("sources") do
         entries = source_entries
@@ -79,6 +82,7 @@ module KnowledgeExtraction
           entries << {
             "source_id" => document.source_id, "content_hash" => document.content_hash,
             "external_id" => document.external_id, "source_uri" => document.source_uri,
+            "evidence_path" => evidence_path.relative_path_from(@vault_root).to_s,
             "proposal_id" => proposal_id, "recorded_at" => @clock.call.iso8601
           }
           atomic_write(path, JSON.pretty_generate(entries.sort_by { |entry| [entry["source_id"], entry["content_hash"]] }) + "\n")

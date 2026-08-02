@@ -5,14 +5,15 @@ require "time"
 
 module StructuredDataset
   class EvolutionPlan
-    attr_reader :kind, :dataset, :definition, :intent, :added_columns
+    attr_reader :kind, :dataset, :definition, :intent, :added_columns, :template
 
-    def initialize(kind:, dataset:, definition:, intent: nil, added_columns: [])
+    def initialize(kind:, dataset:, definition:, intent: nil, added_columns: [], template: nil)
       @kind = kind.to_s.freeze
       @dataset = dataset.to_s.freeze
       @definition = definition
       @intent = intent
       @added_columns = Array(added_columns).map(&:to_s).freeze
+      @template = template
       freeze
     end
 
@@ -28,7 +29,10 @@ module StructuredDataset
       {
         "kind" => kind, "proposal_type" => proposal_type, "dataset" => dataset,
         "schema" => definition.to_h, "added_columns" => added_columns,
-        "approval_required" => prerequisite?
+        "approval_required" => prerequisite?,
+        "template" => template && {
+          "id" => template.id, "version" => template.version, "digest" => template.digest
+        }
       }
     end
   end
@@ -49,7 +53,7 @@ module StructuredDataset
     end
 
     def plan(dataset:, values:, schema: nil, source: "dataset-registry", proposal_id: nil,
-             dataset_id: nil)
+             dataset_id: nil, template: nil)
       slug = Names.slug(dataset)
       row = stringify(values)
       description = @engine.describe(slug)
@@ -65,32 +69,39 @@ module StructuredDataset
         )
         return DatasetSchemaUpgradeProposal.new(
           kind: "schema_migration", dataset: slug, definition: replacement,
-          intent: intent, added_columns: added.sort
+          intent: intent, added_columns: added.sort, template: template
         )
       end
-      unknown = unknown_columns(current, row)
-      return CurrentDatasetPlan.new(kind: "current", dataset: slug, definition: current) if unknown.empty?
+      declared = template ? missing_template_columns(current, template) : []
+      unknown = unknown_columns(current, row) - declared.map(&:name)
+      return CurrentDatasetPlan.new(
+        kind: "current", dataset: slug, definition: current, template: template
+      ) if declared.empty? && unknown.empty?
 
-      replacement = append_columns(current, unknown, row)
+      replacement = append_columns(current, unknown, row, declared: declared)
+      added = replacement.columns[current.columns.length..-1].map(&:name)
       intent = KnowledgeGraph::UpgradeDatasetSchema.new(
         dataset: slug, from_version: description.fetch("schema_version"),
-        schema: replacement.to_h, added_columns: unknown.sort,
+        schema: replacement.to_h, added_columns: added,
         source: source, proposal_id: proposal_id
       )
       DatasetSchemaUpgradeProposal.new(
         kind: "schema_upgrade", dataset: slug, definition: replacement,
-        intent: intent, added_columns: unknown.sort
+        intent: intent, added_columns: added, template: template
       )
     rescue DatasetNotFound
       definition = initial_definition(slug, schema, row)
       identifier = dataset_id || KnowledgeGraph::IdGenerator.new(clock: @clock).generate("dataset")
       intent = KnowledgeGraph::CreateDataset.new(
         dataset_id: identifier, dataset: slug, schema: definition.to_h,
-        source: source, proposal_id: proposal_id
+        source: source, proposal_id: proposal_id,
+        template_id: template && template.id,
+        template_version: template && template.version,
+        template_digest: template && template.digest
       )
       CreateDatasetProposal.new(
         kind: "create", dataset: slug, definition: definition, intent: intent,
-        added_columns: definition.columns.map(&:name)
+        added_columns: definition.columns.map(&:name), template: template
       )
     end
 
@@ -140,14 +151,21 @@ module StructuredDataset
       row.keys.reject { |name| RESERVED.include?(name) || definition.column?(name) }.sort
     end
 
-    def append_columns(definition, names, row)
+    def append_columns(definition, names, row, declared: [])
+      declared_columns = declared.map do |column|
+        column.to_h.merge(required: false)
+      end
       Definition.from_h(
         definition.to_h.merge(
-          columns: definition.columns.map(&:to_h) + names.sort.map do |name|
+          columns: definition.columns.map(&:to_h) + declared_columns + names.sort.map do |name|
             inferred_column(name, row.fetch(name))
           end
         )
       )
+    end
+
+    def missing_template_columns(definition, template)
+      template.definition.columns.reject { |column| definition.column?(column.name) }
     end
 
     def inferred_column(name, value)

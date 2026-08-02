@@ -175,6 +175,7 @@ module StructuredDataset
   class Definition
     RESERVED_COLUMNS = %w[
       row_id created_at updated_at created_by source observation_id proposal_id approval_id intent_id
+      evidence_id source_uri source_filename source_page source_span
     ].freeze
     KEYS = %w[slug name kind purpose sensitivity columns].freeze
 
@@ -297,12 +298,20 @@ module StructuredDataset
             { name: "action", type: "TEXT", required: true, enum: %w[taken missed skipped] },
             { name: "notes", type: "TEXT" }
           ])),
-          "blood_tests" => spec("Blood Tests", "blood_tests", "Longitudinal laboratory results", observed.call([
-            { name: "marker", type: "TEXT", required: true, index: true },
-            { name: "value", type: "REAL", required: true }, { name: "unit", type: "TEXT", required: true },
+          "blood_tests" => spec("Blood Tests", "blood_tests", "Longitudinal laboratory results", [
+            { name: "test_date", type: "DATE", required: true, index: true },
+            { name: "panel", type: "TEXT", index: true },
+            { name: "analyte", type: "TEXT", required: true, index: true },
+            { name: "value", type: "REAL", required: true }, { name: "unit", type: "TEXT" },
             { name: "reference_low", type: "REAL" }, { name: "reference_high", type: "REAL" },
-            { name: "laboratory", type: "TEXT" }, { name: "notes", type: "TEXT" }
-          ])),
+            { name: "reference_text", type: "TEXT" }, { name: "flag", type: "TEXT", index: true },
+            { name: "specimen", type: "TEXT" }, { name: "laboratory", type: "TEXT" },
+            { name: "comments", type: "TEXT" },
+            # Compatibility aliases keep approved Phase 13/14 Intents and existing queries readable.
+            { name: "observed_at", type: "DATETIME", required: true, index: true },
+            { name: "marker", type: "TEXT", required: true, index: true },
+            { name: "notes", type: "TEXT" }
+          ]),
           "body_measurements" => spec("Body Measurements", "body_measurements", "Track physical measurements", observed.call([
             { name: "measurement", type: "TEXT", required: true, index: true },
             { name: "value", type: "REAL", required: true }, { name: "unit", type: "TEXT", required: true }
@@ -342,6 +351,64 @@ module StructuredDataset
             { name: "billing_period", type: "TEXT", required: true }, { name: "next_due_on", type: "DATE", index: true },
             { name: "active", type: "BOOLEAN", required: true }
           ]),
+          "trades" => spec("Trades", "trades", "Track executed trades", [
+            { name: "executed_at", type: "DATETIME", required: true, index: true },
+            { name: "symbol", type: "TEXT", required: true, index: true },
+            { name: "side", type: "TEXT", required: true, enum: %w[buy sell] },
+            { name: "quantity", type: "REAL", required: true, min: 0 },
+            { name: "price", type: "REAL", required: true, min: 0 },
+            { name: "currency", type: "TEXT", pattern: "[A-Z]{3}" },
+            { name: "fees", type: "REAL", min: 0 }, { name: "account", type: "TEXT" },
+            { name: "notes", type: "TEXT" }
+          ]),
+          "positions" => spec("Positions", "positions", "Track portfolio position snapshots", observed.call([
+            { name: "symbol", type: "TEXT", required: true, index: true },
+            { name: "quantity", type: "REAL", required: true },
+            { name: "average_cost", type: "REAL", min: 0 },
+            { name: "market_value", type: "REAL" },
+            { name: "currency", type: "TEXT", pattern: "[A-Z]{3}" },
+            { name: "account", type: "TEXT" }
+          ])),
+          "equity_curve" => spec("Equity Curve", "equity_curve", "Track portfolio equity over time", observed.call([
+            { name: "equity", type: "REAL", required: true },
+            { name: "currency", type: "TEXT", pattern: "[A-Z]{3}" },
+            { name: "drawdown_pct", type: "REAL", min: -100, max: 100 }
+          ])),
+          "contacts" => spec("Contacts", "contacts", "Track contact directory records", [
+            { name: "captured_at", type: "DATETIME", required: true, index: true },
+            { name: "name", type: "TEXT", required: true, index: true },
+            { name: "email", type: "TEXT", index: true }, { name: "phone", type: "TEXT" },
+            { name: "organization", type: "TEXT", index: true }, { name: "role", type: "TEXT" },
+            { name: "notes", type: "TEXT" }
+          ]),
+          "meetings" => spec("Meetings", "meetings", "Track structured meeting records", [
+            { name: "occurred_at", type: "DATETIME", required: true, index: true },
+            { name: "title", type: "TEXT", required: true },
+            { name: "participants", type: "JSON" }, { name: "summary", type: "TEXT" },
+            { name: "outcome", type: "TEXT" }, { name: "next_action", type: "TEXT" }
+          ]),
+          "interactions" => spec("Interactions", "interactions", "Track contact interactions", [
+            { name: "occurred_at", type: "DATETIME", required: true, index: true },
+            { name: "contact", type: "TEXT", required: true, index: true },
+            { name: "kind", type: "TEXT", required: true },
+            { name: "summary", type: "TEXT" }, { name: "sentiment", type: "TEXT" },
+            { name: "next_action", type: "TEXT" }
+          ]),
+          "key_value_measurements" => spec(
+            "Key/Value Measurements", "key_value_measurements", "Track generic named measurements", observed.call([
+              { name: "key", type: "TEXT", required: true, index: true },
+              { name: "value", type: "REAL", required: true }, { name: "unit", type: "TEXT" },
+              { name: "context", type: "TEXT" }
+            ])
+          ),
+          "custom_observation_log" => spec(
+            "Custom Observation Log", "custom_observation_log", "Track generic structured observations", observed.call([
+              { name: "category", type: "TEXT", required: true, index: true },
+              { name: "observation", type: "TEXT", required: true },
+              { name: "value", type: "REAL" }, { name: "unit", type: "TEXT" },
+              { name: "details", type: "JSON" }
+            ])
+          ),
           "vehicle_maintenance" => spec("Vehicle Maintenance", "vehicle_maintenance", "Track vehicle service history", [
             { name: "occurred_on", type: "DATE", required: true, index: true },
             { name: "vehicle", type: "TEXT", required: true }, { name: "service", type: "TEXT", required: true },

@@ -22,7 +22,7 @@ Ruby 2.6 or newer is supported. SQLite-backed dataset commands require the `sqli
 bundle install
 bundle exec rake test
 gem build knowledge-sdk.gemspec
-gem install ./knowledge-sdk-14.0.0.gem
+gem install ./knowledge-sdk-15.0.0.gem
 ```
 
 During source development, use `ruby bin/kg`; after installation, use `kg`.
@@ -69,6 +69,15 @@ Global options are `--vault`, `--config`, `--dataset-db`, `--run-id`, and `--act
 ## Dataset intelligence
 
 Conversational structured observations no longer stop when a Dataset is missing or needs additive columns. The review proposal includes an approval-gated `CreateDataset` or `UpgradeDatasetSchema` prerequisite, then retries the original Dataset row Intent after that prerequisite succeeds.
+
+Version 15 adds an immutable, versioned Dataset Template Registry. Trusted plugins contribute schemas, parsers, validation, units, analyzers, visualizations, privacy defaults, recommendation rules, and adapter declarations. PDF/OCR text, CSV, Excel renditions, email, transcript, and ordinary text can select a template without asking the user to choose a Dataset or schema. A recognized source produces one review proposal containing the lifecycle prerequisite and all parsed row Intents:
+
+```text
+incoming evidence -> template selection -> exact approval
+  -> Dataset provisioning -> row import -> DatasetChanged -> Knowledge Activity
+```
+
+The bundled catalogue covers Health, Finance, Trading, CRM, and Generic observations. Blood tests use normalized analyte/value rows rather than one column per biomarker, preserve the supplied reference interval and flag, and retain row-level source URI, filename, page, span, Evidence ID, observation, proposal, approval, and Intent provenance. `kg chat --explain` reports the selected template, confidence, reason, planned collection, and planned observation count without exposing schema or SQL details. See [Dataset Template Guide](docs/Dataset%20Template%20Guide.md).
 
 `kg analyze` combines graph evidence, structured rows and statistics, Knowledge Activity, Knowledge Intelligence findings, planning signals, events, and derived cache state through deterministic installed analysis plugins:
 
