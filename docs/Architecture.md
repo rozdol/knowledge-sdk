@@ -55,6 +55,74 @@ immutable Goal + composable Constraints
 
 “Decision-approved” means only that a plan ranked first after hard constraints. It is not human approval and gives no execution authority. The planning module has no Engine, dispatcher, repository writer, or autonomous-agent dependency. Given the same graph snapshot, goal, constraints, policy, and `as_of` date, its canonical result is identical.
 
+## Intent classification and Dataset routing
+
+`kg chat` and `kg observe` use one SDK-owned `KnowledgeSDK::IntentClassifier`. Trusted code plugins register deterministic matchers with a route; the classifier evaluates routes in this fixed order:
+
+```text
+dataset -> analyze -> observe -> search -> plan -> proposal
+```
+
+Structured observations are classified before graph extraction. Medication schedules, measurements, laboratory results, body measurements, and financial rows use `kg.datasets.propose`, which creates an immutable proposal through the existing Proposal Store and validator. Ambiguous structured tables remain on the Dataset route for schema clarification and never fall through to graph extraction.
+
+```text
+structured message -> Dataset classification -> named immutable Dataset Intent
+  -> existing review-only Proposal -> exact human approval
+  -> existing Engine receipt/audit lifecycle -> registered Dataset handler
+  -> Structured Dataset Engine SQLite transaction -> DatasetChanged
+  -> existing Knowledge Activity projection
+```
+
+Named Dataset Intents contain row values and provenance but no graph attributes. Their Engine result identifies the canonical Dataset registry note; raw row values remain exclusively in SQLite. An optional graph statement such as “Alex has a medication schedule” is a separate semantic proposal and never contains the schedule rows.
+
+## Autonomous Dataset lifecycle
+
+Dataset absence and additive schema drift are proposal prerequisites, not terminal blockers:
+
+```text
+classified Dataset observation
+  -> AutonomousRegistry inspects graph registry + SQLite schema history
+  -> missing: CreateDatasetProposal / immutable CreateDataset
+  -> mismatch: DatasetSchemaUpgradeProposal / immutable UpgradeDatasetSchema
+  -> original Dataset row Intent depends on lifecycle Intent
+  -> exact human approval of immutable Intent IDs
+  -> dependency-ordered Proposal Submitter
+  -> existing Engine validation/audit/receipt boundary
+  -> lifecycle handler creates or additively migrates Dataset
+  -> original row Intent retries through Engine
+  -> DatasetChanged + Knowledge Activity
+```
+
+Schema upgrade Intents bind the observed schema version and complete additive definition. Execution rechecks the version before mutation. New columns are optional; destructive removal, reorder, rename, retype, and constraint changes remain rejected. The planner performs no write and never treats attached-Vault content as executable schema policy.
+
+## Cross-knowledge analysis pipeline
+
+`kg analyze` is a derived read pipeline that composes stable subsystems. It is not a second Intelligence, Planning, Activity, or Dataset implementation.
+
+```mermaid
+flowchart LR
+  Q["Question"] --> IC["IntentClassifier / Analyze Intent"]
+  IC --> AX["KnowledgeAnalysis context"]
+  AX --> GS["Graph snapshot"]
+  AX --> DS["Dataset queries + statistics"]
+  AX --> KA["Knowledge Activity"]
+  AX --> KI["Knowledge Intelligence"]
+  AX --> PS["Planning signals"]
+  AX --> EB["Event history"]
+  GS --> AP["Installed analysis plugins"]
+  DS --> AP
+  KA --> AP
+  KI --> AP
+  PS --> AP
+  EB --> AP
+  AP --> CE["Deterministic Correlation Engine"]
+  CE --> EX["Explanation, confidence, windows, limitations"]
+  EX --> RP["Optional non-executable Recommendation Proposal"]
+  EX --> KC["Derived Knowledge Cache"]
+```
+
+The Correlation Engine provides stable time alignment, windowing, cross-Dataset pairing, trend detection, event comparison, Pearson association, and confidence estimation. It contains no model call or hidden reasoning. Every factor says `causal: false`. Recommendation candidates become review-only Planning candidate objects and use the existing Decision Engine policy for stable ranking; they contain zero generated Intents and remain non-executable until a later concrete Intent proposal is explicitly approved.
+
 ## Agent execution pipeline
 
 ```text
@@ -108,6 +176,10 @@ Undo and restore perform no graph write. They derive lossless existing Intents f
 - `agent_platform/` owns manifests, Registry, Gateway, policy, sessions, adapters, jobs, telemetry, plugins, and generated contract artifacts. It does not parse Markdown or YAML.
 - `knowledge_orchestration/` owns immutable events, the internal bus and dead-letter queue, trigger and workflow DSL, dependency graph, derived-artifact Knowledge Cache, durable jobs, cron scheduler, notifications, replay, and sanitized timelines. It invokes existing components only through Agent Gateway capabilities.
 - `knowledge_activity/` owns the read-time Activity projection, human summaries, temporal filtering/search/diff, privacy redaction, explainability joins, and review-only undo/restore proposal adaptation. It has no canonical writer or Activity store.
+- `knowledge_sdk/intent_classifier.rb` owns the route-priority registry and immutable classification contract used by chat, observation, and trusted domain plugins.
+- `structured_dataset/routing.rb` owns Dataset classifiers, named Dataset Intent proposal construction, and the handlers registered on the existing Engine. It never invokes graph extraction for row data.
+- `structured_dataset/evolution.rb` owns read-only autonomous lifecycle planning and emits `CreateDataset` or `UpgradeDatasetSchema` prerequisites. Only the approval-gated Dataset handler executes them.
+- `knowledge_analysis/` owns the cross-subsystem analysis context, deterministic Correlation Engine, analysis plugin registry, response aggregation, derived caching, recommendation envelopes, and `kg analyze` CLI. It never writes graph facts or Dataset rows.
 
 ## Transaction guarantees
 

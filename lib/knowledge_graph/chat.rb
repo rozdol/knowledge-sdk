@@ -4,44 +4,112 @@ module KnowledgeGraph
   class ChatError < Error; end
 
   class ChatIntentResolver
-    Decision = Struct.new(:route, :reason, :capability, keyword_init: true)
+    Decision = Struct.new(
+      :route, :reason, :capability, :intent, :confidence, :slots,
+      keyword_init: true
+    )
 
     PLAN_REQUEST = /\A(?:please\s+)?(?:(?:make|create|build|draft|develop|prepare)\b.*\bplan\b|plan\b)/i.freeze
     SEARCH_REQUEST = /\A(?:who|what|where|when|which|why|how|does|do|did|is|are|was|were|can|could|would|tell\s+me|show\s+me|find)\b/i.freeze
     UNSUPPORTED_ACTION = /\A(?:please\s+)?(?:add|archive|approve|call|change|delete|edit|email|execute|merge|remove|rename|schedule|send|submit|update)\b/i.freeze
 
-    def resolve(text)
+    CAPABILITIES = {
+      "dataset" => "kg.datasets.propose", "observe" => "kg.observe",
+      "analyze" => "kg.analysis.run",
+      "search" => "kg.graph.query", "plan" => "kg.planning.plan",
+      "proposal" => "kg.proposals.status"
+    }.freeze
+
+    class << self
+      def classifier
+        classifier = KnowledgeSDK.intent_classifier
+        install_defaults(classifier)
+        classifier
+      end
+
+      def install_defaults(classifier)
+        StructuredDataset::IntentClassifierPlugin.register(classifier)
+        KnowledgeAnalysis::IntentClassifierPlugin.register(classifier)
+        classifier.register(name: "core-observe", route: "observe") do |source, _context|
+          next nil if proposal_request?(source) || PLAN_REQUEST.match?(source)
+          next nil if SEARCH_REQUEST.match?(source) || source.end_with?("?")
+          next nil if UNSUPPORTED_ACTION.match?(source) || source.split(/\s+/).length < 3
+
+          {
+            "intent" => "graph.observe", "confidence" => 0.85,
+            "reason" => "declarative message suitable for the graph observation pipeline"
+          }
+        end
+        classifier.register(name: "core-search", route: "search") do |source, _context|
+          next nil if proposal_request?(source)
+          next nil unless SEARCH_REQUEST.match?(source) || source.end_with?("?")
+
+          {
+            "intent" => "graph.search", "confidence" => 0.90,
+            "reason" => "informational question about existing knowledge"
+          }
+        end
+        classifier.register(name: "core-plan", route: "plan") do |source, _context|
+          next nil unless PLAN_REQUEST.match?(source)
+
+          {
+            "intent" => "planner.goal", "confidence" => 0.95,
+            "reason" => "explicit request to create a plan"
+          }
+        end
+        classifier.register(name: "core-proposal", route: "proposal") do |source, _context|
+          next nil unless proposal_request?(source)
+
+          {
+            "intent" => "proposal.status", "confidence" => 0.98,
+            "reason" => "request concerns an existing proposal"
+          }
+        end
+      end
+
+      def proposal_request?(source)
+        return true if source.match?(/\bproposal_[0-9A-HJKMNP-TV-Z]{26}\b/)
+        return false unless source.match?(/\bproposals?\b/i)
+
+        source.end_with?("?") || source.match?(
+          /\A(?:please\s+)?(?:show|list|inspect|check|review|open|find|create|make)\b|\bpending\b|\bstatus\b/i
+        )
+      end
+    end
+
+    def initialize(classifier: self.class.classifier)
+      @classifier = classifier
+    end
+
+    def resolve(text, context = {})
       source = text.to_s.strip
       raise ChatError, "chat text is empty" if source.empty?
 
-      return decision("proposal", "request concerns existing proposals", "kg.proposals.status") if proposal_request?(source)
-      return decision("plan", "explicit request to create a plan", "kg.planning.plan") if PLAN_REQUEST.match?(source)
-      if SEARCH_REQUEST.match?(source) || source.end_with?("?")
-        return decision("search", "informational question about existing knowledge", "kg.graph.query")
-      end
-      if UNSUPPORTED_ACTION.match?(source)
-        return decision("clarification", "requested action is not safely covered by a chat route", nil)
-      end
-      if source.split(/\s+/).length < 3
-        return decision("clarification", "message is too short to distinguish an observation from a query", nil)
+      classification = @classifier.classify(source, context)
+      unless classification
+        reason = if UNSUPPORTED_ACTION.match?(source)
+                   "requested action is not safely covered by a chat route"
+                 elsif source.split(/\s+/).length < 3
+                   "message is too short to distinguish an observation from a query"
+                 else
+                   "message intent is ambiguous"
+                 end
+        return decision("clarification", reason, nil, "chat.clarification", 0.0, {})
       end
 
-      decision("observe", "declarative message suitable for the existing observation pipeline", "kg.observe")
+      decision(
+        classification.route, classification.reason, CAPABILITIES[classification.route],
+        classification.intent, classification.confidence, classification.slots
+      )
     end
 
     private
 
-    def proposal_request?(source)
-      return true if source.match?(/\bproposal_[0-9A-HJKMNP-TV-Z]{26}\b/)
-      return false unless source.match?(/\bproposals?\b/i)
-
-      source.end_with?("?") || source.match?(
-        /\A(?:please\s+)?(?:show|list|inspect|check|review|open|find|create|make)\b|\bpending\b|\bstatus\b/i
-      )
-    end
-
-    def decision(route, reason, capability)
-      Decision.new(route: route, reason: reason, capability: capability).freeze
+    def decision(route, reason, capability, intent, confidence, slots)
+      Decision.new(
+        route: route, reason: reason, capability: capability,
+        intent: intent, confidence: confidence, slots: slots
+      ).freeze
     end
   end
 
@@ -61,21 +129,28 @@ module KnowledgeGraph
       @resolver = resolver
       @agent = AgentPlatform::AgentIdentity.new(
         id: actor_id.to_s.empty? ? "kg-chat-cli" : actor_id.to_s,
-        permissions: %w[graph:read dataset:read intelligence:read planning:read proposal:read],
+        permissions: %w[
+          graph:read dataset:read intelligence:read analysis:read planning:read proposal:read proposal:create
+        ],
         roles: ["chat_client"],
         attributes: {
           "autonomous_execution" => false,
           "allowed_capabilities" => %w[
-            kg.entities.search kg.graph.query kg.datasets.query kg.planning.plan kg.proposals.status
+            kg.entities.search kg.graph.query kg.datasets.query kg.datasets.propose
+            kg.analysis.run kg.planning.plan kg.proposals.status
           ],
           "denied_capabilities" => ["kg.proposals.submit"]
         }
       )
     end
 
-    def route(text, explain: false)
-      decision = @resolver.resolve(text)
+    def route(text, explain: false, context: {})
+      decision = @resolver.resolve(text, context)
       response, capability = case decision.route
+                             when "dataset" then dataset_response(decision, context)
+                             when "analyze" then capability_response(
+                               decision, "kg.analysis.run", "question" => text
+                             )
                              when "observe" then observation_response(decision) { yield }
                              when "search" then search_response(text, decision)
                              when "plan" then capability_response(
@@ -89,13 +164,32 @@ module KnowledgeGraph
       if explain
         response["explain"] = {
           "reason" => decision.reason,
-          "capability" => capability
+          "capability" => capability,
+          "intent" => decision.intent,
+          "confidence" => decision.confidence
         }
       end
       response
     end
 
     private
+
+    def dataset_response(decision, arguments)
+      response = invoke("kg.datasets.propose", arguments)
+      return [gateway_error(decision.route, response), "kg.datasets.propose"] unless response.success?
+
+      if response.payload["status"] == "clarification_required"
+        return [{
+          "status" => "clarification_required", "route" => "dataset",
+          "clarification" => {
+            "question" => response.payload.fetch("question"), "requested_route" => "dataset"
+          },
+          "result" => response.payload
+        }, "kg.datasets.propose"]
+      end
+
+      [{ "status" => "ok", "route" => "dataset", "result" => response.payload }, "kg.datasets.propose"]
+    end
 
     def observation_response(decision)
       result = yield

@@ -1,0 +1,38 @@
+[
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.analysis.run",
+    "name": "analyze_cross_knowledge",
+    "version": "1.0.0",
+    "description": "Run deterministic, explainable analysis across structured datasets, graph facts, activity, intelligence, planning signals, events, and derived cache state.",
+    "input_schema": {
+      "type": "object",
+      "required": ["question"],
+      "properties": {
+        "question": { "type": "string", "minLength": 1, "maxLength": 4000 },
+        "from": { "type": "string", "format": "date-time" },
+        "to": { "type": "string", "format": "date-time" },
+        "as_of": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "required": ["status", "analysis"],
+      "properties": {
+        "status": { "type": "string", "enum": ["ok"] },
+        "analysis": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 30000, "idempotent": true },
+    "policy": { "permissions": ["analysis:read", "dataset:read", "graph:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [
+      { "arguments": { "question": "Why has my LDL increased during the last six months?" } }
+    ],
+    "deprecation": { "status": "active" }
+  }
+]

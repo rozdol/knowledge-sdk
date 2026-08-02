@@ -7,7 +7,7 @@ class AgentPlatformManifestRegistryTest < Minitest::Test
     manifests = AgentPlatform::ManifestLoader.new.load(AgentPlatform::DEFAULT_MANIFEST_PATH)
     registry = AgentPlatform::CapabilityRegistry.new(manifests)
 
-    assert_equal 28, registry.size
+    assert_equal 30, registry.size
     assert_equal manifests.map { |item| [item.capability_id, item.version] }.uniq.length, manifests.length
     reference = registry.reference_for("kg.entities.search")
     assert_match(/\Acap_[0-9a-f]{48}\z/, reference.invocation_token)

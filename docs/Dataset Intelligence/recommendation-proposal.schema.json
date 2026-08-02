@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://knowledge.local/schemas/analysis-recommendation.json",
+  "title": "Analysis Recommendation",
+  "type": "object",
+  "required": ["recommendation_id", "text", "confidence", "evidence", "status", "executed"],
+  "properties": {
+    "recommendation_id": { "type": "string", "pattern": "^recommendation_[0-9A-HJKMNP-TV-Z]{26}$" },
+    "text": { "type": "string", "minLength": 1 },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "evidence": { "type": "array", "items": { "type": "string" } },
+    "status": { "type": "string", "const": "proposal_only" },
+    "executed": { "type": "boolean", "const": false },
+    "proposal_id": { "type": "string", "pattern": "^proposal_[0-9A-HJKMNP-TV-Z]{26}$" }
+  },
+  "additionalProperties": false
+}

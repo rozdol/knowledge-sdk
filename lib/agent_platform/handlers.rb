@@ -9,12 +9,34 @@ module AgentPlatform
       register_entity_handlers(registry, services)
       register_graph_handlers(registry, services)
       register_dataset_handlers(registry, services)
+      register_cross_analysis_handler(registry, services)
       register_intelligence_handlers(registry, services)
       register_planning_handlers(registry, services)
       register_proposal_handlers(registry, services)
       register_extraction_handler(registry, services)
       register_orchestration_handlers(registry, services) if services.notification_store?
       registry
+    end
+
+    def register_cross_analysis_handler(registry, services)
+      registry.register("kg.analysis.run") do |arguments, context|
+        result = services.cross_analysis(
+          context, question: arguments.fetch("question"),
+          from: arguments["from"], to: arguments["to"], as_of: arguments["as_of"],
+          propose_recommendations: false
+        )
+        analysis = result.fetch("analysis")
+        HandlerResult.new(
+          payload: result,
+          why: analysis.fetch("summary"), confidence: analysis.fetch("confidence"),
+          evidence: analysis.fetch("graph_evidence").map do |item|
+            { "record_id" => item.fetch("record_id"), "role" => "analysis_graph_evidence" }
+          end,
+          graph_path: analysis.fetch("graph_evidence").map { |item| item["record_id"] }.compact
+        )
+      rescue KnowledgeAnalysis::Error, StructuredDataset::Error => error
+        raise InvalidArguments, error.message
+      end
     end
 
     def register_dataset_handlers(registry, services)
@@ -42,6 +64,18 @@ module AgentPlatform
           confidence: 1.0
         )
       rescue StructuredDataset::Error => error
+        raise InvalidArguments, error.message
+      end
+
+      registry.register("kg.datasets.propose") do |arguments, context|
+        result = services.dataset_proposal_builder(context).create(arguments)
+        HandlerResult.new(
+          payload: result,
+          warnings: result.fetch("warnings", []),
+          why: "Classified structured observations and created a review-only Dataset Intent proposal without invoking graph extraction.",
+          confidence: result.dig("classification", "confidence") || 0.0
+        )
+      rescue StructuredDataset::Error, KnowledgeExtraction::Error, ArgumentError => error
         raise InvalidArguments, error.message
       end
     end

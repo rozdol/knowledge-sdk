@@ -176,49 +176,6 @@ module StructuredDataset
     end
   end
 
-  class ObservationRecognizer
-    BLOOD_PRESSURE = /\bmy blood pressure(?: today)? was\s+(\d{2,3})\s+(?:over|\/)\s+(\d{2,3})(?:\s+(?:with (?:a )?pulse(?: of)?|pulse)\s+(\d{2,3}))?/i.freeze
-
-    def recognize(document, self_entity)
-      return nil unless self_entity
-
-      match = BLOOD_PRESSURE.match(document.content)
-      return nil unless match
-
-      observed_at = (document.captured_at || Time.now).iso8601
-      evidence = {
-        "source_id" => document.source_id, "start_offset" => match.begin(0),
-        "end_offset" => match.end(0), "excerpt" => document.content[match.begin(0)...match.end(0)]
-      }
-      mention_id = KnowledgeExtraction::Support.stable_id("mention", document.source_id, self_entity.id)
-      values = {
-        "observed_at" => observed_at, "systolic" => match[1].to_i,
-        "diastolic" => match[2].to_i
-      }
-      values["pulse"] = match[3].to_i if match[3]
-      {
-        "summary" => "Detected one structured blood pressure observation.",
-        "mentions" => [{
-          "mention_id" => mention_id, "entity_type" => "person",
-          "display_name" => self_entity.name || self_entity.id,
-          "external_ids" => [self_entity.id], "evidence" => [evidence]
-        }],
-        "facts" => [{
-          "fact_type" => "dataset_observation", "subject_mention_id" => mention_id,
-          "predicate" => "blood_pressure",
-          "object" => {
-            "kind" => "scalar", "value" => values, "value_type" => "json",
-            "original_expression" => match[0], "normalized_value" => values,
-            "normalization_confidence" => 0.99
-          },
-          "confidence" => 0.99, "status" => "asserted", "evidence" => [evidence],
-          "qualifiers" => { "dataset_slug" => "blood_pressure" }
-        }],
-        "warnings" => []
-      }
-    end
-  end
-
   class ActivityAdapter
     def initialize(vault_root:)
       @vault_root = vault_root

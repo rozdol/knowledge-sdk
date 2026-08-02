@@ -49,6 +49,11 @@ module KnowledgeGraph
       when "graph" then graph_command
       when "stats" then stats_command
       when "search" then search_command
+      when "analyze" then KnowledgeAnalysis::CLI.new(
+        argv: @argv, out: @out, err: @err, stdin: @stdin,
+        vault_root: vault_root, dataset_engine: dataset_engine,
+        event_bus: orchestrator.event_bus, cache: orchestrator.cache
+      ).run
       when "replay" then replay_command
       when "gateway" then gateway_command
       when "dataset" then StructuredDataset::CLI.new(
@@ -104,6 +109,9 @@ module KnowledgeGraph
       @err.puts(JSON.generate(error: error.message, error_class: error.class.name))
       1
     rescue StructuredDataset::Error => error
+      @err.puts(JSON.generate(error: error.message, error_class: error.class.name))
+      1
+    rescue KnowledgeAnalysis::Error => error
       @err.puts(JSON.generate(error: error.message, error_class: error.class.name))
       1
     end
@@ -475,7 +483,7 @@ module KnowledgeGraph
     def print_help(option_parser)
       @out.puts(option_parser)
       @out.puts("SDK: init, attach, detach, upgrade, migrate, version, id, vault, plugin")
-      @out.puts("Knowledge: execute, validate, doctor, graph, stats, search, replay, dataset, activity, chat, observe, extract, proposal, intelligence, goal, plan, gateway, events, workflow, scheduler, notifications, cache")
+      @out.puts("Knowledge: execute, validate, doctor, graph, stats, search, analyze, replay, dataset, activity, chat, observe, extract, proposal, intelligence, goal, plan, gateway, events, workflow, scheduler, notifications, cache")
       0
     end
   end

@@ -3,6 +3,7 @@
 require "pathname"
 
 require_relative "knowledge_sdk/version"
+require_relative "knowledge_sdk/intent_classifier"
 
 module KnowledgeSDK
   class Error < StandardError; end
@@ -63,6 +64,10 @@ module KnowledgeSDK
       return candidate.expand_path if candidate.absolute? || configured.to_s.start_with?("~")
 
       Pathname.new(vault_root).expand_path.join(candidate).expand_path
+    end
+
+    def intent_classifier
+      @intent_classifier ||= IntentClassifier.new
     end
   end
 end

@@ -276,6 +276,15 @@ module StructuredDataset
       @definitions ||= begin
         observed = ->(extra) { [{ name: "observed_at", type: "DATETIME", required: true, index: true }] + extra }
         {
+          "medication_schedules" => spec(
+            "Medication Schedules", "medication_schedules", "Track active medication schedules", [
+              { name: "effective_on", type: "DATE", required: true, index: true },
+              { name: "medication", type: "TEXT", required: true, unique: true },
+              { name: "dose", type: "REAL" }, { name: "unit", type: "TEXT" },
+              { name: "schedule", type: "TEXT", required: true },
+              { name: "active", type: "BOOLEAN", required: true }
+            ]
+          ),
           "medication_log" => spec("Medication Log", "medication_log", "Track medication adherence", observed.call([
             { name: "medication", type: "TEXT", required: true, index: true },
             { name: "dose", type: "REAL" }, { name: "unit", type: "TEXT" },

@@ -72,7 +72,8 @@ module StructuredDataset
     end
 
     def create(reference, schema: nil, name: nil, purpose: nil, owner_id: nil,
-               sensitivity: nil, kind: nil)
+               sensitivity: nil, kind: nil, dataset_id: nil, provenance: {})
+      generated_dataset_id = dataset_id
       slug = Names.slug(reference)
       raise DatasetConflict, "dataset already exists: #{slug}" if @registry.all.any? { |item| item.data["dataset_slug"] == slug }
 
@@ -84,32 +85,40 @@ module StructuredDataset
           sensitivity: sensitivity || base.sensitivity, kind: kind || base.kind
         )
       )
-      dataset_id = @id_generator.generate("dataset")
+      generated_dataset_id ||= @id_generator.generate("dataset")
+      audit = audit_values(provenance)
       attributes = {
-        id: dataset_id, name: definition.name, dataset_slug: definition.slug,
+        id: generated_dataset_id, name: definition.name, dataset_slug: definition.slug,
         dataset_kind: definition.kind, storage_backend: "sqlite", storage_table: definition.slug,
         purpose: definition.purpose, sensitivity: definition.sensitivity,
         data_origin: "given_by_subject"
       }.merge(@registry.owner_attributes(owner_id))
       graph_result = nil
+      activity_id = nil
       database.with_connection do |connection|
         database.transaction(connection) do
           database.create_dataset(
-            connection, dataset_id: dataset_id, table_name: definition.slug, definition: definition
+            connection, dataset_id: generated_dataset_id, table_name: definition.slug, definition: definition
           )
           graph_result = @graph_engine.execute(
-            KnowledgeGraph::CreateEntity.new(entity_type: "dataset", attributes: attributes)
+            KnowledgeGraph::CreateEntity.new(
+              entity_type: "dataset", attributes: attributes, intent_id: audit["intent_id"]
+            )
           )
-          database.record_activity(
-            connection, dataset_id: dataset_id, action: "create", row_id: nil,
-            actor_id: @actor_id, source: "dataset-cli", run_id: @run_id
+          activity_id = database.record_activity(
+            connection, dataset_id: generated_dataset_id, action: "create", row_id: nil,
+            actor_id: audit.fetch("created_by"), source: audit.fetch("source"),
+            observation_id: audit["observation_id"], proposal_id: audit["proposal_id"],
+            approval_id: audit["approval_id"], run_id: @run_id
           )
         end
       end
-      publish_change("create", dataset_id, nil)
-      describe(dataset_id).merge("graph_audit_id" => graph_result.audit_id)
+      publish_change("create", generated_dataset_id, nil, provenance: audit)
+      describe(generated_dataset_id).merge(
+        "graph_audit_id" => graph_result.audit_id, "dataset_activity_id" => activity_id
+      )
     rescue StandardError => error
-      compensate_graph_create(graph_result, dataset_id) if graph_result
+      compensate_graph_create(graph_result, generated_dataset_id) if graph_result
       raise error
     end
 
@@ -169,6 +178,59 @@ module StructuredDataset
       end
       publish_change("insert", record.id, row_id, provenance: audit)
       query(reference, row_id: row_id, limit: 1).first.merge("dataset_activity_id" => activity_id, "replayed" => false)
+    rescue sqlite_error => error
+      raise InvalidRow, safe_sqlite_message(error)
+    end
+
+    def replace(reference, match:, values:, provenance: {})
+      record, storage, definition = resolve(reference)
+      replacement = definition.coerce_row(values)
+      matching = definition.coerce_row(match, partial: true)
+      raise InvalidRow, "replace requires at least one matching column" if matching.empty?
+
+      row_id = @id_generator.generate("row")
+      audit = audit_values(provenance)
+      now = timestamp
+      activity_id = nil
+      activity_action = nil
+      existing = nil
+      database.with_connection do |connection|
+        database.transaction(connection) do
+          if audit["intent_id"]
+            existing = connection.get_first_row(
+              "SELECT * FROM #{database.quote_identifier(storage.fetch('table_name'))} WHERE intent_id = ?",
+              [audit.fetch("intent_id")]
+            )
+          end
+          unless existing
+            clauses = matching.keys.map { |key| "#{database.quote_identifier(key)} = ?" }
+            connection.execute(
+              "DELETE FROM #{database.quote_identifier(storage.fetch('table_name'))} WHERE #{clauses.join(' AND ')}",
+              matching.values
+            )
+            activity_action = connection.changes.positive? ? "update" : "insert"
+            insert_row(connection, storage.fetch("table_name"), row_id, replacement, audit, now)
+            activity_id = database.record_activity(
+              connection, dataset_id: record.id, action: activity_action, row_id: row_id,
+              actor_id: audit.fetch("created_by"), source: audit.fetch("source"),
+              observation_id: audit["observation_id"], proposal_id: audit["proposal_id"],
+              approval_id: audit["approval_id"], run_id: @run_id
+            )
+          end
+        end
+      end
+      if existing
+        prior = definition.decode_row(existing)
+        activity_id = activity_records.reverse.find do |item|
+          item["dataset_id"] == record.id && item["row_id"] == prior["row_id"] &&
+            %w[insert update].include?(item["action"])
+        end&.fetch("activity_id", nil)
+        return prior.merge("dataset_activity_id" => activity_id, "replayed" => true)
+      end
+      publish_change(activity_action, record.id, row_id, provenance: audit)
+      query(reference, row_id: row_id, limit: 1).first.merge(
+        "dataset_activity_id" => activity_id, "replayed" => false
+      )
     rescue sqlite_error => error
       raise InvalidRow, safe_sqlite_message(error)
     end
@@ -286,28 +348,32 @@ module StructuredDataset
       }
     end
 
-    def migrate(reference, schema)
+    def migrate(reference, schema, provenance = {})
       record, storage, current = resolve(reference)
       replacement = definition_from(schema, slug: current.slug)
       validate_additive_migration!(current, replacement)
       added = replacement.columns[current.columns.length..-1] || []
       return describe(reference) if added.empty?
 
+      audit = audit_values(provenance)
       next_version = storage.fetch("schema_version").to_i + 1
+      activity_id = nil
       database.with_connection do |connection|
         database.transaction(connection) do
           database.add_schema_version(
             connection, dataset_id: record.id, definition: replacement,
             version: next_version, added_columns: added
           )
-          database.record_activity(
+          activity_id = database.record_activity(
             connection, dataset_id: record.id, action: "migrate", row_id: nil,
-            actor_id: @actor_id, source: "dataset-cli", run_id: @run_id
+            actor_id: audit.fetch("created_by"), source: audit.fetch("source"),
+            observation_id: audit["observation_id"], proposal_id: audit["proposal_id"],
+            approval_id: audit["approval_id"], run_id: @run_id
           )
         end
       end
-      publish_change("migrate", record.id, nil)
-      describe(reference)
+      publish_change("migrate", record.id, nil, provenance: audit)
+      describe(reference).merge("dataset_activity_id" => activity_id)
     end
 
     def import_rows(reference, rows, provenance = {})

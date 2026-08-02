@@ -66,26 +66,24 @@ module KnowledgeExtraction
     private
 
     def execute_intent(intent, proposal_id, approval)
-      if intent.is_a?(KnowledgeGraph::InsertDatasetRow)
-        row = dataset_engine.insert(
-          intent.dataset, intent.values,
-          source: intent.source, observation_id: intent.observation_id,
-          proposal_id: proposal_id, approval_id: approval && approval["approval_id"],
-          created_by: approval && approval["actor_id"] || "proposal-engine",
-          intent_id: intent.intent_id
-        )
-        dataset_id = dataset_engine.describe(intent.dataset).fetch("dataset_id")
-        return {
-          "intent_type" => intent.intent_type, "entity_ids" => [dataset_id],
-          "audit_id" => row.fetch("dataset_activity_id"), "replayed" => row.fetch("replayed"),
-          "extra" => { "row_id" => row.fetch("row_id") }
-        }
+      if StructuredDataset::IntentHandler.supports?(intent)
+        StructuredDataset::IntentHandler.new(
+          dataset_engine: dataset_engine, proposal_id: proposal_id, approval: approval
+        ).attach(@engine)
       end
 
       result = @engine.execute(intent)
+      extra = if result.value.is_a?(Hash)
+                %w[row_id dataset_id schema_version dataset_activity_id added_columns].each_with_object({}) do |key, values|
+                  values[key] = result.value[key] if result.value.key?(key)
+                end
+              else
+                {}
+              end
       {
         "intent_type" => result.intent_type, "entity_ids" => result.entity_ids,
-        "audit_id" => result.audit_id, "replayed" => result.replayed
+        "audit_id" => result.audit_id, "replayed" => result.replayed,
+        "extra" => extra
       }
     end
 

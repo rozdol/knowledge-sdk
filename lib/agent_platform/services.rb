@@ -98,6 +98,30 @@ module AgentPlatform
       end
     end
 
+    def dataset_proposal_builder(context)
+      context.memoize(:dataset_proposal_builder) do
+        StructuredDataset::DatasetProposalBuilder.new(
+          vault_root: vault_root, proposal_store: proposal_store(context),
+          classifier: KnowledgeGraph::ChatIntentResolver.classifier,
+          event_bus: @event_bus, clock: @clock
+        )
+      end
+    end
+
+    def cross_analysis(context, question:, from: nil, to: nil, as_of: nil,
+                       propose_recommendations: false)
+      key = ["cross-analysis", question.to_s, from.to_s, to.to_s, as_of.to_s, !!propose_recommendations]
+      context.memoize(key) do
+        KnowledgeAnalysis::Engine.new(
+          vault_root: vault_root, dataset_engine: dataset_engine(context),
+          snapshot: snapshot(context), event_bus: @event_bus, clock: @clock
+        ).analyze(
+          question, from: from, to: to, as_of: as_of,
+          propose_recommendations: propose_recommendations
+        )
+      end
+    end
+
     def notification_store
       raise ExecutionFailed, "notification service is unavailable" unless @notification_store
 

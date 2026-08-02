@@ -1,6 +1,6 @@
 # Structured Dataset Engine
 
-Version 11 adds a device-local SQLite backend for structured rows while preserving the Knowledge Graph as the semantic system of record.
+Version 13 adds autonomous registry/schema evolution and cross-subsystem Dataset Intelligence to the device-local SQLite backend while preserving the Knowledge Graph as the semantic system of record. Dataset routing classifies structured observations before the Knowledge Graph extraction pipeline.
 
 ## Architecture
 
@@ -27,6 +27,8 @@ Each dataset is a canonical `dataset` note created through `CreateEntity`. The n
 - sensitivity and data origin.
 
 The operational SQLite catalog uses the immutable Dataset ID as its key. It retains only the physical table mapping, executable row schema, and schema history required by the storage engine. Dataset creation stages the SQLite catalog/table in a transaction while the graph Engine validates and commits the canonical registry note. A failed SQLite commit triggers an Engine-based graph compensation attempt.
+
+Conversational callers never need to run `kg dataset create`. If a classified observation targets a missing Dataset, `AutonomousRegistry` adds an immutable `CreateDataset` prerequisite to the same review proposal. Exact approval and dependency-ordered submission create the Dataset, then execute the original row Intent. No Dataset is created while classifying or proposing.
 
 ## Database schema
 
@@ -65,7 +67,7 @@ Supported column types are `TEXT`, `INTEGER`, `REAL`, `BOOLEAN`, `DATE`, `DATETI
 ## Commands
 
 ```sh
-kg dataset create blood_tests
+kg dataset create blood_tests # trusted administrative compatibility command
 kg dataset list
 kg dataset describe blood_tests
 kg dataset insert blood_tests \
@@ -92,13 +94,17 @@ CSV and JSON use Ruby standard-library parsers. XLSX uses a minimal Office Open 
 
 The database has an engine-level `PRAGMA user_version` and an independent version history for each dataset. Dataset upgrades may append optional columns only. Existing columns cannot be removed, reordered, renamed, retyped, or have constraints changed. Required added columns are rejected because they would invalidate existing rows. Destructive upgrades require a future explicit copy-and-verify migration design.
 
+For proposal-driven rows, unknown columns generate `DatasetSchemaUpgradeProposal` metadata and an immutable `UpgradeDatasetSchema` prerequisite. The Intent records the observed `from_version`, complete additive replacement definition, and added columns. Execution rechecks the version, performs the approved migration through the Dataset lifecycle handler, records `migrate` activity, and only then retries the original row dependency.
+
 ## Platform integration
 
-- Observation: deterministic recognition can propose `InsertDatasetRow`. The proposal preserves exact evidence and confidence, requires human review, and writes the row only after immutable approval. The immutable Intent ID is stored with the row, so resubmitting or replaying the approved proposal returns the original row instead of duplicating it.
+- Observation: deterministic classification proposes a named Dataset Intent (or the compatibility `InsertDatasetRow`) before graph extraction. The proposal preserves exact evidence and confidence, requires human review, and writes the row only after immutable approval. The immutable Intent ID is stored with the row, so resubmitting or replaying the approved proposal returns the original row instead of duplicating it.
+- Routing: `KnowledgeSDK::IntentClassifier` evaluates `dataset -> analyze -> observe -> search -> plan -> proposal`. Named Dataset Intents include `ReplaceMedicationSchedule`, `InsertBloodPressureMeasurement`, `InsertWeightMeasurement`, `InsertBloodTestResult`, `InsertBodyMeasurement`, and `InsertExpense`. Dataset proposals use the existing proposal, approval, submission, Engine, Event Bus, and Activity components.
 - Search/Hermes: `kg.datasets.query` answers supported latest-value and trend questions, then falls back to graph query/search.
 - Planning: a read-only adapter computes neutral dataset signals such as numeric change, missed-dose counts, and recurring expense candidates. Signals appear in the planning trace; SQLite performs no interpretation.
 - Activity: every dataset change is recorded in `sde_activity`, publishes `DatasetChanged`, and appears in Knowledge Activity with the Dataset registry object and row/event reference.
 - Privacy: raw measurements and financial values stay in SQLite. Canonical Dataset notes contain metadata, never row values. Restricted datasets are redacted from activity and excluded from ordinary conversational/planning reads.
+- Analysis: `kg analyze` coordinates graph evidence, Dataset rows/statistics, Activity, Intelligence, planning signals, events, and cache through deterministic analysis plugins. Correlations always report aligned windows, confidence, and `causal: false`.
 
 ## Examples
 
@@ -113,8 +119,12 @@ route: search -> kg.datasets.query -> time-ordered blood_pressure rows
 ```
 
 ```text
-kg observe --text "My blood pressure today was 128 over 81." --json
-Proposal -> explicit approval -> InsertDatasetRow -> DatasetChanged -> Knowledge Activity
+kg chat --text "Today's blood pressure was 128 over 81" --json --explain
+route: dataset -> InsertBloodPressureMeasurement -> review-only Proposal
+  -> explicit approval -> existing Engine -> SQLite row -> DatasetChanged -> Knowledge Activity
 ```
 
+`kg observe` uses the same classifier, so recognized structured observations take this Dataset path as well. Ambiguous CSV or Markdown tables request a Dataset schema; they are never sent to graph extraction. Individual measurements, medication schedules, and financial rows never appear in Dataset registry Markdown.
+
 Machine-readable contracts are in `dataset-definition.schema.json`, `dataset-row.schema.json`, and `response.schema.json` in this directory.
+Dataset evolution and analysis contracts are in `docs/Dataset Intelligence/`.

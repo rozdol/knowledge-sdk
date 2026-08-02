@@ -22,7 +22,7 @@ Ruby 2.6 or newer is supported. SQLite-backed dataset commands require the `sqli
 bundle install
 bundle exec rake test
 gem build knowledge-sdk.gemspec
-gem install ./knowledge-sdk-12.0.0.gem
+gem install ./knowledge-sdk-13.0.0.gem
 ```
 
 During source development, use `ruby bin/kg`; after installation, use `kg`.
@@ -60,11 +60,24 @@ Plain `kg init` creates only the target and its normal `.obsidian` directory, th
 - SDK lifecycle: `kg init`, `attach`, `detach`, `upgrade`, `migrate`, `version`, `id`, `vault`, and `plugin`.
 - Graph: `execute`, `validate`, `doctor`, `graph`, `stats`, `search`, and `replay`.
 - Review workflow: `observe`, `extract`, `proposal`, `chat`, and `activity`.
-- Analysis and decisions: `intelligence`, `goal`, and `plan`.
+- Analysis and decisions: `analyze`, `intelligence`, `goal`, and `plan`.
 - Platform: `gateway`, `events`, `workflow`, `scheduler`, `notifications`, and `cache`.
-- Structured rows: `dataset create|list|describe|insert|update|delete|query|export|import|stats|explain`.
+- Structured rows: `dataset create|list|describe|insert|update|delete|query|export|import|stats|explain|migrate`.
 
 Global options are `--vault`, `--config`, `--dataset-db`, `--run-id`, and `--actor-id`. Environment overrides are `KG_VAULT`, `KG_CONFIG`, `KG_DATASET_DB`, `KG_RUN_ID`, and `KG_ACTOR_ID`.
+
+## Dataset intelligence
+
+Conversational structured observations no longer stop when a Dataset is missing or needs additive columns. The review proposal includes an approval-gated `CreateDataset` or `UpgradeDatasetSchema` prerequisite, then retries the original Dataset row Intent after that prerequisite succeeds.
+
+`kg analyze` combines graph evidence, structured rows and statistics, Knowledge Activity, Knowledge Intelligence findings, planning signals, events, and derived cache state through deterministic installed analysis plugins:
+
+```sh
+kg analyze "Why has my LDL increased during the last six months?"
+kg analyze "What subscriptions increased my monthly expenses?" --json
+```
+
+Answers identify the datasets, graph facts, time windows, confidence, and limitations used. Correlations are labeled as possible contributing factors and never presented as causality. Recommendations remain non-executable unless explicitly persisted as a review-only proposal with `--propose-recommendations`.
 
 ## Ruby API
 
@@ -104,4 +117,4 @@ kg --vault /path/to/vault validate
 kg --vault /path/to/vault doctor
 ```
 
-See [Architecture](docs/Architecture.md), [Configuration Guide](docs/Configuration%20Guide.md), [Migration Guide](docs/Migration%20Guide.md), [Plugin Guide](docs/Plugin%20Guide.md), [Developer Guide](docs/Developer%20Guide.md), and [Intent API](docs/Intent%20API.md).
+See [Installation](INSTALL.md), [AI Project Context](AI_PROJECT_CONTEXT.md), [Architecture Decisions](ARCHITECTURE_DECISIONS.md), [Architecture](docs/Architecture.md), [Dataset Intelligence](docs/Dataset%20Intelligence/README.md), [Configuration Guide](docs/Configuration%20Guide.md), [Migration Guide](docs/Migration%20Guide.md), [Plugin Guide](docs/Plugin%20Guide.md), [Developer Guide](docs/Developer%20Guide.md), and [Intent API](docs/Intent%20API.md). Automated contributors must also follow [AGENTS.md](AGENTS.md).

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://knowledge.local/schemas/dataset-evolution-proposal.json",
+  "title": "Dataset Evolution Proposal Metadata",
+  "type": "object",
+  "required": ["kind", "proposal_type", "dataset", "schema", "added_columns", "approval_required"],
+  "properties": {
+    "kind": { "type": "string", "enum": ["current", "create", "schema_upgrade"] },
+    "proposal_type": { "type": "string", "enum": ["CurrentDatasetPlan", "CreateDatasetProposal", "DatasetSchemaUpgradeProposal"] },
+    "dataset": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" },
+    "schema": { "$ref": "../Structured%20Dataset%20Engine/dataset-definition.schema.json" },
+    "added_columns": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" }, "uniqueItems": true },
+    "approval_required": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

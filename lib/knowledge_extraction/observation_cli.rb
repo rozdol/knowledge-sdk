@@ -39,7 +39,14 @@ module KnowledgeExtraction
         timestamp: options[:timestamp], source_type: options[:source_type],
         sensitivity: options[:sensitivity], clock: @clock
       )
-      result = observation_pipeline.process(envelope)
+      classification = KnowledgeGraph::ChatIntentResolver.classifier.classify(
+        envelope.text, envelope.gateway_arguments
+      )
+      result = if classification && classification.route == "dataset"
+                 dataset_observation(envelope, classification)
+               else
+                 observation_pipeline.process(envelope)
+               end
       if options[:json]
         @out.puts(JSON.pretty_generate(result.to_h(explain: options[:explain])))
       else
@@ -121,6 +128,70 @@ module KnowledgeExtraction
         cache: @cache,
         proposal_store: ProposalStore.new(vault_root: @vault_root, clock: @clock),
         snapshot_provider: @snapshot_provider
+      )
+    end
+
+    def dataset_observation(envelope, classification)
+      trace_id = Support.stable_id("trace", envelope.observation_id)
+      @event_bus.publish(
+        type: "ObservationReceived", source: "kg.observe", payload: envelope.event_payload,
+        correlation_id: envelope.observation_id, trace_id: trace_id
+      )
+      contract = @gateway.discover(agent: dataset_agent).find do |item|
+        item.fetch("capability_id") == "kg.datasets.propose"
+      end
+      raise ObservationFailure, "Dataset proposal capability is unavailable under policy" unless contract
+
+      request = @gateway.issue_request(
+        invocation_token: contract.fetch("invocation_token"),
+        arguments: envelope.gateway_arguments, trace_id: trace_id
+      )
+      response = @gateway.execute(request: request, agent: dataset_agent)
+      unless response.success?
+        error = response.errors.first || { "code" => "ExecutionFailed", "message" => "capability failed" }
+        raise ObservationFailure, "#{error.fetch('code')}: #{error.fetch('message')}"
+      end
+      result = response.payload
+      if result["status"] == "clarification_required"
+        raise ObservationFailure, result.fetch("question")
+      end
+
+      @event_bus.publish(
+        type: "ObservationCompleted", source: "kg.observe",
+        payload: {
+          "observation_id" => envelope.observation_id,
+          "proposal_id" => result.fetch("proposal_id"), "status" => "ok"
+        },
+        correlation_id: envelope.observation_id, trace_id: trace_id
+      )
+      payload = {
+        "status" => "ok", "observation_id" => envelope.observation_id,
+        "events" => %w[ObservationReceived ProposalCreated ObservationCompleted],
+        "summary" => {
+          "entities_detected" => 0, "proposals_created" => 1,
+          "approval_required" => true
+        },
+        "proposals" => [{
+          "id" => result.fetch("proposal_id"), "type" => "knowledge_update",
+          "status" => "pending_approval"
+        }],
+        "cache" => { "artifacts_created" => [] }
+      }
+      ObservationResult.new(
+        payload: payload, detected: [classification.intent],
+        stages: ["Intent classified", "Dataset proposal generated", "Approval required"]
+      )
+    end
+
+    def dataset_agent
+      @dataset_agent ||= AgentPlatform::AgentIdentity.new(
+        id: @actor_id.to_s.empty? ? "kg-observe-cli" : @actor_id.to_s,
+        permissions: ["proposal:create"], roles: ["observation_client"],
+        attributes: {
+          "autonomous_execution" => false,
+          "allowed_capabilities" => ["kg.datasets.propose"],
+          "denied_capabilities" => ["kg.proposals.submit"]
+        }
       )
     end
 

@@ -162,15 +162,6 @@ module KnowledgeExtraction
     end
 
     def extract(document, context)
-      if defined?(StructuredDataset::ObservationRecognizer)
-        structured = StructuredDataset::ObservationRecognizer.new.recognize(document, context[:self_entity])
-        if structured
-          return RawExtractionResult.new(
-            payload: structured, provider_name: name,
-            prompt_version: context.fetch(:configuration).prompt_version
-          )
-        end
-      end
       mentions = []
       facts = []
       mention_index = {}

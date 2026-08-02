@@ -28,9 +28,32 @@ Relationship attributes may include `confidence`, `sensitivity`, `data_origin`, 
 - `CompleteFollowUp(follow_up_id:, completed_on: nil)` completes a Follow-up.
 - `AttachEvidence(entity_id:, source_links: [], source_urls: [])` unions evidence without duplicates.
 
+## Structured Dataset rows
+
+Dataset Intents are immutable commands executed through the same `KnowledgeGraph::Engine` receipt and audit lifecycle. Registered Dataset handlers delegate typed row persistence to the Structured Dataset Engine; they do not create graph entities for individual rows.
+
+- `ReplaceMedicationSchedule(medication:, schedule:, effective_on:, dose: nil, unit: nil, source:, observation_id:, proposal_id: nil)` replaces the active SQLite schedule row for one medication.
+- `InsertBloodPressureMeasurement(observed_at:, systolic:, diastolic:, pulse: nil, source:, observation_id:, proposal_id: nil)` inserts a blood-pressure row.
+- `InsertWeightMeasurement(observed_at:, weight_kg:, source:, observation_id:, proposal_id: nil)` inserts a weight row.
+- `InsertBloodTestResult(observed_at:, marker:, value:, unit: nil, source:, observation_id:, proposal_id: nil)` inserts a laboratory row; an omitted unit is stored explicitly as `unspecified` for compatibility with existing Dataset schemas.
+- `InsertBodyMeasurement(observed_at:, measurement:, value:, unit:, source:, observation_id:, proposal_id: nil)` inserts a physical-measurement row.
+- `InsertExpense(occurred_on:, category:, amount:, currency:, merchant: nil, source:, observation_id:, proposal_id: nil)` inserts a financial row.
+- `InsertDatasetRow(dataset:, values:, source:, observation_id:, proposal_id: nil, approval_id: nil)` remains the generic compatibility Intent for trusted Dataset adapters.
+
+Classifier-generated Dataset Intents are always stored as review-only proposals with `human_review` approval. Submission attaches the SDK-owned Dataset handlers to the existing Engine. The Dataset activity ID is returned in `Result#value`; `DatasetChanged` and Knowledge Activity come from the existing Structured Dataset integrations.
+
+## Dataset lifecycle
+
+Dataset lifecycle mutations are also immutable, exact-approval-gated Intents. `AutonomousRegistry` generates them as dependencies; public conversational adapters do not execute them directly.
+
+- `CreateDataset(dataset_id:, dataset:, schema:, owner_id: nil, source:, proposal_id: nil)` creates the canonical Dataset registry entity and its SQLite catalog/table from one approved definition.
+- `UpgradeDatasetSchema(dataset:, from_version:, schema:, added_columns:, source:, proposal_id: nil)` applies an additive definition only if the current version still equals `from_version`.
+
+The proposal dependency graph executes either lifecycle Intent before the original Dataset row. New columns must be optional. Removal, reorder, rename, retype, and constraint changes are invalid. Lifecycle results include Dataset ID, schema version, and Dataset activity ID.
+
 ## Results and errors
 
-`execute` returns an immutable `Result` with `intent_type`, `entity_ids`, graph `changed_paths`, optional `value`, `replayed`, `duration_ms`, and `audit_id`.
+`execute` returns an immutable `Result` with `intent_type`, `entity_ids`, `changed_paths`, optional `value`, `replayed`, `duration_ms`, and `audit_id`. Dataset results use `value` for the SQLite row/activity references and do not report a graph content path.
 
 Expected error families include `InvalidIntent`, `ApprovalRequired`, `EntityNotFound`, `IdentityConflict`, `RelationshipConflict`, `ValidationError`, `TransactionError`, and `AuditError`. A raised error means the graph transaction did not partially apply; consult the audit event for its rollback status.
 

@@ -137,7 +137,7 @@ module KnowledgeActivity
       @all = if cached
                deserialize_activities(cached.value.fetch("activities"))
              else
-               activities = (build_activities + build_dataset_activities)
+               activities = (build_activities + build_dataset_activities + build_recommendation_activities)
                             .sort_by { |activity| [parse_time(activity.created_at), activity.id] }.freeze
                cache_activities(activities, key, snapshot_digest)
                activities
@@ -210,6 +210,38 @@ module KnowledgeActivity
       rescue KnowledgeGraph::Error
         nil
       end.compact
+    end
+
+    def build_recommendation_activities
+      orchestration_events.select { |event| event.type == "RecommendationGenerated" }.map do |event|
+        proposal_id = event.payload["proposal_id"]
+        audit = recommendation_audit(event)
+        Activity.new(
+          id: "activity_#{event.id.split('_', 2).last}", type: "knowledge_added",
+          summary: "A review-only recommendation proposal was generated.",
+          created_at: normalized_time(event.timestamp), source: event.source, actor: nil,
+          proposal: proposal_id, events: [event.id],
+          affected_objects: [{ id: proposal_id, kind: "recommendation_proposal", state: "awaiting_approval" }],
+          undo_available: false, restore_available: false, privacy: "visible", audit: audit
+        )
+      end
+    end
+
+    def recommendation_audits
+      orchestration_events.select { |event| event.type == "RecommendationGenerated" }.map do |event|
+        recommendation_audit(event)
+      end
+    end
+
+    def recommendation_audit(event)
+      {
+        "id" => "recommendation_#{event.id.split('_', 2).last}",
+        "result" => "success", "timestamp" => event.timestamp,
+        "run_id" => event.correlation_id, "actor_id" => nil,
+        "intent_type" => "RecommendationGenerated", "entity_ids" => [],
+        "changed_paths" => [], "fingerprint" => event.payload["analysis_digest"],
+        "intent" => { "params" => { "proposal_id" => event.payload["proposal_id"] } }
+      }
     end
 
     def dataset_activity_type(action)
@@ -443,7 +475,7 @@ module KnowledgeActivity
     def cache_activities(activities, key, snapshot_digest)
       dependencies = KnowledgeOrchestration::ArtifactDependencies.new(
         event_ids: activities.flat_map(&:events),
-        event_types: %w[GraphChanged RelationshipUpdated ContactCreated DatasetChanged],
+        event_types: %w[GraphChanged RelationshipUpdated ContactCreated DatasetChanged RecommendationGenerated],
         entity_ids: [], snapshot_digest: snapshot_digest,
         capability_id: "kg.activity.timeline", capability_version: KnowledgeActivity::VERSION
       )
@@ -459,7 +491,9 @@ module KnowledgeActivity
     end
 
     def deserialize_activities(items)
-      audits = (successful_audits + dataset_audits).to_h { |audit| [audit.fetch("id"), audit] }
+      audits = (successful_audits + dataset_audits + recommendation_audits).to_h do |audit|
+        [audit.fetch("id"), audit]
+      end
       items.map do |item|
         data = AgentPlatform::Value.mutable(item)
         audit_id = data.delete("audit_id")
@@ -477,7 +511,9 @@ module KnowledgeActivity
       graph_events + orchestration_events.select do |event|
         base = graph_by_id[event.causation_id]
         base && event.trace_id == base.trace_id
-      end + orchestration_events.select { |event| event.type == "DatasetChanged" }
+      end + orchestration_events.select do |event|
+        %w[DatasetChanged RecommendationGenerated].include?(event.type)
+      end
     end
 
     def orchestration_events

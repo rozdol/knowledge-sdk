@@ -7,7 +7,11 @@ module KnowledgeExtraction
     HIGH_RISK = %w[
       MergeEntities SplitEntity RemoveRelationship RenameEntity ArchiveEntity ReplaceRelationship
     ].freeze
-    MEDIUM_RISK = %w[UpdateEntity RecordPromise CompleteFollowUp InsertDatasetRow].freeze
+    MEDIUM_RISK = %w[
+      UpdateEntity RecordPromise CompleteFollowUp InsertDatasetRow ReplaceMedicationSchedule
+      InsertBloodPressureMeasurement InsertWeightMeasurement InsertBloodTestResult
+      InsertBodyMeasurement InsertExpense CreateDataset UpgradeDatasetSchema
+    ].freeze
 
     def classify(intent)
       return "high" if HIGH_RISK.include?(intent.intent_type)

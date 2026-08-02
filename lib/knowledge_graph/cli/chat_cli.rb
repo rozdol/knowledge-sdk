@@ -25,7 +25,9 @@ module KnowledgeGraph
       return emit_help(option_parser, json: options[:json]) if options[:help]
 
       text = chat_text(options)
-      response = router.route(text, explain: options[:explain]) do
+      response = router.route(
+        text, explain: options[:explain], context: dataset_arguments(text, options)
+      ) do
         observe(text, options)
       end
       emit(response, json: options[:json])
@@ -114,6 +116,14 @@ module KnowledgeGraph
       payload
     rescue JSON::ParserError
       raise ChatError, "observation route returned invalid JSON"
+    end
+
+    def dataset_arguments(text, options)
+      KnowledgeExtraction::ObservationEnvelope.new(
+        text: text, source: options.fetch(:source), conversation: options[:conversation],
+        message_id: options[:message_id], sender: options[:sender], timestamp: options[:timestamp],
+        source_type: options[:source_type], sensitivity: options.fetch(:sensitivity)
+      ).gateway_arguments
     end
 
     def router

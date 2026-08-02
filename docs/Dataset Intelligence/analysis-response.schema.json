@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://knowledge.local/schemas/dataset-intelligence-analysis-response.json",
+  "title": "Knowledge Analysis Response",
+  "type": "object",
+  "required": ["status", "analysis"],
+  "properties": {
+    "status": { "type": "string", "const": "ok" },
+    "analysis": {
+      "type": "object",
+      "required": [
+        "question", "intent", "summary", "confidence", "possible_factors",
+        "datasets", "graph_evidence", "activity_evidence", "time_windows",
+        "correlations", "recommendations", "decision_trace", "limitations", "analysis_modules",
+        "explainability", "subsystems", "analysis_digest"
+      ],
+      "properties": {
+        "question": { "type": "string", "minLength": 1 },
+        "intent": { "type": "string", "const": "analysis.cross_knowledge" },
+        "summary": { "type": "string" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "possible_factors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["factor_id", "label", "association", "confidence", "datasets", "evidence", "causal"],
+            "properties": {
+              "factor_id": { "type": "string", "pattern": "^factor_[0-9A-HJKMNP-TV-Z]{26}$" },
+              "label": { "type": "string" },
+              "association": { "type": "string" },
+              "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+              "datasets": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+              "evidence": { "type": "object" },
+              "time_window": { "type": "object" },
+              "direction": { "type": "string" },
+              "causal": { "type": "boolean", "const": false },
+              "limitations": { "type": "array", "items": { "type": "string" } }
+            },
+            "additionalProperties": false
+          }
+        },
+        "datasets": { "type": "array", "items": { "type": "object" } },
+        "graph_evidence": { "type": "array", "items": { "type": "object" } },
+        "activity_evidence": { "type": "array", "items": { "type": "object" } },
+        "intelligence_evidence": { "type": "array", "items": { "type": "object" } },
+        "planning_signals": { "type": "array", "items": { "type": "object" } },
+        "event_evidence": { "type": "array", "items": { "type": "object" } },
+        "time_windows": { "type": "array", "items": { "type": "object" } },
+        "correlations": { "type": "array", "items": { "type": "object" } },
+        "recommendations": { "type": "array", "items": { "type": "object" } },
+        "decision_trace": { "type": "object" },
+        "limitations": { "type": "array", "items": { "type": "string" } },
+        "analysis_modules": { "type": "array", "items": { "type": "object" } },
+        "explainability": {
+          "type": "object",
+          "required": ["causal_language", "causality_established", "ranking", "dataset_signature", "graph_snapshot_digest"],
+          "properties": {
+            "causal_language": { "type": "string", "const": "possible_contributing_factors" },
+            "causality_established": { "type": "boolean", "const": false },
+            "ranking": { "type": "string" },
+            "dataset_signature": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "graph_snapshot_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+          },
+          "additionalProperties": false
+        },
+        "subsystems": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "analysis_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

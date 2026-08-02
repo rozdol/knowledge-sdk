@@ -51,5 +51,56 @@
     "transports": ["hermes", "mcp", "cli", "rest"],
     "examples": [{ "arguments": { "dataset": "blood_tests" } }],
     "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.datasets.propose",
+    "name": "propose_structured_observation",
+    "version": "1.0.0",
+    "description": "Classify a structured observation and create an immutable review-only Dataset Intent proposal without graph extraction.",
+    "input_schema": {
+      "type": "object",
+      "required": ["source_type", "content"],
+      "properties": {
+        "source_type": { "type": "string", "enum": ["text", "chat", "meeting-notes", "email-text", "transcript", "ocr-text", "pdf-text"] },
+        "content": { "type": "string", "minLength": 1, "maxLength": 1000000 },
+        "language": { "type": "string", "enum": ["en", "ru", "el", "mixed", "und"] },
+        "captured_at": { "type": "string", "format": "date-time" },
+        "external_id": { "type": "string", "maxLength": 1000 },
+        "source_uri": { "type": "string", "maxLength": 4096 },
+        "title": { "type": "string", "maxLength": 1000 },
+        "observation_id": { "type": "string", "pattern": "^observation_[0-9A-HJKMNP-TV-Z]{26}$" },
+        "origin_source": { "type": "string", "maxLength": 200 },
+        "conversation_id": { "type": "string", "maxLength": 1000 },
+        "message_id": { "type": "string", "maxLength": 1000 },
+        "sender": { "type": "string", "maxLength": 1000 },
+        "sensitivity": { "type": "string", "enum": ["normal", "private", "restricted"] }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "required": ["status", "classification", "planned_intent_count", "approval_required", "executable"],
+      "properties": {
+        "status": { "type": "string" },
+        "proposal_id": { "type": "string", "pattern": "^proposal_[0-9A-HJKMNP-TV-Z]{26}$" },
+        "observation_id": { "type": "string" },
+        "classification": { "type": "object" },
+        "planned_intent_count": { "type": "integer", "minimum": 0 },
+        "approval_required": { "type": "boolean", "const": true },
+        "executable": { "type": "boolean", "const": false },
+        "warnings": { "type": "array", "items": { "type": "string" } },
+        "question": { "type": "string" },
+        "dataset_evolution": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "proposal_write", "timeout_ms": 15000, "idempotent": true },
+    "policy": { "permissions": ["proposal:create"], "risk": "medium", "approval": "proposal_only" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "source_type": "chat", "content": "Today's blood pressure was 128 over 81", "sensitivity": "private" } }],
+    "deprecation": { "status": "active" }
   }
 ]

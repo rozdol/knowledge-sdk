@@ -50,7 +50,7 @@ class StructuredDatasetIntegrationTest < Minitest::Test
       refute_nil proposal_id
       proposal = KnowledgeExtraction::ProposalStore.new(vault_root: root).load(proposal_id)
       planned = proposal.fetch("planned_intents").first
-      assert_equal "InsertDatasetRow", planned.dig("intent", "type")
+      assert_equal "InsertBloodPressureMeasurement", planned.dig("intent", "type")
       assert_equal "human_review", planned.fetch("approval_requirement")
 
       status, approval_output, errors = run_cli(root, "proposal", "approve", proposal_id, "--all", "--actor", "human-test")

@@ -10,6 +10,27 @@ module KnowledgeGraph
       @transaction = transaction
       @vault_root = vault_root
       @result = nil
+      @deferred_operation = nil
+    end
+
+    def defer(&operation)
+      raise TransactionError, "deferred operation must respond to call" unless operation
+      raise TransactionError, "execution context already has a deferred operation" if @deferred_operation
+
+      @deferred_operation = operation
+      self
+    end
+
+    def deferred?
+      !@deferred_operation.nil?
+    end
+
+    def execute_deferred
+      raise TransactionError, "execution context has no deferred operation" unless @deferred_operation
+
+      operation = @deferred_operation
+      @deferred_operation = nil
+      operation.call
     end
   end
 
@@ -30,6 +51,7 @@ module KnowledgeGraph
       transaction = @transaction_factory.call(@vault_root)
       context = ExecutionContext.new(intent: intent, transaction: transaction, vault_root: @vault_root)
       fingerprint = @receipt_store.fingerprint(intent)
+      deferred_receipt = false
 
       begin
         @hooks.emit(:before_execute, context)
@@ -39,11 +61,20 @@ module KnowledgeGraph
         else
           value = @dispatcher.dispatch(intent, context)
           context.result = preliminary_result(intent, value, transaction)
-          @receipt_store.stage(transaction, fingerprint, intent, context.result)
+          if context.deferred?
+            deferred_receipt = true
+          else
+            @receipt_store.stage(transaction, fingerprint, intent, context.result)
+          end
         end
         @hooks.emit(:after_execute, context)
         @validator.call(context)
         @hooks.emit(:before_commit, context)
+        if deferred_receipt
+          value = context.execute_deferred
+          context.result = preliminary_result(intent, value, transaction)
+          @receipt_store.stage(transaction, fingerprint, intent, context.result)
+        end
         transaction.commit
         @hooks.emit(:after_commit, context)
       rescue StandardError => error
