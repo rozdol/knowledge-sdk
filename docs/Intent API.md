@@ -32,7 +32,7 @@ Relationship attributes may include `confidence`, `sensitivity`, `data_origin`, 
 
 Dataset Intents are immutable commands executed through the same `KnowledgeGraph::Engine` receipt and audit lifecycle. Registered Dataset handlers delegate typed row persistence to the Structured Dataset Engine; they do not create graph entities for individual rows.
 
-- `ReplaceMedicationSchedule(medication:, schedule:, effective_on:, dose: nil, unit: nil, source:, observation_id:, proposal_id: nil)` replaces the active SQLite schedule row for one medication.
+- `ReplaceMedicationSchedule(medication:, schedule:, effective_on:, dose: nil, unit: nil, schedule_details: nil, source:, observation_id:, proposal_id: nil)` replaces the active SQLite schedule row for one medication. `schedule_details` preserves optional per-time-slot conditions and administration routes for compound schedules.
 - `InsertBloodPressureMeasurement(observed_at:, systolic:, diastolic:, pulse: nil, source:, observation_id:, proposal_id: nil)` inserts a blood-pressure row.
 - `InsertWeightMeasurement(observed_at:, weight_kg:, source:, observation_id:, proposal_id: nil)` inserts a weight row.
 - `InsertBloodTestResult(observed_at:, marker:, value:, unit: nil, source:, observation_id:, proposal_id: nil)` inserts a laboratory row; an omitted unit is stored explicitly as `unspecified` for compatibility with existing Dataset schemas.

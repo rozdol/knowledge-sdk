@@ -64,6 +64,8 @@ SQLite foreign keys, WAL journaling, busy timeouts, transactions, unique indexes
 
 Supported column types are `TEXT`, `INTEGER`, `REAL`, `BOOLEAN`, `DATE`, `DATETIME`, and `JSON`.
 
+Medication schedules may include optional JSON `schedule_details`. It preserves multiple time slots, fasting conditions, and administration routes while the existing unique medication row remains the active combined schedule. Existing medication datasets receive this optional column through the normal approval-gated additive schema-evolution proposal.
+
 ## Commands
 
 ```sh
@@ -123,6 +125,8 @@ kg chat --text "Today's blood pressure was 128 over 81" --json --explain
 route: dataset -> InsertBloodPressureMeasurement -> review-only Proposal
   -> explicit approval -> existing Engine -> SQLite row -> DatasetChanged -> Knowledge Activity
 ```
+
+English, Russian, and Greek recurring medication statements use bounded deterministic normalization and morphology patterns. Compound Russian input may create several immutable `ReplaceMedicationSchedule` Intents in one review proposal; repeated medications are combined into one active row with per-slot `schedule_details`. Past-tense administration events do not become schedules: until a named medication-log Intent is installed, they return structured clarification and never fall through to graph observation.
 
 `kg observe` uses the same classifier, so recognized structured observations take this Dataset path as well. Ambiguous CSV or Markdown tables request a Dataset schema; they are never sent to graph extraction. Individual measurements, medication schedules, and financial rows never appear in Dataset registry Markdown.
 

@@ -5,7 +5,7 @@ module KnowledgeGraph
 
   class ChatIntentResolver
     Decision = Struct.new(
-      :route, :reason, :capability, :intent, :confidence, :slots,
+      :route, :reason, :capability, :intent, :confidence, :slots, :diagnostic_trace,
       keyword_init: true
     )
 
@@ -81,11 +81,15 @@ module KnowledgeGraph
       @classifier = classifier
     end
 
-    def resolve(text, context = {})
+    def resolve(text, context = {}, diagnostic: false)
       source = text.to_s.strip
       raise ChatError, "chat text is empty" if source.empty?
 
-      classification = @classifier.classify(source, context)
+      classification, trace = if diagnostic
+                                @classifier.classify_with_trace(source, context)
+                              else
+                                [@classifier.classify(source, context), nil]
+                              end
       unless classification
         reason = if UNSUPPORTED_ACTION.match?(source)
                    "requested action is not safely covered by a chat route"
@@ -94,21 +98,22 @@ module KnowledgeGraph
                  else
                    "message intent is ambiguous"
                  end
-        return decision("clarification", reason, nil, "chat.clarification", 0.0, {})
+        return decision("clarification", reason, nil, "chat.clarification", 0.0, {}, trace)
       end
 
       decision(
         classification.route, classification.reason, CAPABILITIES[classification.route],
-        classification.intent, classification.confidence, classification.slots
+        classification.intent, classification.confidence, classification.slots, trace
       )
     end
 
     private
 
-    def decision(route, reason, capability, intent, confidence, slots)
+    def decision(route, reason, capability, intent, confidence, slots, diagnostic_trace = nil)
       Decision.new(
         route: route, reason: reason, capability: capability,
-        intent: intent, confidence: confidence, slots: slots
+        intent: intent, confidence: confidence, slots: slots,
+        diagnostic_trace: diagnostic_trace
       ).freeze
     end
   end
@@ -145,7 +150,7 @@ module KnowledgeGraph
     end
 
     def route(text, explain: false, context: {})
-      decision = @resolver.resolve(text, context)
+      decision = @resolver.resolve(text, context, diagnostic: explain)
       response, capability = case decision.route
                              when "dataset" then dataset_response(decision, context)
                              when "analyze" then capability_response(
@@ -168,6 +173,7 @@ module KnowledgeGraph
           "intent" => decision.intent,
           "confidence" => decision.confidence
         }
+        response["explain"].merge!(decision.diagnostic_trace) if decision.diagnostic_trace
       end
       response
     end

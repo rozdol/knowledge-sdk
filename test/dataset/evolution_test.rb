@@ -105,6 +105,36 @@ class StructuredDatasetEvolutionTest < Minitest::Test
     end
   end
 
+  def test_existing_medication_schedule_gets_optional_details_upgrade
+    with_schema_vault do |root|
+      datasets = dataset_engine(root)
+      datasets.create("medication_schedules", schema: {
+        slug: "medication_schedules", name: "Medication Schedules",
+        kind: "medication_schedules", purpose: "Synthetic legacy schedules",
+        sensitivity: "private", columns: [
+          { name: "effective_on", type: "DATE", required: true, index: true },
+          { name: "medication", type: "TEXT", required: true, unique: true },
+          { name: "dose", type: "REAL" }, { name: "unit", type: "TEXT" },
+          { name: "schedule", type: "TEXT", required: true },
+          { name: "active", type: "BOOLEAN", required: true }
+        ]
+      })
+
+      status, output, errors = run_cli(
+        root, "chat", "--text", "Я принимаю Berberine утром",
+        "--timestamp", "2026-08-02T09:30:00Z", "--json"
+      )
+      assert_equal 0, status, errors
+      proposal_id = JSON.parse(output).dig("result", "proposal_id")
+      proposal = KnowledgeExtraction::ProposalStore.new(vault_root: root).load(proposal_id)
+      assert_equal %w[UpgradeDatasetSchema ReplaceMedicationSchedule],
+                   proposal.fetch("planned_intents").map { |item| item.dig("intent", "type") }
+      assert_equal ["schedule_details"],
+                   proposal.dig("planned_intents", 0, "intent", "params", "added_columns")
+      assert_empty datasets.query("medication_schedules")
+    end
+  end
+
   private
 
   def register_medication_route

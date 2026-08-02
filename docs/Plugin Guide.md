@@ -38,6 +38,8 @@ end
 
 The `domain` registration field is required for specialized plugins. Omitting it retains compatibility by registering the matcher in `generic`; it does not make the matcher a graph fallback. Fallback classifiers are SDK-owned, explicitly registered with `fallback: true`, and restricted to the generic domain.
 
+The shared classifier normalizes input as UTF-8 NFC before domain and intent matching. `classify_with_trace` returns the selected immutable classification plus safe diagnostics used by `kg chat --explain`; plugins still receive normalized original spelling rather than lowercased match text. Diagnostics contain only strings, confidence values, and plugin registration names.
+
 The plugin must also register an SDK-owned immutable Dataset Intent/proposal mapping and an Engine handler that delegates to the Structured Dataset Engine. Classifier registration does not grant approval or execution authority. Matchers and handlers may come only from trusted installed SDK code, never from an attached Vault or imported content.
 
 ```ruby

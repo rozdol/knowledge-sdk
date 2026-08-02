@@ -1,6 +1,22 @@
+# encoding: UTF-8
 # frozen_string_literal: true
 
 module KnowledgeSDK
+  class ClassifierTextNormalizer
+    NormalizedText = Struct.new(:original, :matching, keyword_init: true)
+
+    def normalize(value)
+      original = value.to_s.encode(Encoding::UTF_8).unicode_normalize(:nfc)
+                      .gsub("\r\n", "\n").gsub("\r", "\n").delete("\u0000").strip
+      raise ArgumentError, "classification text is empty" if original.empty?
+
+      matching = original.downcase.tr("ё", "е")
+      NormalizedText.new(original: original.freeze, matching: matching.freeze).freeze
+    rescue Encoding::InvalidByteSequenceError, Encoding::UndefinedConversionError
+      raise ArgumentError, "classification text must be valid UTF-8"
+    end
+  end
+
   class DomainClassification
     attr_reader :domain, :confidence, :explanation
 
@@ -23,7 +39,7 @@ module KnowledgeSDK
     DOMAIN_RULES = {
       "health" => [
         /(?:medicat|medicine|dosage|dose|tablet|\b(?:take|taking)\b.*\b(?:every\s+(?:morning|afternoon|evening|night|day)|once\s+daily|twice\s+daily)|blood\s+pressure|heart\s+rate|pulse|weight|waist|body[ -]fat|body\s+temperature|oxygen\s+saturation|laboratory|\blab\b|cholesterol|glucose|insulin|hemoglobin|haemoglobin|\bldl\b|\bhdl\b|nutrition|protein|sleep\s+duration)/i,
-        /(?:лекарств|препарат|принимаю|таблет|доз|давлен|пульс|частот[[:alpha:]]*\s+сердц|\bвес\b|тали|температур[[:alpha:]]*\s+тел|сатурац|анализ|лаборатор|холестерин|глюкоз|гемоглобин|лпнп|лпвп)/i,
+        /(?:лекарств|препарат|принима|при[её]м|пью|выпива|принял|приняла|таблет|капсул|доз|давлен|пульс|частот[[:alpha:]]*\s+сердц|\bвес\b|тали|температур[[:alpha:]]*\s+тел|сатурац|анализ|лаборатор|холестерин|глюкоз|гемоглобин|лпнп|лпвп)/i,
         /(?:φάρμακ|παίρνω|λαμβάνω|δόση|χάπι|πίεσ|σφυγμ|καρδιακ[[:alpha:]]*\s+ρυθμ|βάρος|μέση|θερμοκρασ[[:alpha:]]*\s+σώματος|κορεσμ[[:alpha:]]*\s+οξυγόν|εξέτασ|εργαστηριακ|χοληστερ|γλυκόζ|αιμοσφαιρ|διατροφ|πρωτεΐν)/i
       ],
       "finance" => [
@@ -52,24 +68,29 @@ module KnowledgeSDK
       "trading" => 0.97, "knowledge" => 0.75
     }.freeze
 
-    def classify(text, context = {})
+    def candidates(text, context = {})
       source = text.to_s.strip
       raise ArgumentError, "classification text is empty" if source.empty?
       raise ArgumentError, "classification context must be an object" unless context.is_a?(Hash)
 
       matches = DOMAIN_RULES.each_with_object([]) do |(domain, patterns), result|
-        result << domain if patterns.any? { |pattern| pattern.match?(source) }
+        next unless patterns.any? { |pattern| pattern.match?(source) }
+
+        result << DomainClassification.new(
+          domain: domain, confidence: DOMAIN_CONFIDENCE.fetch(domain),
+          explanation: "detected #{domain} vocabulary and concepts"
+        )
       end
-      domain = matches.max_by { |candidate| DOMAIN_CONFIDENCE.fetch(candidate) } || "generic"
-      confidence = DOMAIN_CONFIDENCE.fetch(domain, 0.0)
-      explanation = if domain == "generic"
-                      "no specialized semantic domain was detected"
-                    else
-                      "detected #{domain} vocabulary and concepts"
-                    end
-      DomainClassification.new(
-        domain: domain, confidence: confidence, explanation: explanation
-      )
+      return matches.freeze unless matches.empty?
+
+      [DomainClassification.new(
+        domain: "generic", confidence: 0.0,
+        explanation: "no specialized semantic domain was detected"
+      )].freeze
+    end
+
+    def classify(text, context = {})
+      candidates(text, context).max_by(&:confidence)
     end
   end
 
@@ -136,14 +157,19 @@ module KnowledgeSDK
     ROUTES = %w[dataset analyze observe search plan proposal].freeze
     Entry = Struct.new(:name, :domain, :route, :matcher, :fallback, keyword_init: true)
 
-    attr_reader :domain_classifier
+    attr_reader :domain_classifier, :text_normalizer
 
-    def initialize(domain_classifier: SemanticDomainClassifier.new)
+    def initialize(domain_classifier: SemanticDomainClassifier.new,
+                   text_normalizer: ClassifierTextNormalizer.new)
       unless domain_classifier.respond_to?(:classify)
         raise ArgumentError, "domain classifier must respond to classify"
       end
+      unless text_normalizer.respond_to?(:normalize)
+        raise ArgumentError, "text normalizer must respond to normalize"
+      end
 
       @domain_classifier = domain_classifier
+      @text_normalizer = text_normalizer
       @entries = {}
     end
 
@@ -181,24 +207,18 @@ module KnowledgeSDK
     end
 
     def classify(text, context = {})
-      source = text.to_s.strip
-      raise ArgumentError, "classification text is empty" if source.empty?
-      raise ArgumentError, "classification context must be an object" unless context.is_a?(Hash)
+      classify_internal(text, context, diagnostic: false).first
+    end
 
-      domain = detect_domain(source, context).domain
-      classification = best_match(entries_for(domain, fallback: false), source, context)
-      return classification if classification
-
-      if domain != "generic"
-        classification = best_match(entries_for("generic", fallback: false), source, context)
-        return classification if classification
-      end
-
-      best_match(entries_for("generic", fallback: true), source, context)
+    def classify_with_trace(text, context = {})
+      classify_internal(text, context, diagnostic: true)
     end
 
     def detect_domain(text, context = {})
-      result = domain_classifier.classify(text, context)
+      raise ArgumentError, "classification context must be an object" unless context.is_a?(Hash)
+
+      normalized = text_normalizer.normalize(text)
+      result = domain_classifier.classify(normalized.matching, context)
       unless result.respond_to?(:domain) && DOMAINS.include?(result.domain.to_s)
         raise ArgumentError, "domain classifier returned an unsupported domain"
       end
@@ -219,6 +239,73 @@ module KnowledgeSDK
 
     private
 
+    def classify_internal(text, context, diagnostic:)
+      raise ArgumentError, "classification context must be an object" unless context.is_a?(Hash)
+
+      normalized = text_normalizer.normalize(text)
+      domain_candidates = detected_domains(normalized.matching, context)
+      domain = domain_candidates.max_by(&:confidence).domain
+      loaded = []
+      candidates = []
+
+      entries = entries_for(domain, fallback: false)
+      loaded.concat(entries.map(&:name))
+      candidates.concat(evaluate(entries, normalized.original, context))
+
+      if candidates.empty? && domain != "generic"
+        entries = entries_for("generic", fallback: false)
+        loaded.concat(entries.map(&:name))
+        candidates.concat(evaluate(entries, normalized.original, context))
+      end
+
+      if candidates.empty?
+        entries = entries_for("generic", fallback: true)
+        loaded.concat(entries.map(&:name))
+        candidates.concat(evaluate(entries, normalized.original, context))
+      end
+
+      selected = candidates.max_by { |candidate| candidate.fetch(:classification).confidence }
+      classification = selected && selected.fetch(:classification)
+      trace = diagnostic ? diagnostic_trace(
+        normalized, domain_candidates, loaded, candidates, classification
+      ) : nil
+      [classification, trace]
+    end
+
+    def detected_domains(text, context)
+      results = if domain_classifier.respond_to?(:candidates)
+                  domain_classifier.candidates(text, context)
+                else
+                  [domain_classifier.classify(text, context)]
+                end
+      unless results.all? { |result| result.respond_to?(:domain) && DOMAINS.include?(result.domain.to_s) }
+        raise ArgumentError, "domain classifier returned an unsupported domain"
+      end
+
+      results
+    end
+
+    def diagnostic_trace(normalized, domains, loaded, candidates, selected)
+      {
+        "normalized_text" => normalized.matching,
+        "domain_candidates" => domains.map do |candidate|
+          {
+            "domain" => candidate.domain, "confidence" => candidate.confidence,
+            "reason" => candidate.explanation
+          }
+        end,
+        "loaded_classifier_plugins" => loaded.uniq,
+        "intent_candidates" => candidates.map do |candidate|
+          classification = candidate.fetch(:classification)
+          {
+            "intent" => classification.intent, "confidence" => classification.confidence,
+            "plugin" => candidate.fetch(:entry).name
+          }
+        end,
+        "selected_intent" => selected&.intent
+      }.freeze
+    end
+
     def registration(entry)
       {
         "name" => entry.name, "domain" => entry.domain,
@@ -232,12 +319,13 @@ module KnowledgeSDK
       end.sort_by(&:name)
     end
 
-    def best_match(entries, source, context)
-      matches = entries.each_with_object([]) do |entry, result|
+    def evaluate(entries, source, context)
+      entries.each_with_object([]) do |entry, result|
         plugin_result = entry.matcher.call(source, context)
-        result << normalize(plugin_result, entry) if plugin_result
+        if plugin_result
+          result << { classification: normalize(plugin_result, entry), entry: entry }.freeze
+        end
       end
-      matches.max_by(&:confidence)
     end
 
     def normalize(result, entry)

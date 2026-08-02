@@ -162,6 +162,169 @@ class StructuredDatasetRoutingTest < Minitest::Test
     end
   end
 
+  def test_classifier_text_normalization_is_utf8_unicode_safe_and_preserves_names
+    normalized = KnowledgeSDK::ClassifierTextNormalizer.new.normalize(
+      "ПРИЁМ Berberine, B12 и zinc carnosine\r\nвечером"
+    )
+
+    assert_equal Encoding::UTF_8, normalized.original.encoding
+    assert_equal "ПРИЁМ Berberine, B12 и zinc carnosine\nвечером", normalized.original
+    assert_equal "прием berberine, b12 и zinc carnosine\nвечером", normalized.matching
+  end
+
+  def test_common_russian_medication_forms_are_bounded_schedule_signals
+    examples = [
+      "Принимать zinc carnosine по 1 таблетке утром",
+      "Она принимает B12 500 мкг днем под язык",
+      "Приём Berberine: 1 капсула вечером после еды",
+      "Пью витамин D 2 капли раз в день",
+      "Выпиваю магний 1 таблетку на ночь",
+      "Я принимаю цинк 10 мг до еды",
+      "Я принимаю средство 1 таблетку сублингвально утром"
+    ]
+    classifier = KnowledgeGraph::ChatIntentResolver.classifier
+
+    examples.each do |text|
+      classification = classifier.classify(text, "captured_at" => "2026-08-02T09:30:00Z")
+      assert_equal "dataset", classification.route, text
+      assert_equal "dataset.medication_schedule", classification.intent, text
+      assert_operator classification.confidence, :>=, 0.90, text
+    end
+  end
+
+  def test_real_chat_cli_routes_multilingual_medication_schedules_to_dataset
+    examples = [
+      "I take Berberine every morning on an empty stomach.",
+      "Я принимаю утром натощак Berberine 1 капсулу.",
+      "Παίρνω Berberine κάθε πρωί με άδειο στομάχι."
+    ]
+
+    with_schema_vault do |root|
+      datasets = dataset_engine(root)
+      datasets.create("medication_schedules")
+      before = KnowledgeIntelligence::GraphSnapshot.load(vault_root: root).digest
+
+      examples.each do |text|
+        status, output, errors = run_cli(
+          root, "chat", "--text", text,
+          "--timestamp", "2026-08-02T09:30:00Z", "--json", "--explain"
+        )
+        assert_equal 0, status, errors
+        assert_empty errors
+        payload = JSON.parse(output)
+        assert_equal "ok", payload.fetch("status")
+        assert_equal "dataset", payload.fetch("route")
+        assert_equal "dataset.medication_schedule", payload.dig("explain", "intent")
+        assert_equal "dataset.medication_schedule", payload.dig("explain", "selected_intent")
+        assert_kind_of String, payload.dig("explain", "normalized_text")
+        health_domain = payload.dig("explain", "domain_candidates").find do |item|
+          item["domain"] == "health"
+        end
+        refute_nil health_domain
+        assert_operator health_domain.fetch("confidence"), :>=, 0.90
+        assert_includes payload.dig("explain", "loaded_classifier_plugins"),
+                        "structured-dataset-health"
+        candidate = payload.dig("explain", "intent_candidates").find do |item|
+          item["intent"] == "dataset.medication_schedule"
+        end
+        refute_nil candidate
+        assert_operator candidate.fetch("confidence"), :>=, 0.90
+        refute payload.dig("explain", "intent_candidates").any? { |item|
+          item["intent"] == "graph.observe"
+        }
+        if text.start_with?("Я")
+          assert_equal "я принимаю утром натощак berberine 1 капсулу.",
+                       payload.dig("explain", "normalized_text")
+        end
+        assert_equal "dataset.medication_schedule", payload.dig("result", "intent")
+        assert_equal "dataset_update", payload.dig("result", "proposal", "type")
+        assert_equal "awaiting_approval", payload.dig("result", "proposal", "status")
+        refute payload.fetch("result").key?("observation_id")
+
+        proposal = KnowledgeExtraction::ProposalStore.new(vault_root: root).load(
+          payload.dig("result", "proposal_id")
+        )
+        assert_equal "intent-classifier", proposal.dig("model_metadata", "provider")
+        assert_equal "ReplaceMedicationSchedule",
+                     proposal.dig("planned_intents", 0, "intent", "type")
+      end
+
+      assert_empty datasets.query("medication_schedules")
+      assert_equal before, KnowledgeIntelligence::GraphSnapshot.load(vault_root: root).digest
+      event_types = KnowledgeOrchestration::EventStore.new(vault_root: root).events.map(&:type)
+      refute_includes event_types, "ExtractionCompleted"
+    end
+  end
+
+  def test_real_chat_cli_parses_multiline_russian_schedule_without_writing
+    text = <<~TEXT
+      Я принимаю утром натощак:
+      Berberine 1 капсулу
+      zinc carnosine 1 капсулу
+      taurine 1 капсулу.
+
+      Днем я принимаю витамин B12 под язык и еще 1 капсулу Berberine
+    TEXT
+
+    with_schema_vault do |root|
+      datasets = dataset_engine(root)
+      datasets.create("medication_schedules")
+      status, output, errors = run_cli(
+        root, "chat", "--text", text,
+        "--timestamp", "2026-08-02T09:30:00Z", "--json", "--explain"
+      )
+      assert_equal 0, status, errors
+      assert_empty errors
+      payload = JSON.parse(output)
+      assert_equal "dataset", payload.fetch("route")
+      assert_equal "dataset.medication_schedule", payload.dig("explain", "selected_intent")
+
+      entries = payload.dig("result", "classification", "slots", "entries")
+      assert_equal 5, entries.length
+      berberine = entries.select { |entry| entry["medication"] == "Berberine" }
+      assert_equal %w[every\ morning every\ afternoon], berberine.map { |entry| entry["schedule"] }
+      morning = entries.select { |entry| entry["schedule"] == "every morning" }
+      assert_equal 3, morning.length
+      assert morning.all? { |entry| entry["fasting"] == true }
+      b12 = entries.find { |entry| entry["medication"].include?("B12") }
+      assert_equal "sublingual", b12.fetch("administration_route")
+      assert_equal 5, payload.dig("result", "parsed_entry_count")
+      assert_equal "dataset_update", payload.dig("result", "proposal", "type")
+      refute payload.fetch("result").key?("observation_id")
+
+      proposal = KnowledgeExtraction::ProposalStore.new(vault_root: root).load(
+        payload.dig("result", "proposal_id")
+      )
+      planned = proposal.fetch("planned_intents")
+      assert_equal 4, planned.length
+      assert planned.all? { |item| item.dig("intent", "type") == "ReplaceMedicationSchedule" }
+      berberine_intent = planned.find do |item|
+        item.dig("intent", "params", "medication") == "Berberine"
+      end
+      assert_equal 2, berberine_intent.dig("intent", "params", "schedule_details").length
+      assert_empty datasets.query("medication_schedules")
+      event_types = KnowledgeOrchestration::EventStore.new(vault_root: root).events.map(&:type)
+      refute_includes event_types, "ExtractionCompleted"
+    end
+  end
+
+  def test_medication_administration_event_requests_structured_clarification
+    with_schema_vault do |root|
+      status, output, errors = run_cli(
+        root, "chat", "--text", "Сегодня в 08:00 я принял Berberine",
+        "--timestamp", "2026-08-02T09:30:00Z", "--json", "--explain"
+      )
+      assert_equal 0, status, errors
+      assert_empty errors
+      payload = JSON.parse(output)
+      assert_equal "clarification_required", payload.fetch("status")
+      assert_equal "dataset", payload.fetch("route")
+      assert_equal "dataset.structured_observation", payload.dig("explain", "intent")
+      assert_includes payload.dig("clarification", "question"), "medication administration event"
+      refute Dir.exist?(File.join(root, KnowledgeExtraction::ProposalStore::RUNTIME, "proposals"))
+    end
+  end
+
   def test_chat_creates_named_dataset_intents_without_graph_extraction
     with_schema_vault do |root|
       engine = dataset_engine(root)

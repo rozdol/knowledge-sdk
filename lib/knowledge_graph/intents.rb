@@ -112,6 +112,7 @@ module KnowledgeGraph
     field :effective_on
     field :dose, default: nil
     field :unit, default: nil
+    field :schedule_details, default: nil
   end
 
   class InsertBloodPressureMeasurement < DatasetIntent

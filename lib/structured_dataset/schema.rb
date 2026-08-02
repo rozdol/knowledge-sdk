@@ -282,6 +282,7 @@ module StructuredDataset
               { name: "medication", type: "TEXT", required: true, unique: true },
               { name: "dose", type: "REAL" }, { name: "unit", type: "TEXT" },
               { name: "schedule", type: "TEXT", required: true },
+              { name: "schedule_details", type: "JSON" },
               { name: "active", type: "BOOLEAN", required: true }
             ]
           ),

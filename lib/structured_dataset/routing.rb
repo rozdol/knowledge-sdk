@@ -4,6 +4,182 @@ require "date"
 require "time"
 
 module StructuredDataset
+  class MedicationScheduleParser
+    RUSSIAN_VERB = /(?:принимаю|принимать|принимает|при[её]м|пью|выпиваю)/i.freeze
+    RUSSIAN_EVENT = /(?:сегодня|\d{1,2}:\d{2}).*(?:принял|приняла|выпил|выпила)|(?:принял|приняла|выпил|выпила).*(?:сегодня|\d{1,2}:\d{2})/i.freeze
+    RUSSIAN_TIME = {
+      /(?:каждое\s+утро|\bутром\b)/i => "every morning",
+      /(?:\bдн[её]м\b|каждый\s+день)/i => "every afternoon",
+      /(?:\bвечером\b|каждый\s+вечер)/i => "every evening",
+      /(?:на\s+ночь|каждую\s+ночь)/i => "every night",
+      /два\s+раза\s+в\s+день/i => "twice daily",
+      /раз\s+в\s+день/i => "once daily",
+      /до\s+еды/i => "before meals",
+      /после\s+еды/i => "after meals"
+    }.freeze
+    RUSSIAN_CONDITION = /(?:натощак|до\s+еды)/i.freeze
+    RUSSIAN_ROUTE = /(?:под\s+язык|сублингвально)/i.freeze
+    RUSSIAN_STRIP = /(?:\b(?:я|он|она|мы|вы|они)\b\s*|#{RUSSIAN_VERB}|каждое\s+утро|\bутром\b|\bдн[её]м\b|каждый\s+день|\bвечером\b|каждый\s+вечер|на\s+ночь|каждую\s+ночь|два\s+раза\s+в\s+день|раз\s+в\s+день|натощак|до\s+еды|после\s+еды|под\s+язык|сублингвально)/i.freeze
+    RUSSIAN_UNIT = /(?:капсул(?:а|у|ы|е)|таблет(?:ка|ку|ки|ке)|капл(?:я|и)|мг|мкг|ме)/i.freeze
+    QUANTITIES = {
+      "один" => 1.0, "одна" => 1.0, "одно" => 1.0, "одну" => 1.0,
+      "одной" => 1.0, "два" => 2.0, "две" => 2.0
+    }.freeze
+
+    def initialize(text_normalizer: KnowledgeSDK::ClassifierTextNormalizer.new)
+      @text_normalizer = text_normalizer
+    end
+
+    def administration_event?(source)
+      RUSSIAN_EVENT.match?(@text_normalizer.normalize(source).matching)
+    end
+
+    def parse(source, effective_on:)
+      normalized = @text_normalizer.normalize(source)
+      entries = if normalized.matching.match?(/[а-я]/i)
+                  russian_entries(normalized.original, effective_on)
+                elsif normalized.matching.match?(/[α-ωάέήίόύώϊϋΐΰ]/i)
+                  greek_entries(normalized.original, effective_on)
+                else
+                  english_entries(normalized.original, effective_on)
+                end
+      entries.empty? ? nil : entries.freeze
+    end
+
+    private
+
+    def english_entries(source, effective_on)
+      pattern = /\bi\s+(?:take|am\s+taking)\s+([a-z][a-z0-9 .'-]*?)(?:\s+(\d+(?:\.\d+)?)\s*(mg|mcg|g|ml|capsules?|tablets?|iu))?\s+(every\s+(?:morning|afternoon|evening|night|day)|once\s+daily|twice\s+daily|at\s+\d{1,2}(?::\d{2})?(?:\s*[ap]m)?)(?:\s+(on\s+an?\s+empty\s+stomach|before\s+food|after\s+food|sublingually|under\s+the\s+tongue))?[.!]?\z/i
+      match = pattern.match(source.gsub(/\s+/, " ").strip)
+      return [] unless match
+
+      [entry(
+        medication: match[1], schedule: match[4].downcase, effective_on: effective_on,
+        dose: match[2], unit: match[3], condition: match[5]
+      )]
+    end
+
+    def greek_entries(source, effective_on)
+      pattern = /(?:\A|\s)(?:εγώ\s+)?(?:παίρνω|λαμβάνω)\s+([[:alpha:]][[:alpha:]0-9 .'-]*?)(?:\s+(\d+(?:[.,]\d+)?)\s*(mg|mcg|g|ml|μg|κάψουλ(?:α|ες)?|δισκ(?:ίο|ία)?))?\s+(κάθε\s+(?:πρωί|μέρα|απόγευμα|βράδυ)|μία\s+φορά\s+την\s+ημέρα|δύο\s+φορές\s+την\s+ημέρα)(?:\s+(με\s+άδειο\s+στομάχι|πριν\s+το\s+φαγητό|μετά\s+το\s+φαγητό|υπογλώσσια))?[.!]?\z/i
+      match = pattern.match(source.gsub(/\s+/, " ").strip)
+      return [] unless match
+
+      [entry(
+        medication: match[1], schedule: greek_schedule(match[4]), effective_on: effective_on,
+        dose: match[2], unit: match[3], condition: match[5]
+      )]
+    end
+
+    def russian_entries(source, effective_on)
+      return [] unless RUSSIAN_VERB.match?(source)
+
+      entries = []
+      context = { schedule: nil, fasting: false }
+      source.lines.each do |line|
+        stripped = line.strip
+        next if stripped.empty?
+
+        stripped.split(/\s*,\s*/).each do |clause|
+          clause.split(/\s+и\s+еще\s+/i).each do |part|
+            detected = russian_schedule(part)
+            context = {
+              schedule: detected || context.fetch(:schedule),
+              fasting: detected ? RUSSIAN_CONDITION.match?(part) :
+                (context.fetch(:fasting) || RUSSIAN_CONDITION.match?(part))
+            }
+            item = russian_item(part)
+            next unless item && context.fetch(:schedule)
+
+            entries << entry(
+              medication: item.fetch(:medication), schedule: context.fetch(:schedule),
+              effective_on: effective_on, dose: item[:dose], unit: item[:unit],
+              fasting: context.fetch(:fasting),
+              administration_route: RUSSIAN_ROUTE.match?(part) ? "sublingual" : nil
+            )
+          end
+        end
+      end
+      entries
+    end
+
+    def russian_schedule(text)
+      RUSSIAN_TIME.each do |pattern, schedule|
+        return schedule if pattern.match?(text)
+      end
+      nil
+    end
+
+    def russian_item(text)
+      value = text.gsub(RUSSIAN_STRIP, " ").gsub(/[.:;!?]+/, " ")
+                  .gsub(/\s+/, " ").strip
+      return nil if value.empty?
+
+      after = /\A(.+?)\s+(?:по\s+)?(один|одна|одно|одну|одной|два|две|\d+(?:[.,]\d+)?)\s*(#{RUSSIAN_UNIT})\z/i.match(value)
+      if after
+        return {
+          medication: after[1], dose: quantity(after[2]), unit: russian_unit(after[3])
+        }
+      end
+      before = /\A(?:по\s+)?(один|одна|одно|одну|одной|два|две|\d+(?:[.,]\d+)?)\s*(#{RUSSIAN_UNIT})\s+(.+)\z/i.match(value)
+      if before
+        return {
+          medication: before[3], dose: quantity(before[1]), unit: russian_unit(before[2])
+        }
+      end
+
+      { medication: value }
+    end
+
+    def entry(medication:, schedule:, effective_on:, dose: nil, unit: nil,
+              condition: nil, fasting: false, administration_route: nil)
+      condition_text = condition.to_s.downcase
+      fasting ||= condition_text.match?(/empty\s+stomach|before\s+food|άδειο\s+στομάχι|πριν\s+το\s+φαγητό/i)
+      administration_route ||= "sublingual" if
+        condition_text.match?(/sublingually|under\s+the\s+tongue|υπογλώσσια/i)
+      value = {
+        "medication" => medication.to_s.strip,
+        "schedule" => schedule, "effective_on" => effective_on
+      }
+      value["dose"] = dose.to_s.tr(",", ".").to_f if dose
+      value["unit"] = normalized_unit(unit) if unit
+      value["fasting"] = true if fasting
+      value["administration_route"] = administration_route if administration_route
+      value.freeze
+    end
+
+    def quantity(value)
+      QUANTITIES.fetch(value.to_s.downcase, value.to_s.tr(",", ".").to_f)
+    end
+
+    def russian_unit(value)
+      unit = value.to_s.downcase
+      return "capsule" if unit.start_with?("капсул")
+      return "tablet" if unit.start_with?("таблет")
+      return "drop" if unit.start_with?("капл")
+      return "IU" if unit == "ме"
+
+      unit
+    end
+
+    def normalized_unit(value)
+      unit = value.to_s.downcase
+      return "capsule" if unit.start_with?("capsule", "κάψουλ")
+      return "tablet" if unit.start_with?("tablet", "δισκ")
+      return "IU" if unit == "iu"
+      return "mcg" if unit == "μg"
+
+      unit
+    end
+
+    def greek_schedule(value)
+      {
+        "κάθε πρωί" => "every morning", "κάθε μέρα" => "every day",
+        "κάθε απόγευμα" => "every afternoon", "κάθε βράδυ" => "every evening",
+        "μία φορά την ημέρα" => "once daily", "δύο φορές την ημέρα" => "twice daily"
+      }.fetch(value.to_s.downcase)
+    end
+  end
+
   class RoutingRegistry
     Route = Struct.new(
       :intent, :dataset, :intent_class, :builder, :writer, :row_builder,
@@ -138,27 +314,27 @@ module StructuredDataset
     private
 
     def medication(source, timestamp)
-      match = /\bi\s+(?:take|am\s+taking)\s+([a-z][a-z0-9 .'-]*?)(?:\s+(\d+(?:\.\d+)?)\s*(mg|mcg|g|ml))?\s+(every\s+(?:morning|afternoon|evening|night|day)|once\s+daily|twice\s+daily|at\s+\d{1,2}(?::\d{2})?(?:\s*[ap]m)?)\b/i.match(source)
-      language = "en"
-      unless match
-        match = /(?:\A|\s)(?:я\s+)?принимаю\s+([[:alpha:]][[:alpha:]0-9 .'-]*?)(?:\s+(\d+(?:[.,]\d+)?)\s*(мг|мкг|г|мл|mg|mcg|g|ml))?\s+(каждое\s+утро|каждый\s+день|каждый\s+вечер|каждую\s+ночь|ежедневно|дважды\s+в\s+день)(?:[.!]?\z|\s)/i.match(source)
-        language = "ru"
+      parser = MedicationScheduleParser.new
+      if parser.administration_event?(source)
+        return result(
+          "dataset.structured_observation", 0.97,
+          {
+            "clarification_required" => true,
+            "clarification_question" =>
+              "This looks like a medication administration event. Should it be added to the medication log?"
+          },
+          "recognized a medication administration event but no named intake Intent is installed"
+        )
       end
-      unless match
-        match = /(?:\A|\s)(?:εγώ\s+)?(?:παίρνω|λαμβάνω)\s+([[:alpha:]][[:alpha:]0-9 .'-]*?)(?:\s+(\d+(?:[.,]\d+)?)\s*(mg|mcg|g|ml|μg))?\s+(κάθε\s+(?:πρωί|μέρα|απόγευμα|βράδυ)|μία\s+φορά\s+την\s+ημέρα|δύο\s+φορές\s+την\s+ημέρα)(?:[.!]?\z|\s)/i.match(source)
-        language = "el"
-      end
-      return nil unless match
 
-      slots = {
-        "medication" => title_word(match[1]),
-        "schedule" => normalize_schedule(match[4], language),
-        "effective_on" => timestamp.to_date.iso8601
+      entries = parser.parse(source, effective_on: timestamp.to_date.iso8601)
+      return nil unless entries
+
+      slots = entries.length == 1 ? entries.first.merge("entries" => entries) : {
+        "effective_on" => timestamp.to_date.iso8601, "entries" => entries
       }
-      slots["dose"] = number(match[2]) if match[2]
-      slots["unit"] = normalize_health_unit(match[3]) if match[3]
       result(
-        "dataset.medication_schedule", 0.98, slots,
+        "dataset.medication_schedule", 0.97, slots,
         "recognized a recurring medication schedule as structured Dataset data"
       )
     end
@@ -408,7 +584,8 @@ module StructuredDataset
         writer: lambda do |engine, intent, provenance|
           values = compact(
             effective_on: intent.effective_on, medication: intent.medication,
-            dose: intent.dose, unit: intent.unit, schedule: intent.schedule, active: true
+            dose: intent.dose, unit: intent.unit, schedule: intent.schedule,
+            schedule_details: intent.schedule_details, active: true
           )
           engine.replace(
             "medication_schedules", match: { medication: intent.medication },
@@ -517,7 +694,8 @@ module StructuredDataset
       if classification.slots["clarification_required"]
         return {
           "status" => "clarification_required", "classification" => classification.to_h,
-          "question" => "Which Dataset schema should receive these structured rows?",
+          "question" => classification.slots["clarification_question"] ||
+            "Which Dataset schema should receive these structured rows?",
           "executable" => false, "approval_required" => true, "planned_intent_count" => 0
         }
       end
@@ -528,7 +706,10 @@ module StructuredDataset
         dataset_state_signature(classification.intent)
       )
       route = @routing_registry.fetch(classification.intent)
-      intent = build_intent(route, classification, document, proposal_id, arguments)
+      slot_sets = intent_slot_sets(classification)
+      intents = slot_sets.map do |slots|
+        build_intent(route, classification, document, proposal_id, arguments, slots)
+      end
       evidence = KnowledgeExtraction::EvidenceSpan.new(
         source_id: document.source_id, start_offset: 0,
         end_offset: [document.content.length, 2_000].min,
@@ -554,7 +735,7 @@ module StructuredDataset
       evolution = AutonomousRegistry.new(
         vault_root: @vault_root, engine: evolution_engine, clock: @clock
       ).plan(
-        dataset: route.dataset, values: route.row_builder.call(intent),
+        dataset: route.dataset, values: route.row_builder.call(intents.first),
         source: arguments["origin_source"] || document.source_type,
         proposal_id: proposal_id, dataset_id: dataset_id
       )
@@ -570,20 +751,25 @@ module StructuredDataset
         planning_confidence: classification.confidence, risk: "medium",
         approval_requirement: "human_review", blocked_reasons: [], provenance: provenance
       ) : nil
-      planned = KnowledgeExtraction::PlannedIntent.new(
-        planned_intent_id: KnowledgeExtraction::Support.stable_id(
-          "planned", proposal_id, intent.intent_type
-        ),
-        intent: intent, fact_ids: [fact.fact_id], evidence_ids: [evidence.evidence_id],
-        planning_confidence: classification.confidence, risk: "medium",
-        approval_requirement: "human_review", blocked_reasons: [],
-        dependencies: prerequisite ? [prerequisite.planned_intent_id] : [], provenance: provenance
-      )
-      planned_intents = [prerequisite, planned].compact
+      planned = intents.each_with_index.map do |intent, index|
+        KnowledgeExtraction::PlannedIntent.new(
+          planned_intent_id: KnowledgeExtraction::Support.stable_id(
+            "planned", proposal_id, intent.intent_type, index,
+            KnowledgeExtraction::Support.canonical_json(slot_sets.fetch(index))
+          ),
+          intent: intent, fact_ids: [fact.fact_id], evidence_ids: [evidence.evidence_id],
+          planning_confidence: classification.confidence, risk: "medium",
+          approval_requirement: "human_review", blocked_reasons: [],
+          dependencies: prerequisite ? [prerequisite.planned_intent_id] : [], provenance: provenance
+        )
+      end
+      planned_intents = [prerequisite, *planned].compact
       warnings = evolution_warning(evolution)
       proposal = KnowledgeExtraction::ExtractionProposal.new(
         proposal_id: proposal_id, source: document,
-        summary: proposal_summary(route.dataset, evolution),
+        summary: proposal_summary(
+          route.dataset, evolution, parsed_entry_count(classification)
+        ),
         facts: [fact], entity_mentions: [subject], resolution_decisions: [],
         planned_intents: planned_intents, warnings: warnings, conflicts: [],
         required_approvals: {
@@ -606,9 +792,13 @@ module StructuredDataset
       publish_proposal(proposal, classification, arguments)
       {
         "status" => proposal.status, "proposal_id" => proposal.proposal_id,
-        "observation_id" => arguments["observation_id"],
+        "intent" => classification.intent,
+        "proposal" => {
+          "id" => proposal.proposal_id, "type" => "dataset_update", "status" => proposal.status
+        },
         "classification" => classification.to_h,
         "planned_intent_count" => proposal.planned_intents.length,
+        "parsed_entry_count" => parsed_entry_count(classification),
         "approval_required" => true, "executable" => false,
         "warnings" => proposal.warnings, "dataset_evolution" => evolution.to_h
       }.reject { |_key, value| value.nil? }
@@ -632,18 +822,42 @@ module StructuredDataset
       )
     end
 
-    def build_intent(route, classification, document, proposal_id, arguments)
+    def build_intent(route, classification, document, proposal_id, arguments, slots)
       common = {
         source: arguments["origin_source"] || document.source_type,
         observation_id: arguments["observation_id"] || document.source_id,
         proposal_id: proposal_id,
         intent_id: KnowledgeExtraction::Support.stable_id(
           "intent", document.source_id, classification.intent,
-          KnowledgeExtraction::Support.canonical_json(classification.slots)
+          KnowledgeExtraction::Support.canonical_json(slots)
         )
       }
-      slots = classification.slots.transform_keys(&:to_sym)
-      route.builder.call(common, slots)
+      route.builder.call(common, slots.transform_keys(&:to_sym))
+    end
+
+    def intent_slot_sets(classification)
+      entries = Array(classification.slots["entries"])
+      return [classification.slots.reject { |key, _value| key == "entries" }] if entries.empty?
+
+      entries.group_by { |entry| entry.fetch("medication").downcase }.map do |_key, group|
+        schedules = group.map { |entry| entry.fetch("schedule") }.uniq
+        doses = group.map { |entry| entry["dose"] }.uniq
+        units = group.map { |entry| entry["unit"] }.uniq
+        slots = {
+          "medication" => group.first.fetch("medication"),
+          "schedule" => schedules.join("; "),
+          "effective_on" => group.first.fetch("effective_on"),
+          "schedule_details" => group
+        }
+        slots["dose"] = doses.first if doses.length == 1 && !doses.first.nil?
+        slots["unit"] = units.first if units.length == 1 && !units.first.nil?
+        slots
+      end
+    end
+
+    def parsed_entry_count(classification)
+      entries = Array(classification.slots["entries"])
+      entries.empty? ? 1 : entries.length
     end
 
     def dataset_state_signature(intent_name)
@@ -673,14 +887,15 @@ module StructuredDataset
       end
     end
 
-    def proposal_summary(dataset, evolution)
+    def proposal_summary(dataset, evolution, count)
+      noun = count == 1 ? "observation" : "schedule entries"
       case evolution.kind
       when "create"
-        "Classified one structured observation and planned automatic registration of #{dataset}."
+        "Classified #{count} structured #{noun} and planned automatic registration of #{dataset}."
       when "schema_upgrade"
-        "Classified one structured observation and planned an additive schema upgrade for #{dataset}."
+        "Classified #{count} structured #{noun} and planned an additive schema upgrade for #{dataset}."
       else
-        "Classified one structured observation for #{dataset}."
+        "Classified #{count} structured #{noun} for #{dataset}."
       end
     end
 

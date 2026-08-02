@@ -1,5 +1,5 @@
 [
-  { "slug": "medication_schedules", "columns": ["effective_on", "medication", "dose", "unit", "schedule", "active"] },
+  { "slug": "medication_schedules", "columns": ["effective_on", "medication", "dose", "unit", "schedule", "schedule_details", "active"] },
   { "slug": "blood_tests", "columns": ["observed_at", "marker", "value", "unit", "reference_low", "reference_high", "laboratory", "notes"] },
   { "slug": "medication_log", "columns": ["observed_at", "medication", "dose", "unit", "action", "notes"] },
   { "slug": "blood_pressure", "columns": ["observed_at", "systolic", "diastolic", "pulse", "notes"] },

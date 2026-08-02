@@ -74,6 +74,8 @@ semantic domain detection
 
 Sentence type is not a domain or routing decision. In particular, a declarative sentence cannot outrank a health Dataset plugin merely because it lacks a question mark. Structured observations are classified before graph extraction. Medication schedules, measurements, laboratory results, body measurements, and financial rows use `kg.datasets.propose`, which creates an immutable proposal through the existing Proposal Store and validator. Ambiguous structured tables remain on the Dataset route for schema clarification and never fall through to graph extraction.
 
+`kg chat --explain` adds a safe classifier trace containing normalized input text, semantic-domain candidates, loaded classifier plugin names, matched intent candidates, and the selected intent. It exposes no matcher objects, filesystem paths, configuration, credentials, or attached-Vault internals. Normalization is explicit UTF-8 NFC, locale-independent Unicode lowercase, and `ё`/`е` equivalence for matching; the original normalized spelling remains available to Dataset parsers so medication names retain their supplied form.
+
 ```text
 structured message -> Dataset classification -> named immutable Dataset Intent
   -> existing review-only Proposal -> exact human approval
