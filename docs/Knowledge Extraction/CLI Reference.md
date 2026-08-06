@@ -28,3 +28,6 @@ kg proposal submit PROPOSAL_ID [--dry-run]
 ```
 
 Approval and submission are distinct. `submit --dry-run` reports readiness without execution. Actual submission returns per-Intent `executed`, `blocked`, or `failed` states plus audit/replay metadata.
+When the aggregate status is `partially_rejected`, the response also includes `status_context` with
+aggregate counts and per-Intent rejection reasons. A blocked Intent reports its approval, dependency,
+or planning reasons; a failed Intent reports its exception class and message.

@@ -51,6 +51,13 @@ class KnowledgeExtractionSubmissionCLITest < Minitest::Test
       assert_equal "partially_rejected", result.fetch("status")
       assert result.fetch("results").all? { |item| item.fetch("status") == "blocked" }
       assert result.fetch("results").all? { |item| item.fetch("reasons").any? { |reason| reason.include?("approval") } }
+      context = result.fetch("status_context")
+      assert_equal({ "executed" => 0, "blocked" => 3, "failed" => 0 }, context.fetch("counts"))
+      assert_equal 3, context.fetch("rejections").length
+      assert context.fetch("rejections").all? do |item|
+        item.fetch("status") == "blocked" &&
+          item.fetch("reasons").any? { |reason| reason.include?("approval") }
+      end
       assert_empty KnowledgeGraph::GraphReader.new(vault_root: root).search("Alice Carter")
     end
   end
@@ -93,6 +100,10 @@ class KnowledgeExtractionSubmissionCLITest < Minitest::Test
       assert_equal "partially_rejected", result.fetch("status")
       assert_equal 2, result.fetch("results").count { |item| item.fetch("status") == "executed" }
       assert_equal 1, result.fetch("results").count { |item| item.fetch("status") == "failed" }
+      context = result.fetch("status_context")
+      assert_equal({ "executed" => 2, "blocked" => 0, "failed" => 1 }, context.fetch("counts"))
+      assert_equal "failed", context.dig("rejections", 0, "status")
+      assert_includes context.dig("rejections", 0, "reasons", 0), "synthetic relationship failure"
       reader = KnowledgeGraph::GraphReader.new(vault_root: root)
       assert_equal 1, reader.search("Alice Carter").length
       assert_equal 1, reader.search("Northstar").length

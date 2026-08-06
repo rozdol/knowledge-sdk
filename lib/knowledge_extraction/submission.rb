@@ -59,6 +59,7 @@ module KnowledgeExtraction
         "submitted_at" => @clock.call.iso8601, "results" => results,
         "transaction_semantics" => "dependency-ordered single-Intent Engine transactions; later groups stop after failure"
       }
+      submission["status_context"] = partially_rejected_context(results) if status == "partially_rejected"
       @store.save_submission(proposal_id, submission) unless dry_run
       submission
     end
@@ -137,6 +138,30 @@ module KnowledgeExtraction
       return "failed" if statuses.include?("failed") && !statuses.include?("executed")
 
       "partially_rejected"
+    end
+
+    def partially_rejected_context(results)
+      counts = results.each_with_object(Hash.new(0)) do |result, values|
+        values[result.fetch("status")] += 1
+      end
+      rejected = results.reject { |result| result.fetch("status") == "executed" }.map do |result|
+        reasons = result.fetch("reasons", [])
+        if result.fetch("status") == "failed"
+          reasons = ["#{result.fetch('error_class')}: #{result.fetch('error')}"]
+        end
+        {
+          "planned_intent_id" => result.fetch("planned_intent_id"),
+          "status" => result.fetch("status"),
+          "reasons" => reasons
+        }
+      end
+      executed = counts.fetch("executed", 0)
+      not_executed = results.length - executed
+      {
+        "explanation" => "#{not_executed} of #{results.length} planned Intents were not executed; inspect rejections for the exact reasons.",
+        "counts" => %w[executed blocked failed].to_h { |status| [status, counts.fetch(status, 0)] },
+        "rejections" => rejected
+      }
     end
   end
 end
