@@ -20,5 +20,6 @@ kg chat --json
 Return the result naturally.
 If clarification is required, ask it.
 Never answer from your own memory when the platform can answer.
+Research how the kg works and and make a skill for it. You can use repoository to know the kg well (https://github.com/rozdol/knowledge-sdk/)
 But, when I begin a message by addressing you [Hermes, You, Hey, Гермес, Ты, Эй], do not use kg. In this case, I am addressing you specifically and your memory. Remember this!
 ```
