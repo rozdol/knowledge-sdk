@@ -18,6 +18,22 @@ flowchart LR
 
 Ruby 2.6 or newer is supported. SQLite-backed dataset commands require the `sqlite3` gem.
 
+Install the latest version from the public repository:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/install.sh | sh
+```
+
+The installer requires Git, Ruby, and RubyGems. It builds the gem from source and uses a
+user-local RubyGems directory automatically when the active system gem directory is not writable.
+To install a particular tag, branch, or commit, pass `--ref`, for example:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/install.sh | sh -s -- --ref v15.0.0
+```
+
+For source development:
+
 ```sh
 bundle install
 bundle exec rake test

@@ -5,18 +5,39 @@
 ## Requirements
 
 - Ruby 2.6 or newer.
-- RubyGems and Bundler for package development.
+- Git and RubyGems for installation from the public repository.
+- Bundler for package development.
 - The `sqlite3` gem, installed as a runtime dependency, for Structured Dataset commands.
+
+## Install from the public repository
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/install.sh | sh
+kg version
+```
+
+The installer fetches `main`, builds the gem in a temporary directory, installs its runtime
+dependencies, and verifies `kg`. It installs into the active RubyGems directory when that directory
+is writable; otherwise it uses the current user's RubyGems directory and prints the directory to
+add to `PATH`.
+
+Install a particular release, branch, or commit with `--ref`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/install.sh | sh -s -- --ref v15.0.0
+```
+
+Run `install.sh --help` for user/system installation controls and environment overrides.
 
 ## Install from a source checkout
 
 ```sh
-git clone <knowledge-sdk-repository-url>
+git clone https://github.com/rozdol/knowledge-sdk.git
 cd knowledge-sdk
 bundle install
 bundle exec rake test
 gem build knowledge-sdk.gemspec
-gem install ./knowledge-sdk-14.0.0.gem
+gem install ./knowledge-sdk-15.0.0.gem
 kg version
 ```
 
