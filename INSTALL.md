@@ -29,6 +29,20 @@ curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/install.s
 
 Run `install.sh --help` for user/system installation controls and environment overrides.
 
+## Update to the latest version
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/update.sh | sh
+```
+
+The updater detects the installed version for the active Ruby, runs the public installer against
+the latest `main` source, and verifies the resulting version. It preserves the installer's
+automatic user/system selection. Pass `--user`, `--system`, or `--ref REF` in the same way:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/update.sh | sh -s -- --user
+```
+
 ## Install from a source checkout
 
 ```sh

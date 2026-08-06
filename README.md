@@ -26,6 +26,12 @@ curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/install.s
 
 The installer requires Git, Ruby, and RubyGems. It builds the gem from source and uses a
 user-local RubyGems directory automatically when the active system gem directory is not writable.
+Update an existing installation to the latest version from `main` with:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/update.sh | sh
+```
+
 To install a particular tag, branch, or commit, pass `--ref`, for example:
 
 ```sh
