@@ -11,13 +11,18 @@ Activity view
   -> Engine audit receipt (execution and affected IDs)
   -> Event Bus (source, trace, and domain events)
   -> Proposal Store (origin, evidence, approval, and submission)
-  -> current Graph Snapshot (display labels and sensitivity)
+  -> current Graph/Capture projections (display labels and sensitivity)
   -> Replay-compatible stable state digest
 ```
 
 `activity_<ULID>` is a stable projection of `audit_<ULID>`. No Activity file, table, event stream, or Markdown note is created. Current display labels are read from the graph; restricted changes are redacted from summaries, affected-object lists, search, and explanations.
 
-The existing Knowledge Cache may retain this fully regenerable projection using audit, proposal, event-history, and graph-snapshot digests. `GraphChanged` invalidation and snapshot matching prevent stale reuse. The cache remains derived operational data and never writes facts back to the graph.
+The existing Knowledge Cache may retain this fully regenerable projection using audit, proposal, event-history, graph-snapshot, Dataset, and Capture digests. `GraphChanged`, `CaptureChanged`, and Dataset invalidation prevent stale reuse. The cache remains derived operational data and never writes facts back to canonical stores.
+
+Capture Intents appear as ordinary `knowledge_added`, `knowledge_changed`, or `knowledge_archived`
+activities. Their display title, lifecycle state, source proposal, approval, Evidence, audit receipt, and
+`CaptureChanged` event are joined at read time. Restricted Captures are redacted exactly like
+restricted graph knowledge.
 
 Undo and restore use the existing review path:
 

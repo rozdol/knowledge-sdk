@@ -108,6 +108,25 @@ module AgentPlatform
       end
     end
 
+    def capture_store(context)
+      context.memoize(:capture_store) { KnowledgeCapture::Store.new(vault_root: vault_root) }
+    end
+
+    def capture_search(context)
+      context.memoize(:capture_search) do
+        KnowledgeCapture::Search.new(vault_root: vault_root, clock: @clock)
+      end
+    end
+
+    def capture_proposal_builder(context)
+      context.memoize(:capture_proposal_builder) do
+        KnowledgeCapture::CaptureProposalBuilder.new(
+          vault_root: vault_root, proposal_store: proposal_store(context),
+          event_bus: @event_bus, clock: @clock
+        )
+      end
+    end
+
     def cross_analysis(context, question:, from: nil, to: nil, as_of: nil,
                        propose_recommendations: false)
       key = ["cross-analysis", question.to_s, from.to_s, to.to_s, as_of.to_s, !!propose_recommendations]

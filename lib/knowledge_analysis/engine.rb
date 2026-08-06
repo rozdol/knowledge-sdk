@@ -35,10 +35,17 @@ module KnowledgeAnalysis
       window = resolve_window(query, from, to, date)
       datasets = load_datasets
       signature = dataset_signature(datasets)
+      captures = load_captures
+      capture_signature = Digest::SHA256.hexdigest(
+        KnowledgeExtraction::Support.canonical_json(
+          captures.map { |capture| [capture.id, capture.status, capture.data["updated_at"]] }
+        )
+      )
       arguments = {
         "question" => query, "from" => window.fetch("from")&.iso8601,
         "to" => window.fetch("to")&.iso8601, "as_of" => date.iso8601,
         "dataset_signature" => signature,
+        "capture_signature" => capture_signature,
         "propose_recommendations" => !!propose_recommendations
       }
       cache_key = @cache.key(
@@ -52,7 +59,7 @@ module KnowledgeAnalysis
 
       events = safe_events
       context = AnalysisContext.new(
-        question: query, datasets: datasets, snapshot: @snapshot,
+        question: query, datasets: datasets, captures: captures, snapshot: @snapshot,
         activities: safe_activities, events: events,
         intelligence_findings: intelligence_findings(date),
         planning_signals: planning_signals,
@@ -63,7 +70,7 @@ module KnowledgeAnalysis
       domain_plugins = plugins.reject { |plugin| plugin.name == "generic" }
       plugins = domain_plugins unless domain_plugins.empty?
       fragments = plugins.map { |plugin| plugin.analyze(context) }
-      analysis = aggregate(query, context, plugins, fragments, signature)
+      analysis = aggregate(query, context, plugins, fragments, signature, capture_signature)
       if propose_recommendations && !analysis.fetch("recommendations").empty?
         proposal = RecommendationProposalBuilder.new(
           vault_root: @vault_root, event_bus: @event_bus, clock: @clock
@@ -77,9 +84,10 @@ module KnowledgeAnalysis
       end
       dependencies = KnowledgeOrchestration::ArtifactDependencies.new(
         event_ids: events.map(&:id),
-        event_types: %w[DatasetChanged GraphChanged RecommendationGenerated],
+        event_types: %w[DatasetChanged GraphChanged CaptureChanged RecommendationGenerated],
         snapshot_digest: @snapshot.digest,
-        entity_ids: analysis.fetch("graph_evidence").map { |item| item["record_id"] }.compact,
+        entity_ids: analysis.fetch("graph_evidence").map { |item| item["record_id"] }.compact +
+          analysis.fetch("capture_evidence").map { |item| item["capture_id"] }.compact,
         capability_id: CAPABILITY_ID, capability_version: CAPABILITY_VERSION
       )
       @cache.write(
@@ -91,6 +99,12 @@ module KnowledgeAnalysis
     end
 
     private
+
+    def load_captures
+      KnowledgeCapture::Store.new(vault_root: @vault_root).all.reject do |capture|
+        capture.sensitivity == "restricted" || capture.status == "deleted"
+      end
+    end
 
     def load_datasets
       @dataset_engine.list.each_with_object({}) do |entry, result|
@@ -134,12 +148,13 @@ module KnowledgeAnalysis
       Digest::SHA256.hexdigest(KnowledgeExtraction::Support.canonical_json(value))
     end
 
-    def aggregate(question, context, plugins, fragments, dataset_signature)
+    def aggregate(question, context, plugins, fragments, dataset_signature, capture_signature)
       factors = unique(
         fragments.flat_map { |fragment| fragment.fetch("possible_factors") }, "factor_id"
       ).sort_by { |item| [-item.fetch("confidence"), item.fetch("factor_id")] }
       correlations = fragments.flat_map { |fragment| fragment.fetch("correlations") }
       graph = unique(fragments.flat_map { |fragment| fragment.fetch("graph_evidence") }, "record_id")
+      captures = unique(fragments.flat_map { |fragment| fragment.fetch("capture_evidence", []) }, "capture_id")
       activity = unique(fragments.flat_map { |fragment| fragment.fetch("activity_evidence") }, "id")
       windows = fragments.flat_map { |fragment| fragment.fetch("time_windows") }.uniq
       recommendations = unique(
@@ -150,6 +165,7 @@ module KnowledgeAnalysis
         snapshot_digest: @snapshot.digest, as_of: context.as_of
       )
       limitations = fragments.flat_map { |fragment| fragment.fetch("limitations") }.map(&:to_s).uniq
+      capture_summary = fragments.map { |fragment| fragment["capture_summary"] }.compact.first
       scores = fragments.map { |fragment| fragment.fetch("confidence").to_f }.select(&:positive?)
       confidence = scores.empty? ? 0.0 : (scores.sum / scores.length).round(6)
       primary = fragments.find { |fragment| fragment.fetch("plugin") != "generic" } || fragments.first
@@ -176,6 +192,7 @@ module KnowledgeAnalysis
         "possible_factors" => factors,
         "datasets" => dataset_evidence,
         "graph_evidence" => graph,
+        "capture_evidence" => captures,
         "activity_evidence" => activity,
         "intelligence_evidence" => context.intelligence_findings,
         "planning_signals" => context.planning_signals,
@@ -198,13 +215,15 @@ module KnowledgeAnalysis
           "causality_established" => false,
           "ranking" => "confidence_desc_then_stable_id",
           "dataset_signature" => dataset_signature,
+          "capture_signature" => capture_signature,
           "graph_snapshot_digest" => @snapshot.digest
         },
         "subsystems" => %w[
           intent_classifier planning_engine decision_engine knowledge_intelligence knowledge_graph
-          structured_datasets correlation_engine knowledge_activity event_bus knowledge_cache
+          structured_datasets knowledge_capture correlation_engine knowledge_activity event_bus knowledge_cache
         ]
       }
+      result["capture_summary"] = capture_summary if capture_summary
       result["analysis_digest"] = Digest::SHA256.hexdigest(
         KnowledgeExtraction::Support.canonical_json(result)
       )

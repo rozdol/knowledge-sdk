@@ -6,6 +6,7 @@ Encoding.default_internal = Encoding::UTF_8
 require "date"
 require "pathname"
 require "yaml"
+require_relative "../capture_validator"
 
 ROOT = Pathname.new(ENV.fetch("VAULT_ROOT", File.expand_path("../..", __dir__))).expand_path
 COMMON_REQUIRED = %w[
@@ -26,6 +27,7 @@ WIKILINK = /\A\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|[^\]]+)?\]\]\z/
 
 errors = []
 warnings = []
+errors.concat(KnowledgeCaptureValidator.validate(ROOT))
 
 def frontmatter(path, errors)
   content = File.read(path.to_s, encoding: "UTF-8")
@@ -115,6 +117,7 @@ markdown_paths.each do |path|
 
   type = data["type"]
   next unless type
+  next if relative.start_with?("Captures/") && type == "capture"
   unless schemas.key?(type)
     errors << "#{relative}: unknown canonical type #{type.inspect}"
     next

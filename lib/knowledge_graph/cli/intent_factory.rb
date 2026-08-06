@@ -10,7 +10,8 @@ module KnowledgeGraph
       ResumeMedicationSchedule, StopMedication, ModifyMedicationDose,
       ModifyMedicationSchedule, InsertBloodPressureMeasurement, InsertWeightMeasurement,
       InsertBloodTestResult, InsertBodyMeasurement, InsertExpense,
-      CreateDataset, UpgradeDatasetSchema
+      CreateDataset, UpgradeDatasetSchema, CreateCapture, ReviewCapture,
+      LinkCapture, PromoteCapture, ArchiveCapture
     ].to_h { |intent_class| [intent_class.name.split("::").last, intent_class] }.freeze
 
     class << self

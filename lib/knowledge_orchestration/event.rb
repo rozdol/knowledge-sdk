@@ -86,6 +86,7 @@ module KnowledgeOrchestration
       PlannerCompleted AnalyzerCompleted WorkflowRequested NotificationRequested
       ObservationReceived ObservationParsed ExtractionCompleted ProposalCreated
       PolicyValidated ObservationCompleted DatasetChanged RecommendationGenerated
+      CaptureChanged
     ].freeze
 
     def self.default

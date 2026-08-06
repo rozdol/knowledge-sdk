@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
+require_relative "knowledge_capture"
 require_relative "knowledge_analysis/errors"
 require_relative "knowledge_analysis/correlation_engine"
 require_relative "knowledge_analysis/plugins"
+require_relative "knowledge_capture/analysis_plugin"
 require_relative "knowledge_analysis/decision_adapter"
 require_relative "knowledge_analysis/recommendations"
 require_relative "knowledge_analysis/engine"
@@ -18,6 +20,7 @@ module KnowledgeAnalysis
         registry.register(Plugins::Finance.new)
         registry.register(Plugins::CRM.new)
         registry.register(Plugins::TemplateSemantics.new)
+        registry.register(KnowledgeCapture::AnalysisPlugin.new)
         registry.register(Plugins::Generic.new)
       end
     end

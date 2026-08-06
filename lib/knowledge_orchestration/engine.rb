@@ -429,8 +429,9 @@ module KnowledgeOrchestration
         "entity_ids" => result.entity_ids, "changed_paths_count" => result.changed_paths.length,
         "replayed" => result.replayed
       }
+      base_type = capture_intent?(context.intent) ? "CaptureChanged" : "GraphChanged"
       graph_event = @event_bus.publish(
-        type: "GraphChanged", source: @source, payload: payload,
+        type: base_type, source: @source, payload: payload,
         correlation_id: correlation_id
       )
       specific = specific_event(context.intent)
@@ -449,6 +450,10 @@ module KnowledgeOrchestration
       return "ContactCreated" if intent.intent_type == "CreateEntity" && intent.entity_type == "person"
 
       INTENT_EVENTS[intent.intent_type]
+    end
+
+    def capture_intent?(intent)
+      %w[CreateCapture ReviewCapture LinkCapture PromoteCapture ArchiveCapture].include?(intent.intent_type)
     end
   end
 end

@@ -121,7 +121,7 @@ The bundled `template-semantics` analysis plugin adapts template-declared time, 
 Every answer reports:
 
 - Dataset IDs, slugs, schema versions, row counts, time columns, and numeric fields used;
-- selected graph evidence and immutable graph snapshot digest;
+- selected graph evidence, policy-visible Capture evidence, immutable graph snapshot digest, and Capture signature;
 - relevant Knowledge Activity and Event Bus references;
 - explicit comparison windows and aligned observation counts;
 - confidence per factor and for the aggregate answer;
@@ -169,6 +169,6 @@ Version 15 raises the SQLite engine schema to 3 and additively appends nullable 
 - Analysis reads at most 10,000 rows per Dataset per run.
 - SQLite performs indexed ordering and Dataset statistics; analytical interpretation stays outside SQLite.
 - Numeric cross-dataset exploration caps candidate series before pair generation.
-- Factor lists, graph evidence, activity evidence, events, findings, and planning signals are bounded.
+- Factor lists, graph evidence, Capture evidence, activity evidence, events, findings, and planning signals are bounded.
 - Cache keys use row identity/update metadata rather than embedding raw row values.
 - Correlation is in-memory and deterministic; large-scale deployments can add a read-only adapter without changing the public contract.

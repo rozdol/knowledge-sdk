@@ -267,7 +267,7 @@ module KnowledgeActivity
 
     def event_assignments
       events = orchestration_events
-      graph_events = events.select { |event| event.type == "GraphChanged" }
+      graph_events = events.select { |event| %w[GraphChanged CaptureChanged].include?(event.type) }
       audit_groups = successful_audits.group_by { |audit| audit_event_signature(audit) }
       event_groups = graph_events.group_by { |event| graph_event_signature(event) }
       audit_groups.each_with_object({}) do |(signature, audits), result|
@@ -318,9 +318,9 @@ module KnowledgeActivity
 
     def activity_type(audit)
       case audit.fetch("intent_type")
-      when "CreateEntity", "CreateMeeting", "RecordInteraction", "RecordPromise", "AddRelationship"
+      when "CreateEntity", "CreateMeeting", "RecordInteraction", "RecordPromise", "AddRelationship", "CreateCapture"
         "knowledge_added"
-      when "ArchiveEntity", "RemoveRelationship" then "knowledge_archived"
+      when "ArchiveEntity", "RemoveRelationship", "ArchiveCapture" then "knowledge_archived"
       when "RestoreEntity" then "knowledge_restored"
       else "knowledge_changed"
       end
@@ -343,6 +343,11 @@ module KnowledgeActivity
         "#{name_for(params["source"])} was connected to #{name_for(params["target"])}."
       when "RemoveRelationship" then "#{name_for(params["relationship_id"])} was archived."
       when "ReplaceRelationship" then "#{name_for(params["relationship_id"])} was changed."
+      when "CreateCapture" then "A #{params['kind']} was added to the Knowledge Inbox."
+      when "ReviewCapture" then "#{capture_name(params['capture_id'])} was reviewed."
+      when "LinkCapture" then "#{capture_name(params['capture_id'])} was linked."
+      when "PromoteCapture" then "#{capture_name(params['capture_id'])} was promoted."
+      when "ArchiveCapture" then "#{capture_name(params['capture_id'])} was archived."
       else "Knowledge was changed."
       end
     end
@@ -374,6 +379,9 @@ module KnowledgeActivity
           state: resulting_state(audit, record)
         }.reject { |_key, value| value.nil? }
       rescue KnowledgeGraph::Error
+        capture = KnowledgeCapture::Store.new(vault_root: @vault_root).find(id)
+        { id: capture.id, kind: "capture", name: capture.title, state: capture.status }
+      rescue KnowledgeCapture::Error
         { id: id, kind: "knowledge" }
       end.compact
     end
@@ -395,8 +403,14 @@ module KnowledgeActivity
       return true if params.dig("attributes", "sensitivity") == "restricted"
       return true if proposal&.dig("source", "metadata", "sensitivity") == "restricted"
 
-      audit.fetch("entity_ids", []).any? { |id| restricted_record?(repository.find(id)) }
+      audit.fetch("entity_ids", []).any? do |id|
+        restricted_record?(repository.find(id))
+      rescue KnowledgeGraph::Error
+        KnowledgeCapture::Store.new(vault_root: @vault_root).find(id).sensitivity == "restricted"
+      end
     rescue KnowledgeGraph::Error
+      false
+    rescue KnowledgeCapture::Error
       false
     end
 
@@ -475,7 +489,7 @@ module KnowledgeActivity
     def cache_activities(activities, key, snapshot_digest)
       dependencies = KnowledgeOrchestration::ArtifactDependencies.new(
         event_ids: activities.flat_map(&:events),
-        event_types: %w[GraphChanged RelationshipUpdated ContactCreated DatasetChanged RecommendationGenerated],
+        event_types: %w[GraphChanged CaptureChanged RelationshipUpdated ContactCreated DatasetChanged RecommendationGenerated],
         entity_ids: [], snapshot_digest: snapshot_digest,
         capability_id: "kg.activity.timeline", capability_version: KnowledgeActivity::VERSION
       )
@@ -506,7 +520,7 @@ module KnowledgeActivity
     end
 
     def activity_event_history
-      graph_events = orchestration_events.select { |event| event.type == "GraphChanged" }
+      graph_events = orchestration_events.select { |event| %w[GraphChanged CaptureChanged].include?(event.type) }
       graph_by_id = graph_events.to_h { |event| [event.id, event] }
       graph_events + orchestration_events.select do |event|
         base = graph_by_id[event.causation_id]
@@ -514,6 +528,13 @@ module KnowledgeActivity
       end + orchestration_events.select do |event|
         %w[DatasetChanged RecommendationGenerated].include?(event.type)
       end
+    end
+
+    def capture_name(reference)
+      capture = KnowledgeCapture::Store.new(vault_root: @vault_root).find(reference)
+      capture.title
+    rescue KnowledgeCapture::Error
+      reference.to_s
     end
 
     def orchestration_events

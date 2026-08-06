@@ -106,6 +106,10 @@ module KnowledgeGraph
         clock: clock,
         run_id: @run_id
       )
+      capture_manager = KnowledgeCapture::Manager.new(
+        vault_root: @vault_root, writer: YamlWriter.new, id_generator: id_generator,
+        clock: clock, run_id: @run_id
+      )
       {
         CreateEntity => :create,
         UpdateEntity => :update,
@@ -130,6 +134,10 @@ module KnowledgeGraph
       end
       register(MergeEntities, identity_manager.method(:merge))
       register(SplitEntity, identity_manager.method(:split))
+      {
+        CreateCapture => :create, ReviewCapture => :review, LinkCapture => :link,
+        PromoteCapture => :promote, ArchiveCapture => :archive
+      }.each { |intent_class, method_name| register(intent_class, capture_manager.method(method_name)) }
     end
   end
 end

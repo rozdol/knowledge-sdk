@@ -10,7 +10,7 @@
       "type": "object",
       "required": [
         "question", "intent", "summary", "confidence", "possible_factors",
-        "datasets", "graph_evidence", "activity_evidence", "time_windows",
+        "datasets", "graph_evidence", "capture_evidence", "activity_evidence", "time_windows",
         "correlations", "recommendations", "decision_trace", "limitations", "analysis_modules",
         "explainability", "subsystems", "analysis_digest"
       ],
@@ -41,6 +41,8 @@
         },
         "datasets": { "type": "array", "items": { "type": "object" } },
         "graph_evidence": { "type": "array", "items": { "type": "object" } },
+        "capture_evidence": { "type": "array", "items": { "type": "object" } },
+        "capture_summary": { "type": "object" },
         "activity_evidence": { "type": "array", "items": { "type": "object" } },
         "intelligence_evidence": { "type": "array", "items": { "type": "object" } },
         "planning_signals": { "type": "array", "items": { "type": "object" } },
@@ -53,12 +55,13 @@
         "analysis_modules": { "type": "array", "items": { "type": "object" } },
         "explainability": {
           "type": "object",
-          "required": ["causal_language", "causality_established", "ranking", "dataset_signature", "graph_snapshot_digest"],
+          "required": ["causal_language", "causality_established", "ranking", "dataset_signature", "capture_signature", "graph_snapshot_digest"],
           "properties": {
             "causal_language": { "type": "string", "const": "possible_contributing_factors" },
             "causality_established": { "type": "boolean", "const": false },
             "ranking": { "type": "string" },
             "dataset_signature": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "capture_signature": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
             "graph_snapshot_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
           },
           "additionalProperties": false

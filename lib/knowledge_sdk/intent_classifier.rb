@@ -154,7 +154,8 @@ module KnowledgeSDK
 
   class IntentClassifier
     DOMAINS = SemanticDomainClassifier::DOMAINS
-    ROUTES = %w[dataset analyze observe search plan proposal].freeze
+    ROUTES = %w[dataset search analyze plan proposal observe capture].freeze
+    ROUTE_PRIORITY = ROUTES.each_with_index.to_h.freeze
     Entry = Struct.new(:name, :domain, :route, :matcher, :fallback, keyword_init: true)
 
     attr_reader :domain_classifier, :text_normalizer
@@ -264,7 +265,10 @@ module KnowledgeSDK
         candidates.concat(evaluate(entries, normalized.original, context))
       end
 
-      selected = candidates.max_by { |candidate| candidate.fetch(:classification).confidence }
+      selected = candidates.min_by do |candidate|
+        classification = candidate.fetch(:classification)
+        [ROUTE_PRIORITY.fetch(classification.route), -classification.confidence]
+      end
       classification = selected && selected.fetch(:classification)
       trace = diagnostic ? diagnostic_trace(
         normalized, domain_candidates, loaded, candidates, classification

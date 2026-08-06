@@ -1,6 +1,6 @@
 # knowledge-sdk
 
-`knowledge-sdk` is a standalone Ruby product for Obsidian knowledge workflows. It contains the CLI, transactional Engine, Agent Gateway, Knowledge Extraction Pipeline, intelligence and planning layers, event orchestration, Knowledge Activity, plugins, validators, and Structured Dataset Engine.
+`knowledge-sdk` is a standalone Ruby product for Obsidian knowledge workflows. It contains the CLI, transactional Engine, Agent Gateway, Knowledge Extraction Pipeline, Knowledge Capture inbox, intelligence and planning layers, event orchestration, Knowledge Activity, plugins, validators, and Structured Dataset Engine.
 
 An Obsidian Vault is a client of the SDK. It keeps its own name, repository, folder layout, ontology, notes, attachments, and Obsidian settings. The SDK never requires a project named `knowledge-vault`, never creates `.vault.yml`, and `kg attach` does not modify the Vault.
 
@@ -35,7 +35,7 @@ curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/update.sh
 To install a particular tag, branch, or commit, pass `--ref`, for example:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/install.sh | sh -s -- --ref v15.0.0
+curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/install.sh | sh -s -- --ref v16.0.0
 ```
 
 For source development:
@@ -44,7 +44,7 @@ For source development:
 bundle install
 bundle exec rake test
 gem build knowledge-sdk.gemspec
-gem install ./knowledge-sdk-15.0.0.gem
+gem install ./knowledge-sdk-16.0.0.gem
 ```
 
 During source development, use `ruby bin/kg`; after installation, use `kg`.
@@ -82,6 +82,7 @@ Plain `kg init` creates only the target and its normal `.obsidian` directory, th
 - SDK lifecycle: `kg init`, `attach`, `detach`, `upgrade`, `migrate`, `version`, `id`, `vault`, and `plugin`.
 - Graph: `execute`, `validate`, `doctor`, `graph`, `stats`, `search`, and `replay`.
 - Review workflow: `observe`, `extract`, `proposal`, `chat`, and `activity`.
+- Capture inbox: `inbox` and `capture list|show|latest|search|review|promote|archive`.
 - Analysis and decisions: `analyze`, `intelligence`, `goal`, and `plan`.
 - Platform: `gateway`, `events`, `workflow`, `scheduler`, `notifications`, and `cache`.
 - Structured rows: `dataset create|list|describe|insert|update|delete|query|export|import|stats|explain|migrate`.
@@ -101,7 +102,18 @@ incoming evidence -> template selection -> exact approval
 
 The bundled catalogue covers Health, Finance, Trading, CRM, and Generic observations. Blood tests use normalized analyte/value rows rather than one column per biomarker, preserve the supplied reference interval and flag, and retain row-level source URI, filename, page, span, Evidence ID, observation, proposal, approval, and Intent provenance. `kg chat --explain` reports the selected template, confidence, reason, planned collection, and planned observation count without exposing schema or SQL details. See [Dataset Template Guide](docs/Dataset%20Template%20Guide.md).
 
-`kg analyze` combines graph evidence, structured rows and statistics, Knowledge Activity, Knowledge Intelligence findings, planning signals, events, and derived cache state through deterministic installed analysis plugins:
+## Knowledge Capture
+
+Version 16 adds a first-class Capture inbox for explicit thoughts, ideas, notes, questions, lessons, decisions, observations, bookmarks, references, quotes, and hypotheses. `kg chat` remains the natural-language entry point. An explicit note-like message creates only a review proposal; no Capture exists until the exact planned Intents are approved and submitted through the existing Engine.
+
+```text
+explicit note-like message -> knowledge.capture -> candidate links
+  -> review-only Proposal -> exact approval -> Engine -> Captures/capture_<ULID>.md
+```
+
+Capture IDs and Markdown bodies are immutable. Review, approved links, promotion, and archive change lifecycle metadata through independent Intents. Promotion preserves the original Capture and creates or references its target through the same dependency-ordered proposal. Ambiguous requests clarify; explicit graph facts and Dataset observations do not become Captures. See [Knowledge Capture](docs/Knowledge%20Capture/README.md) and [Search](docs/Search.md).
+
+`kg analyze` combines graph evidence, Capture evidence, structured rows and statistics, Knowledge Activity, Knowledge Intelligence findings, planning signals, events, and derived cache state through deterministic installed analysis plugins:
 
 ```sh
 kg analyze "Why has my LDL increased during the last six months?"
@@ -154,4 +166,4 @@ kg --vault /path/to/vault validate
 kg --vault /path/to/vault doctor
 ```
 
-See [Installation](INSTALL.md), [AI Project Context](AI_PROJECT_CONTEXT.md), [Architecture Decisions](ARCHITECTURE_DECISIONS.md), [Architecture](docs/Architecture.md), [Dataset Intelligence](docs/Dataset%20Intelligence/README.md), [Configuration Guide](docs/Configuration%20Guide.md), [Migration Guide](docs/Migration%20Guide.md), [Plugin Guide](docs/Plugin%20Guide.md), [Developer Guide](docs/Developer%20Guide.md), and [Intent API](docs/Intent%20API.md). Automated contributors must also follow [AGENTS.md](AGENTS.md).
+See [Installation](INSTALL.md), [AI Project Context](AI_PROJECT_CONTEXT.md), [Architecture Decisions](ARCHITECTURE_DECISIONS.md), [Architecture](docs/Architecture.md), [Knowledge Capture](docs/Knowledge%20Capture/README.md), [Search](docs/Search.md), [Knowledge Graph](docs/Knowledge%20Graph.md), [Dataset Intelligence](docs/Dataset%20Intelligence/README.md), [Configuration Guide](docs/Configuration%20Guide.md), [Migration Guide](docs/Migration%20Guide.md), [Plugin Guide](docs/Plugin%20Guide.md), [Developer Guide](docs/Developer%20Guide.md), and [Intent API](docs/Intent%20API.md). Automated contributors must also follow [AGENTS.md](AGENTS.md).

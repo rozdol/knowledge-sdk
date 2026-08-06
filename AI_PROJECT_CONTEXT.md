@@ -5,16 +5,16 @@
 | Field | Value |
 |---|---|
 | Product | `knowledge-sdk` |
-| SDK version | `15.0.0` |
+| SDK version | `16.0.0` |
 | Baseline extraction revision | `8dba780` |
-| Updated | `2026-08-02` |
+| Updated | `2026-08-06` |
 | Runtime | Ruby 2.6+ |
 
 This document orients maintainers and coding agents. Executable code, published schemas, manifests, migrations, and tests are authoritative when they conflict with prose.
 
 ## Executive summary
 
-`knowledge-sdk` is an independent Ruby package for knowledge workflows over attached Obsidian Vaults. It owns the `kg` CLI, transactional Engine, Agent Gateway, extraction and proposal pipeline, intelligence and planning layers, orchestration, Knowledge Activity, plugins, validators, migrations, Structured Dataset Engine, immutable Dataset Template Registry, autonomous Dataset lifecycle planning, and deterministic cross-knowledge analysis.
+`knowledge-sdk` is an independent Ruby package for knowledge workflows over attached Obsidian Vaults. It owns the `kg` CLI, transactional Engine, Agent Gateway, extraction and proposal pipeline, Knowledge Capture inbox, intelligence and planning layers, orchestration, Knowledge Activity, plugins, validators, migrations, Structured Dataset Engine, immutable Dataset Template Registry, autonomous Dataset lifecycle planning, and deterministic cross-knowledge analysis.
 
 An Obsidian Vault is a client of the SDK. It retains its own name, repository, folder layout, ontology, Markdown, attachments, settings, and lifecycle. There is no required companion repository or product named `knowledge-vault`.
 
@@ -70,7 +70,7 @@ The main namespaces are:
 
 - `KnowledgeSDK` for configuration, Vault discovery and registry, lifecycle operations, plugins, migration, and the preferred product entry point.
 - `KnowledgeGraph` for immutable Intents, graph semantics, storage, validation, Engine execution, and the backward-compatible API.
-- Dedicated modules under `lib/` for extraction, intelligence, planning, agent capabilities, orchestration, activity, and structured datasets.
+- Dedicated modules under `lib/` for extraction, capture, intelligence, planning, agent capabilities, orchestration, activity, and structured datasets.
 
 ## Non-negotiable invariants
 
@@ -91,6 +91,9 @@ The main namespaces are:
 - Dataset templates are immutable, versioned, trusted plugin objects; imported or attached-Vault content cannot register parsers, schemas, validation, analyzers, or recommendations.
 - Smart import selection and parsing are read-only. Provisioning and every parsed row remain immutable proposal Intents behind exact approval.
 - Imported source renditions and original-artifact URIs remain local Evidence; each imported row carries an Evidence ID and source locator through approval and execution.
+- Capture is first-class canonical Markdown outside the graph ontology and Dataset store. Its body and ID are immutable; lifecycle metadata changes only through Capture Intents and the Engine.
+- Graph facts, Dataset observations, and ambiguous text never become Captures merely because another route did not match.
+- Capture promotion is an explicit dependency-ordered Proposal; the original Capture remains and no candidate link mutates a graph entity.
 
 ## Public lifecycle
 
@@ -138,6 +141,18 @@ returns template, confidence, and reason. Parsing produces evidence-backed `Inse
 Intents; `AutonomousRegistry` adds the existing lifecycle prerequisite and the proposal submitter
 retries rows only after approved provisioning. The normalized blood-test model stores arbitrary
 analytes as rows and preserves supplied ranges, flags, specimen, laboratory, and source locators.
+
+Phase 16 adds `KnowledgeCapture`. Explicit note-like messages in English, Russian, and Greek route to
+`knowledge.capture` after Dataset, search, analysis, planning, proposal, and explicit graph routes.
+Unknown or ambiguous input clarifies. Capture proposals preserve local Evidence and contain an
+approval-gated `CreateCapture`, plus a dependent `LinkCapture` only when canonical Project, Person,
+or Organization names are mentioned. Canonical records live under `Captures/` with immutable
+`capture_<ULID>` identity and Markdown body. Review, link, promote, and archive are independent
+Engine Intents. `kg inbox` and `kg capture` provide human-oriented lifecycle commands without IDs by
+default. Capture search participates in `kg search`; `kg analyze` includes Capture evidence, themes,
+repetition, concerns, a Capture signature, Activity, and cache invalidation. Trusted plugins may
+register enrichers, topic extractors, auto-linkers, promotion rules, and recommendation generators;
+attached-Vault content cannot register executable behavior.
 
 ## Verification
 

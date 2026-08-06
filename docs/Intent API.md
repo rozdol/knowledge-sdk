@@ -57,6 +57,22 @@ Dataset lifecycle mutations are also immutable, exact-approval-gated Intents. `A
 
 The proposal dependency graph executes either lifecycle Intent before the original Dataset row. New columns must be optional. Removal, reorder, rename, retype, and constraint changes are invalid except for the exact SDK-owned medication migration described above. Lifecycle results include Dataset ID, schema version, and Dataset activity ID.
 
+## Knowledge Capture
+
+Capture identity and content fields are immutable. Lifecycle metadata uses separate Intents, and every
+Intent executes through the same candidate validation, optimistic concurrency, receipt, audit, and
+event hooks as graph operations.
+
+- `CreateCapture(capture_id: nil, kind:, title:, body:, captured_at: nil, created_by: "agent", importance: "normal", topics: [], tags: [], language: "und", evidence: [], source: "unknown", sensitivity: "private")` creates a version-1 Capture in `status: inbox`. Conversational callers place this Intent in a proposal and normally supply a deterministic ID.
+- `ReviewCapture(capture_id:)` marks an inbox Capture reviewed without changing its body.
+- `LinkCapture(capture_id:, related_entities: [], related_projects: [], related_contacts: [])` records exactly approved canonical targets and marks the Capture linked. It rejects empty target sets and Project/Person type mismatches.
+- `PromoteCapture(capture_id:, target_kind:, target_ids:)` records successful promotion after its target dependencies execute. It never removes or rewrites the original Capture content.
+- `ArchiveCapture(capture_id:)` idempotently moves the Capture to the archived terminal lifecycle state.
+
+The natural-language intent names are `knowledge.capture`, `knowledge.capture.link`,
+`knowledge.capture.promote`, `knowledge.capture.archive`, and read-only
+`knowledge.capture.search`. Search is not an Engine mutation Intent.
+
 ## Results and errors
 
 `execute` returns an immutable `Result` with `intent_type`, `entity_ids`, `changed_paths`, optional `value`, `replayed`, `duration_ms`, and `audit_id`. Dataset results use `value` for the SQLite row/activity references and do not report a graph content path.

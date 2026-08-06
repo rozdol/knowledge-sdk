@@ -31,13 +31,13 @@ class StructuredDatasetRoutingTest < Minitest::Test
     }
   ].freeze
 
-  def test_classifier_uses_domain_plugins_confidence_and_graph_last_resort
+  def test_classifier_uses_domain_plugins_confidence_and_specialized_graph_route
     resolver = KnowledgeGraph::ChatIntentResolver.new
     assert_equal "dataset", resolver.resolve("My weight is 82.3 kg").route
     graph_fallback = resolver.resolve("Ivan Petrov works at Microsoft.")
     assert_equal "observe", graph_fallback.route
-    assert_equal 0.20, graph_fallback.confidence
-    assert_includes graph_fallback.reason, "last resort"
+    assert_equal 0.94, graph_fallback.confidence
+    assert_includes graph_fallback.reason, "explicitly states"
     assert_equal "search", resolver.resolve("Who is Ivan Petrov?").route
     assert_equal "plan", resolver.resolve("Create a plan for Ivan.").route
     assert_equal "proposal", resolver.resolve("Show pending proposals.").route

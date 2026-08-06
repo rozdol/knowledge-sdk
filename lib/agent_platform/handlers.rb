@@ -9,6 +9,7 @@ module AgentPlatform
       register_entity_handlers(registry, services)
       register_graph_handlers(registry, services)
       register_dataset_handlers(registry, services)
+      register_capture_handlers(registry, services)
       register_cross_analysis_handler(registry, services)
       register_intelligence_handlers(registry, services)
       register_planning_handlers(registry, services)
@@ -16,6 +17,37 @@ module AgentPlatform
       register_extraction_handler(registry, services)
       register_orchestration_handlers(registry, services) if services.notification_store?
       registry
+    end
+
+    def register_capture_handlers(registry, services)
+      registry.register("kg.captures.search") do |arguments, context|
+        result = services.capture_search(context).query(
+          arguments.fetch("query"), limit: arguments.fetch("limit", 25),
+          include_ids: arguments.fetch("include_ids", false),
+          include_restricted: context.agent.permits?("capture:restricted"),
+          status: arguments["status"], kind: arguments["kind"]
+        )
+        HandlerResult.new(
+          payload: result, why: result.fetch("explanation"),
+          confidence: result.fetch("matches").empty? ? 0.0 : 1.0,
+          evidence: result.fetch("matches").map do |item|
+            { "record_id" => item["capture_id"] || item["title"], "role" => "capture" }
+          end
+        )
+      rescue KnowledgeCapture::Error => error
+        raise InvalidArguments, error.message
+      end
+
+      registry.register("kg.captures.propose", version: "1.0.0") do |arguments, context|
+        result = services.capture_proposal_builder(context).create(arguments)
+        HandlerResult.new(
+          payload: result,
+          why: "Recognised explicit note-like content and created an immutable review-only Capture proposal.",
+          confidence: 0.98
+        )
+      rescue KnowledgeCapture::Error, KnowledgeExtraction::Error, ArgumentError => error
+        raise InvalidArguments, error.message
+      end
     end
 
     def register_cross_analysis_handler(registry, services)

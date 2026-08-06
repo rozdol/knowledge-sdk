@@ -55,7 +55,7 @@ immutable Goal + composable Constraints
 
 “Decision-approved” means only that a plan ranked first after hard constraints. It is not human approval and gives no execution authority. The planning module has no Engine, dispatcher, repository writer, or autonomous-agent dependency. Given the same graph snapshot, goal, constraints, policy, and `as_of` date, its canonical result is identical.
 
-## Intent classification and Dataset routing
+## Intent classification and conversational routing
 
 `kg chat` and `kg observe` use one SDK-owned hierarchical `KnowledgeSDK::IntentClassifier`. Phase 1 detects one semantic domain:
 
@@ -63,16 +63,21 @@ immutable Goal + composable Constraints
 health | finance | crm | trading | knowledge | generic
 ```
 
-Phase 2 evaluates every registered non-fallback classifier plugin for the winning domain and selects the result with the highest confidence. A plugin registration declares its domain and route; its matcher returns `intent`, `confidence`, and `explanation`, plus optional slots. If no winning-domain plugin matches, generic analysis, planning, proposal, Dataset-table, and search plugins are evaluated. The generic graph classifier is marked as a separate fallback tier and runs only when every applicable specialized and generic plugin returned no result.
+Phase 2 evaluates trusted plugins for the winning domain and then generic routes. A plugin registration declares its domain and route; its matcher returns `intent`, `confidence`, and `explanation`, plus optional slots. Route precedence is fixed; confidence arbitrates only among candidates on the same eligible route. Weak Dataset-template vocabulary is suppressed for read and analytical questions.
 
 ```text
-semantic domain detection
-  -> winning-domain plugins (highest confidence)
-  -> generic analysis / planning / proposal / Dataset-table / search plugins
-  -> graph.observe classifier of last resort
+Natural Language -> Intent Classifier
+  -> Dataset
+  -> Search
+  -> Analyze
+  -> Planning
+  -> Proposal
+  -> Specialized Graph Intents
+  -> Knowledge Capture
+  -> Clarification
 ```
 
-Sentence type is not a domain or routing decision. In particular, a declarative sentence cannot outrank a health Dataset plugin merely because it lacks a question mark. Structured observations are classified before graph extraction. Medication schedules, measurements, laboratory results, body measurements, and financial rows use `kg.datasets.propose`, which creates an immutable proposal through the existing Proposal Store and validator. Ambiguous structured tables remain on the Dataset route for schema clarification and never fall through to graph extraction.
+Sentence type is not a domain or routing decision. Structured observations are classified before graph extraction. Medication schedules, measurements, laboratory results, body measurements, and financial rows use `kg.datasets.propose`, which creates an immutable proposal through the existing Proposal Store and validator. Ambiguous structured tables remain on the Dataset route for schema clarification and never fall through to graph extraction. `graph.observe` recognizes supported relationship-fact shapes only. Capture recognizes explicit note-like language only. No match yields clarification.
 
 `kg chat --explain` adds a safe classifier trace containing normalized input text, semantic-domain candidates, loaded classifier plugin names, matched intent candidates, and the selected intent. It exposes no matcher objects, filesystem paths, configuration, credentials, or attached-Vault internals. Normalization is explicit UTF-8 NFC, locale-independent Unicode lowercase, and `ё`/`е` equivalence for matching; the original normalized spelling remains available to Dataset parsers so medication names retain their supplied form.
 
@@ -85,6 +90,40 @@ structured message -> Dataset classification -> named immutable Dataset Intent
 ```
 
 Named Dataset Intents contain row values and provenance but no graph attributes. Their Engine result identifies the canonical Dataset registry note; raw row values remain exclusively in SQLite. An optional graph statement such as “Alex has a medication schedule” is a separate semantic proposal and never contains the schedule rows.
+
+## Knowledge Capture and inbox
+
+Capture is first-class canonical Markdown and is deliberately outside both the graph ontology and the
+Dataset SQLite store. The SDK validator recognizes `Captures/capture_<ULID>.md` directly, so generic
+Vaults and optional profiles do not need to install a Capture schema.
+
+```mermaid
+flowchart TD
+  NL["Explicit note-like natural language"] --> IC["Intent Classifier"]
+  IC --> CP["knowledge.capture proposal"]
+  CP --> LC["Read-only Project, Person, Company candidates"]
+  LC --> AP["Exact human approval"]
+  AP --> EN["Existing Engine pipeline"]
+  EN --> CA["Canonical Capture in inbox"]
+  CA --> RV["Review or approved link"]
+  RV --> PP["Explicit promotion proposal"]
+  PP --> TA["Target Intent then PromoteCapture"]
+  TA --> KA["CaptureChanged and Knowledge Activity"]
+```
+
+`CreateCapture`, `ReviewCapture`, `LinkCapture`, `PromoteCapture`, and `ArchiveCapture` are independent
+immutable Intents. Capture identity, kind, title, body, capture time, creator, source, and Evidence
+references never change. Review state, lifecycle status, approved links, and promotion references are
+mutable metadata written only by those Intents. Status progresses through `inbox`, `reviewed`,
+`linked`, `promoted`, `archived`, and `deleted`; no command silently skips approval for creation or
+promotion. Promotion targets existing graph/Dataset Intents and leaves the original Capture intact.
+
+`kg.captures.search` and `kg capture search` use deterministic Unicode token scoring over kind, time,
+status, title, topics, tags, and body. `kg search` includes Capture matches alongside existing Dataset
+or graph results. `KnowledgeAnalysis` binds its cache to a Capture signature and returns
+`capture_evidence`, theme frequencies, repeated wording groups, links to graph evidence, limitations,
+and review-only plugin recommendations. Restricted Captures are excluded from cross-knowledge
+analysis.
 
 ## Structured recurrence and Health schedule evolution
 
@@ -172,12 +211,14 @@ flowchart LR
   Q["Question"] --> IC["IntentClassifier / Analyze Intent"]
   IC --> AX["KnowledgeAnalysis context"]
   AX --> GS["Graph snapshot"]
+  AX --> CP["Policy-visible Captures + signature"]
   AX --> DS["Dataset queries + statistics"]
   AX --> KA["Knowledge Activity"]
   AX --> KI["Knowledge Intelligence"]
   AX --> PS["Planning signals"]
   AX --> EB["Event history"]
   GS --> AP["Installed analysis plugins"]
+  CP --> AP
   DS --> AP
   KA --> AP
   KI --> AP
@@ -244,7 +285,8 @@ Undo and restore perform no graph write. They derive lossless existing Intents f
 - `agent_platform/` owns manifests, Registry, Gateway, policy, sessions, adapters, jobs, telemetry, plugins, and generated contract artifacts. It does not parse Markdown or YAML.
 - `knowledge_orchestration/` owns immutable events, the internal bus and dead-letter queue, trigger and workflow DSL, dependency graph, derived-artifact Knowledge Cache, durable jobs, cron scheduler, notifications, replay, and sanitized timelines. It invokes existing components only through Agent Gateway capabilities.
 - `knowledge_activity/` owns the read-time Activity projection, human summaries, temporal filtering/search/diff, privacy redaction, explainability joins, and review-only undo/restore proposal adaptation. It has no canonical writer or Activity store.
-- `knowledge_sdk/intent_classifier.rb` owns semantic-domain detection, domain-scoped plugin confidence arbitration, the explicit generic fallback tier, and the immutable classification contract used by chat and observation.
+- `knowledge_sdk/intent_classifier.rb` owns semantic-domain detection, fixed route precedence, domain-scoped plugin confidence arbitration, and the immutable classification contract used by chat and observation.
+- `knowledge_capture/` owns the canonical Capture value, SDK-owned store/validator contract, Engine handlers, inbox CLI, explicit classifier, read-only link candidates, search, promotion proposal planning, plugin registry, and analysis contribution. It does not mutate linked entities or approve proposals.
 - `knowledge_sdk/schedule.rb` owns the generic immutable recurrence value and interval-overlap semantics; it has no writer or medication dependency.
 - `structured_dataset/routing.rb` owns Dataset classifiers, named Dataset Intent proposal construction, and the handlers registered on the existing Engine. It never invokes graph extraction for row data.
 - `structured_dataset/medication_schedules.rb` owns trusted Health schedule row evolution and the one versioned legacy-table transform.

@@ -10,11 +10,14 @@ module KnowledgeGraph
     )
 
     PLAN_REQUEST = /\A(?:(?:please\s+)?(?:(?:make|create|build|draft|develop|prepare)\b.*\bplan\b|plan\b)|(?:пожалуйста\s+)?(?:создай|составь|подготовь)\b.*\bплан\b|(?:παρακαλώ\s+)?(?:δημιούργησε|ετοίμασε|σύνταξε)\b.*\bσχέδιο\b)/i.freeze
-    SEARCH_REQUEST = /\A(?:who|what|where|when|which|why|how|does|do|did|is|are|was|were|can|could|would|tell\s+me|show\s+me|find|кто|что|где|когда|какой|почему|как|найди|покажи|расскажи|ποιος|ποια|ποιο|τι|πού|πότε|γιατί|πώς|βρες|δείξε)\b/i.freeze
+    SEARCH_REQUEST = /\A(?:who|what|where|when|which|how|does|do|did|is|are|was|were|can|could|would|tell\s+me|show\s+me|find|кто|что|где|когда|какой|как|найди|покажи|расскажи|ποιος|ποια|ποιο|τι|πού|πότε|πώς|βρες|δείξε)\b/i.freeze
+    CAPTURE_SEARCH_REQUEST = /(?:what\s+(?:ideas|notes|thoughts|questions|lessons).*(?:do\s+i\s+have|did\s+i\s+(?:write|record))|what\s+have\s+i\s+recently\s+captured|questions?.*still\s+unanswered|какие\s+(?:идеи|заметки|мысли|вопросы|уроки).*(?:у\s+меня|я\s+(?:писал|записал))|что\s+я\s+недавно\s+записал|ποια\s+(?:ιδέα|σημείωσ|σκέψ|ερώτησ|μάθημα).*(?:έχω|έγραψα))/i.freeze
+    SPECIALIZED_GRAPH_FACT = /(?:\b(?:works?\s+(?:at|for)|founded|knows|lives?\s+in|uses|owns|leads|member\s+of|met\s+with)\b|(?:работает\s+в|основал(?:а)?|знает|живет\s+в|использует|владеет|руководит)|(?:εργάζεται\s+(?:στη|στο|σε)|ίδρυσε|γνωρίζει|μένει\s+στ))/i.freeze
     UNSUPPORTED_ACTION = /\A(?:please\s+)?(?:add|archive|approve|call|change|delete|edit|email|execute|merge|remove|rename|schedule|send|submit|update)\b/i.freeze
 
     CAPABILITIES = {
       "dataset" => "kg.datasets.propose", "observe" => "kg.observe",
+      "capture" => "kg.captures.propose",
       "analyze" => "kg.analysis.run",
       "search" => "kg.graph.query", "plan" => "kg.planning.plan",
       "proposal" => "kg.proposals.status"
@@ -30,9 +33,12 @@ module KnowledgeGraph
       def install_defaults(classifier)
         StructuredDataset::IntentClassifierPlugin.register(classifier)
         KnowledgeAnalysis::IntentClassifierPlugin.register(classifier)
+        KnowledgeCapture::IntentClassifierPlugin.register(classifier)
         classifier.register(name: "core-search", domain: "generic", route: "search") do |source, _context|
           next nil if proposal_request?(source)
-          next nil unless SEARCH_REQUEST.match?(source) || source.end_with?("?")
+          next nil if KnowledgeAnalysis::IntentClassifierPlugin.analysis_request?(source)
+          next nil if KnowledgeCapture::IntentClassifierPlugin.explicit_capture?(source)
+          next nil unless SEARCH_REQUEST.match?(source) || CAPTURE_SEARCH_REQUEST.match?(source)
 
           {
             "intent" => "graph.search", "confidence" => 0.90,
@@ -40,6 +46,7 @@ module KnowledgeGraph
           }
         end
         classifier.register(name: "core-plan", domain: "generic", route: "plan") do |source, _context|
+          next nil if KnowledgeCapture::IntentClassifierPlugin.explicit_capture?(source)
           next nil unless PLAN_REQUEST.match?(source)
 
           {
@@ -48,6 +55,7 @@ module KnowledgeGraph
           }
         end
         classifier.register(name: "core-proposal", domain: "generic", route: "proposal") do |source, _context|
+          next nil if KnowledgeCapture::IntentClassifierPlugin.explicit_capture?(source)
           next nil unless proposal_request?(source)
 
           {
@@ -55,14 +63,13 @@ module KnowledgeGraph
             "explanation" => "request concerns an existing proposal"
           }
         end
-        classifier.register(
-          name: "core-graph-observe", domain: "generic", route: "observe", fallback: true
-        ) do |source, _context|
-          next nil if UNSUPPORTED_ACTION.match?(source) || source.split(/\s+/).length < 3
+        classifier.register(name: "core-specialized-graph", domain: "generic", route: "observe") do |source, _context|
+          next nil if KnowledgeCapture::IntentClassifierPlugin.explicit_capture?(source)
+          next nil unless SPECIALIZED_GRAPH_FACT.match?(source)
 
           {
-            "intent" => "graph.observe", "confidence" => 0.20,
-            "explanation" => "no specialized, planning, or search classifier matched; using graph observation as a last resort"
+            "intent" => "graph.observe", "confidence" => 0.94,
+            "explanation" => "message explicitly states a supported graph relationship fact"
           }
         end
       end
@@ -135,14 +142,14 @@ module KnowledgeGraph
       @agent = AgentPlatform::AgentIdentity.new(
         id: actor_id.to_s.empty? ? "kg-chat-cli" : actor_id.to_s,
         permissions: %w[
-          graph:read dataset:read intelligence:read analysis:read planning:read proposal:read proposal:create
+          graph:read dataset:read capture:read capture:create intelligence:read analysis:read planning:read proposal:read proposal:create
         ],
         roles: ["chat_client"],
         attributes: {
           "autonomous_execution" => false,
           "allowed_capabilities" => %w[
             kg.entities.search kg.graph.query kg.datasets.query kg.datasets.propose
-            kg.analysis.run kg.planning.plan kg.proposals.status
+            kg.captures.search kg.captures.propose kg.analysis.run kg.planning.plan kg.proposals.status
           ],
           "denied_capabilities" => ["kg.proposals.submit"]
         }
@@ -157,6 +164,7 @@ module KnowledgeGraph
                                decision, "kg.analysis.run", "question" => text
                              )
                              when "observe" then observation_response(decision) { yield }
+                             when "capture" then capture_response(decision, context)
                              when "search" then search_response(text, decision)
                              when "plan" then capability_response(
                                decision, "kg.planning.plan",
@@ -223,7 +231,22 @@ module KnowledgeGraph
       [{ "status" => "ok", "route" => decision.route, "result" => result }, "kg.observe"]
     end
 
+    def capture_response(decision, arguments)
+      response = invoke("kg.captures.propose", arguments)
+      return [gateway_error(decision.route, response), "kg.captures.propose"] unless response.success?
+
+      [{ "status" => "ok", "route" => "capture", "result" => response.payload }, "kg.captures.propose"]
+    end
+
     def search_response(text, decision)
+      capture_response = invoke("kg.captures.search", "query" => text)
+      if capture_response.success? && capture_response.payload.fetch("count", 0).positive?
+        return [{ "status" => "ok", "route" => decision.route, "result" => capture_response.payload }, "kg.captures.search"]
+      end
+      unless capture_response.success? && capture_response.errors.empty?
+        return [gateway_error(decision.route, capture_response), "kg.captures.search"]
+      end
+
       dataset_response = invoke("kg.datasets.query", "query" => text)
       return [{ "status" => "ok", "route" => decision.route, "result" => dataset_response.payload }, "kg.datasets.query"] if dataset_response.success?
       unless dataset_response.errors.first.to_h["code"] == "InvalidArguments"

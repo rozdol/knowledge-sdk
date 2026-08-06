@@ -19,7 +19,7 @@ The bundled `personal-crm` plugin packages the current ontology, templates, view
 
 ## Intent Classifier extensions
 
-Trusted SDK code plugins can add an intent recognizer without changing `kg chat` by registering a deterministic matcher for one semantic domain. The classifier first selects `health`, `finance`, `crm`, `trading`, `knowledge`, or `generic`, invokes all plugins for the winning domain, and selects their highest-confidence result. Only when no winning-domain plugin matches does it evaluate generic analysis, planning, proposal, Dataset-table, and search plugins. The generic graph classifier is an explicit last-resort plugin, not the default route.
+Trusted SDK code plugins can add an intent recognizer without changing `kg chat` by registering a deterministic matcher for one semantic domain. The classifier first selects `health`, `finance`, `crm`, `trading`, `knowledge`, or `generic`, then applies fixed route precedence: Dataset, search, analysis, planning, proposal, explicit specialized graph facts, Capture, and clarification. Confidence selects among candidates within an eligible route. Graph and Capture are both explicit routes, never fallbacks.
 
 ```ruby
 KnowledgeSDK.intent_classifier.register(
@@ -36,7 +36,7 @@ KnowledgeSDK.intent_classifier.register(
 end
 ```
 
-The `domain` registration field is required for specialized plugins. Omitting it retains compatibility by registering the matcher in `generic`; it does not make the matcher a graph fallback. Fallback classifiers are SDK-owned, explicitly registered with `fallback: true`, and restricted to the generic domain.
+The `domain` registration field is required for specialized plugins. Omitting it retains compatibility by registering the matcher in `generic`; it does not make the matcher a graph or Capture fallback. New fallback classifiers are not used by the conversational router; no eligible match yields clarification.
 
 The shared classifier normalizes input as UTF-8 NFC before domain and intent matching. `classify_with_trace` returns the selected immutable classification plus safe diagnostics used by `kg chat --explain`; plugins still receive normalized original spelling rather than lowercased match text. Diagnostics contain only strings, confidence values, and plugin registration names.
 
@@ -125,3 +125,33 @@ KnowledgeAnalysis.registry.register(TravelAnalysis.new)
 ```
 
 The SDK merges fragments, sorts factors by confidence and stable ID, and renders the existing human/JSON contract. Plugins do not receive an Engine, cannot approve or execute recommendations, and must label correlations as noncausal. Executable plugin code comes only from installed SDK resources; attached-Vault content and imported rows cannot register analyzers or rules.
+
+## Capture plugins
+
+One trusted installed plugin object may contribute any combination of Capture enrichment, topics,
+read-only canonical link candidates, promotion rules, and review-only recommendations:
+
+```ruby
+class CaptureTopics
+  def name
+    "capture-topics"
+  end
+
+  def extract_capture_topics(text)
+    text.match?(/\bAI\b/i) ? ["AI"] : []
+  end
+
+  def capture_recommendations(capture)
+    capture.kind == "question" ? ["Review this unanswered question."] : []
+  end
+end
+
+KnowledgeCapture.registry.register(CaptureTopics.new)
+```
+
+Other optional methods are `enrich_capture(attributes)`,
+`capture_link_candidates(text, context)`, and
+`build_capture_promotion(capture, kind, options)`. Enrichers may add metadata but cannot replace the
+immutable body, ID, source, or Evidence. Auto-linkers return candidates only. Promotion rules return
+ordinary immutable Intents that remain inside the Proposal → exact approval → Engine path. Plugin
+objects receive immutable projections and no writer or approval authority.

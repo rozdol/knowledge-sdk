@@ -6,6 +6,7 @@ module KnowledgeExtraction
   class RiskClassifier
     HIGH_RISK = %w[
       MergeEntities SplitEntity RemoveRelationship RenameEntity ArchiveEntity ReplaceRelationship
+      PromoteCapture ArchiveCapture
     ].freeze
     MEDIUM_RISK = %w[
       UpdateEntity RecordPromise CompleteFollowUp InsertDatasetRow CreateMedicationSchedule
@@ -13,6 +14,7 @@ module KnowledgeExtraction
       ModifyMedicationDose ModifyMedicationSchedule
       InsertBloodPressureMeasurement InsertWeightMeasurement InsertBloodTestResult
       InsertBodyMeasurement InsertExpense CreateDataset UpgradeDatasetSchema
+      CreateCapture ReviewCapture LinkCapture
     ].freeze
 
     def classify(intent)

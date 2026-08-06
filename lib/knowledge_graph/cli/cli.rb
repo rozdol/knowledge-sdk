@@ -49,6 +49,8 @@ module KnowledgeGraph
       when "graph" then graph_command
       when "stats" then stats_command
       when "search" then search_command
+      when "inbox" then capture_cli(["list", "--status", "inbox"] + @argv).run
+      when "capture" then capture_cli(@argv).run
       when "analyze" then KnowledgeAnalysis::CLI.new(
         argv: @argv, out: @out, err: @err, stdin: @stdin,
         vault_root: vault_root, dataset_engine: dataset_engine,
@@ -112,6 +114,9 @@ module KnowledgeGraph
       @err.puts(JSON.generate(error: error.message, error_class: error.class.name))
       1
     rescue KnowledgeAnalysis::Error => error
+      @err.puts(JSON.generate(error: error.message, error_class: error.class.name))
+      1
+    rescue KnowledgeCapture::Error => error
       @err.puts(JSON.generate(error: error.message, error_class: error.class.name))
       1
     end
@@ -297,12 +302,19 @@ module KnowledgeGraph
     end
 
     def search_command
+      options = { ids: false }
+      OptionParser.new do |parser|
+        parser.on("--ids", "Include immutable Capture IDs") { options[:ids] = true }
+      end.parse!(@argv)
       query = @argv.join(" ").strip
       raise InvalidIntent, "search expects a query" if query.empty?
 
+      capture_result = KnowledgeCapture::Search.new(vault_root: vault_root).query(
+        query, include_ids: options[:ids]
+      )
       dataset_result = StructuredDataset::Search.new(engine: dataset_engine).query(query)
       if dataset_result
-        emit_json(dataset_result)
+        emit_json(dataset_result.merge("captures" => capture_result.fetch("matches")))
         return 0
       end
 
@@ -321,8 +333,15 @@ module KnowledgeGraph
       response = agent_gateway.execute(request: request, agent: agent)
       raise InvalidIntent, response.errors.first.fetch("message") unless response.success?
 
-      emit_json(response.payload)
+      emit_json(response.payload.merge("captures" => capture_result.fetch("matches")))
       0
+    end
+
+    def capture_cli(arguments)
+      KnowledgeCapture::CLI.new(
+        argv: arguments, out: @out, err: @err, vault_root: vault_root,
+        engine: engine, event_bus: orchestrator.event_bus
+      )
     end
 
     def graph_command
@@ -483,7 +502,7 @@ module KnowledgeGraph
     def print_help(option_parser)
       @out.puts(option_parser)
       @out.puts("SDK: init, attach, detach, upgrade, migrate, version, id, vault, plugin")
-      @out.puts("Knowledge: execute, validate, doctor, graph, stats, search, analyze, replay, dataset, activity, chat, observe, extract, proposal, intelligence, goal, plan, gateway, events, workflow, scheduler, notifications, cache")
+      @out.puts("Knowledge: execute, validate, doctor, graph, stats, search, analyze, replay, inbox, capture, dataset, activity, chat, observe, extract, proposal, intelligence, goal, plan, gateway, events, workflow, scheduler, notifications, cache")
       0
     end
   end

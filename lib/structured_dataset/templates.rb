@@ -647,12 +647,19 @@ module StructuredDataset
   end
 
   class TemplateIntentClassifierPlugin
+    READ_QUERY = /\A(?:who|what|where|when|which|why|how|does|do|did|is|are|was|were|can|could|would|tell\s+me|show\s+me|find|кто|что|где|когда|какой|почему|как|найди|покажи|расскажи|ποιος|ποια|ποιο|τι|πού|πότε|γιατί|πώς|βρες|δείξε)\b/i.freeze
+
     class << self
       def register(classifier = KnowledgeSDK.intent_classifier, registry = StructuredDataset.template_registry)
         DatasetTemplate::DOMAINS.each do |domain|
           classifier.register(
             name: "dataset-template-#{domain}", domain: domain, route: "dataset"
           ) do |text, context|
+            if defined?(KnowledgeCapture::IntentClassifierPlugin) &&
+               KnowledgeCapture::IntentClassifierPlugin.explicit_capture?(text)
+              next nil
+            end
+            next nil if READ_QUERY.match?(text.to_s.strip)
             observation = TemplateObservation.new(
               source_type: context["source_type"] || "text", content: text,
               captured_at: context["captured_at"], source_uri: context["source_uri"],

@@ -30,7 +30,7 @@ module KnowledgeAnalysis
   end
 
   class IntentClassifierPlugin
-    PATTERN = /\b(?:why|correlat(?:e|es|ed|ion)|possible reasons?|contributing factors?|what changed|shortly before|after i|after my|deteriorat(?:e|ed)|improv(?:e|ed)|increas(?:e|ed)|decreas(?:e|ed)|preceded|longest time|trend across|compare datasets?|medications?\s+(?:were\s+)?active|medications?\s+(?:was|were|am|is)\s+i\s+taking|taking\s+in\s+[a-z]+)\b/i.freeze
+    PATTERN = /\b(?:why|correlat(?:e|es|ed|ion)|possible reasons?|contributing factors?|what changed|what themes?|repeated ideas?|concerns? appear|appear frequently|shortly before|after i|after my|deteriorat(?:e|ed)|improv(?:e|ed)|increas(?:e|ed)|decreas(?:e|ed)|preceded|longest time|trend across|compare datasets?|medications?\s+(?:were\s+)?active|medications?\s+(?:was|were|am|is)\s+i\s+taking|taking\s+in\s+[a-z]+)\b/i.freeze
 
     class << self
       def register(classifier = KnowledgeSDK.intent_classifier)
@@ -38,7 +38,11 @@ module KnowledgeAnalysis
           classifier.register(
             name: "knowledge-analysis-core-#{domain}", domain: domain, route: "analyze"
           ) do |text, _context|
-            next nil unless PATTERN.match?(text)
+            if defined?(KnowledgeCapture::IntentClassifierPlugin) &&
+               KnowledgeCapture::IntentClassifierPlugin.explicit_capture?(text)
+              next nil
+            end
+            next nil unless analysis_request?(text)
 
             {
               "intent" => "analysis.cross_knowledge", "confidence" => 0.96,
@@ -47,19 +51,24 @@ module KnowledgeAnalysis
           end
         end
       end
+
+      def analysis_request?(text)
+        PATTERN.match?(text.to_s)
+      end
     end
   end
 
   class AnalysisContext
-    attr_reader :question, :datasets, :snapshot, :activities, :events,
+    attr_reader :question, :datasets, :captures, :snapshot, :activities, :events,
                 :intelligence_findings, :planning_signals, :correlations,
                 :from, :to, :as_of
 
-    def initialize(question:, datasets:, snapshot:, activities:, events:,
+    def initialize(question:, datasets:, captures: [], snapshot:, activities:, events:,
                    intelligence_findings:, planning_signals:, correlations:,
                    from:, to:, as_of:)
       @question = question.to_s.freeze
       @datasets = datasets.freeze
+      @captures = captures.freeze
       @snapshot = snapshot
       @activities = activities.freeze
       @events = events.freeze
@@ -172,11 +181,12 @@ module KnowledgeAnalysis
       private
 
       def fragment(summary:, confidence:, factors: [], correlations: [], graph_evidence: [],
-                   activity_evidence: [], windows: [], recommendations: [], limitations: [])
+                   capture_evidence: [], activity_evidence: [], windows: [], recommendations: [], limitations: [])
         {
           "plugin" => name, "summary" => summary, "confidence" => confidence.to_f.round(6),
           "possible_factors" => factors, "correlations" => correlations,
           "graph_evidence" => graph_evidence, "activity_evidence" => activity_evidence,
+          "capture_evidence" => capture_evidence,
           "time_windows" => windows, "recommendations" => recommendations,
           "limitations" => limitations
         }

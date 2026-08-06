@@ -1,0 +1,93 @@
+[
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.captures.search",
+    "name": "search_knowledge_captures",
+    "version": "1.0.0",
+    "description": "Search policy-visible Capture inbox records by kind, lifecycle, time, topics, tags, title, and Markdown body.",
+    "input_schema": {
+      "type": "object",
+      "required": ["query"],
+      "properties": {
+        "query": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "kind": { "type": "string", "enum": ["thought", "idea", "note", "question", "lesson", "decision", "observation", "bookmark", "reference", "quote", "hypothesis"] },
+        "status": { "type": "string", "enum": ["inbox", "reviewed", "linked", "promoted", "archived"] },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "include_ids": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "required": ["query", "intent", "filters", "matches", "count", "explanation"],
+      "properties": {
+        "query": { "type": "string" },
+        "intent": { "type": "string", "const": "knowledge.capture.search" },
+        "filters": { "type": "object" },
+        "matches": { "type": "array", "items": { "type": "object" } },
+        "count": { "type": "integer" },
+        "explanation": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "read_only", "timeout_ms": 10000, "idempotent": true },
+    "policy": { "permissions": ["capture:read"], "risk": "low", "approval": "none" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "query": "What ideas do I have about AI?" } }],
+    "deprecation": { "status": "active" }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.captures.propose",
+    "name": "propose_knowledge_capture",
+    "version": "1.0.0",
+    "description": "Recognise explicit note-like content, generate lightweight canonical link candidates, and create an immutable review-only Capture proposal.",
+    "input_schema": {
+      "type": "object",
+      "required": ["source_type", "content"],
+      "properties": {
+        "source_type": { "type": "string", "enum": ["text", "chat", "meeting-notes", "email-text", "transcript", "ocr-text", "image-ocr", "pdf-text", "csv", "excel"] },
+        "content": { "type": "string", "minLength": 1, "maxLength": 1000000 },
+        "language": { "type": "string", "enum": ["en", "ru", "el", "mixed", "und"] },
+        "captured_at": { "type": "string", "format": "date-time" },
+        "external_id": { "type": "string", "maxLength": 1000 },
+        "source_uri": { "type": "string", "maxLength": 4096 },
+        "title": { "type": "string", "maxLength": 1000 },
+        "observation_id": { "type": "string", "maxLength": 200 },
+        "origin_source": { "type": "string", "maxLength": 200 },
+        "conversation_id": { "type": "string", "maxLength": 1000 },
+        "message_id": { "type": "string", "maxLength": 1000 },
+        "sender": { "type": "string", "maxLength": 1000 },
+        "sensitivity": { "type": "string", "enum": ["normal", "private", "restricted"] },
+        "importance": { "type": "string", "enum": ["low", "normal", "high", "critical"] }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "required": ["status", "proposal_id", "intent", "kind", "title", "candidate_links", "planned_intent_count", "approval_required", "executable", "confirmation"],
+      "properties": {
+        "status": { "type": "string" },
+        "proposal_id": { "type": "string", "pattern": "^proposal_[0-9A-HJKMNP-TV-Z]{26}$" },
+        "intent": { "type": "string", "const": "knowledge.capture" },
+        "kind": { "type": "string" },
+        "title": { "type": "string" },
+        "candidate_links": { "type": "array", "items": { "type": "object" } },
+        "planned_intent_count": { "type": "integer", "minimum": 1 },
+        "approval_required": { "type": "boolean", "const": true },
+        "executable": { "type": "boolean", "const": false },
+        "confirmation": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "errors": ["InvalidArguments", "PolicyDenied", "ExecutionFailed", "Timeout"],
+    "execution": { "mode": "synchronous", "effects": "proposal_write", "timeout_ms": 15000, "idempotent": true },
+    "policy": { "permissions": ["capture:create", "proposal:create"], "risk": "medium", "approval": "proposal_only" },
+    "explanation": { "required": true },
+    "transports": ["hermes", "mcp", "cli", "rest"],
+    "examples": [{ "arguments": { "source_type": "chat", "content": "I have an idea: automate client reports", "sensitivity": "private" } }],
+    "deprecation": { "status": "active" }
+  }
+]

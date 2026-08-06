@@ -24,7 +24,7 @@ add to `PATH`.
 Install a particular release, branch, or commit with `--ref`:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/install.sh | sh -s -- --ref v15.0.0
+curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/install.sh | sh -s -- --ref v16.0.0
 ```
 
 Run `install.sh --help` for user/system installation controls and environment overrides.
@@ -51,7 +51,7 @@ cd knowledge-sdk
 bundle install
 bundle exec rake test
 gem build knowledge-sdk.gemspec
-gem install ./knowledge-sdk-15.0.0.gem
+gem install ./knowledge-sdk-16.0.0.gem
 kg version
 ```
 

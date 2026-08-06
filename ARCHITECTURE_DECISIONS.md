@@ -5,9 +5,9 @@
 | Field | Value |
 |---|---|
 | Status | Living product rationale |
-| SDK version | `15.0.0` |
+| SDK version | `16.0.0` |
 | Baseline extraction revision | `8dba780` |
-| Updated | `2026-08-02` |
+| Updated | `2026-08-06` |
 
 Accepted decisions are normative until superseded by a later ADR and a compatible implementation or migration. Decisions belonging to a particular Vault, ontology, or user's knowledge model stay in that Vault.
 
@@ -34,9 +34,10 @@ Accepted decisions are normative until superseded by a later ADR and a compatibl
 | SDK-ADR-017 | Make Dataset registration and additive schema evolution approval-gated lifecycle Intents | Accepted |
 | SDK-ADR-018 | Provide deterministic plugin-based analysis across graph, Dataset, and derived evidence | Accepted |
 | SDK-ADR-019 | Keep analytical recommendations non-executable until a separate concrete Intent proposal | Accepted |
-| SDK-ADR-020 | Classify semantic domain before intent and make graph observation the last resort | Accepted |
+| SDK-ADR-020 | Classify semantic domain before fixed explicit conversational routes | Accepted |
 | SDK-ADR-021 | Represent recurrence generically and medication history as immutable effective intervals | Accepted |
 | SDK-ADR-022 | Select immutable plugin-owned Dataset templates before approval-gated provisioning | Accepted |
+| SDK-ADR-023 | Make Capture a first-class inbox type with explicit routing and promotion | Accepted |
 
 ## SDK-ADR-001 — One standalone SDK and arbitrary Vault clients
 
@@ -154,9 +155,9 @@ Accepted decisions are normative until superseded by a later ADR and a compatibl
 
 ## SDK-ADR-020 — Hierarchical intent classification
 
-**Decision.** Conversational routing first detects one semantic domain from `health`, `finance`, `crm`, `trading`, `knowledge`, and `generic`. It then invokes all trusted classifier plugins registered for the winning domain and selects the highest-confidence `intent`, `confidence`, and `explanation` result. If none matches, generic analysis, planning, proposal, Dataset-table, and search plugins run. The generic `graph.observe` classifier occupies a separate last-resort tier and cannot compete as a default route.
+**Decision.** Conversational routing first detects one semantic domain from `health`, `finance`, `crm`, `trading`, `knowledge`, and `generic`. It invokes trusted classifiers in the product routing order: Dataset, search, analysis, planning, proposal, explicit specialized graph facts, Capture, then clarification. Within a matching route, confidence selects the deterministic winner. Weak template keywords do not classify read or analytical questions as Dataset imports. `graph.observe` recognizes supported graph-fact shapes only; it is not a fallback.
 
-**Consequences.** Declarative versus interrogative form is no longer the primary routing signal. Structured medication schedules, measurements, laboratory results, body metrics, and similar observations reach domain plugins before graph extraction, including supported English, Russian, and Greek forms. Domain and classifier plugins remain deterministic SDK-owned code; imported or attached-Vault content cannot register executable matchers.
+**Consequences.** Declarative versus interrogative form is no longer the primary routing signal. Structured medication schedules, measurements, laboratory results, body metrics, and similar observations reach domain plugins before graph extraction, including supported English, Russian, and Greek forms. Explicit note wrappers prevent their content from being reinterpreted as analysis or a graph fact, while structured observations retain Dataset precedence. No match yields clarification. Domain and classifier plugins remain deterministic SDK-owned code; imported or attached-Vault content cannot register executable matchers.
 
 ## SDK-ADR-021 — Generic recurrence and immutable medication intervals
 
@@ -192,3 +193,22 @@ content. Template identity, version, and digest are recorded on newly provisione
 notes. Source renditions are stored locally as immutable Evidence, while each row retains Evidence
 ID, artifact URI/filename, page/span, observation, proposal, approval, and Intent provenance. Blood
 tests store arbitrary analytes as normalized rows; biomarkers never become physical columns.
+
+## SDK-ADR-023 — First-class Knowledge Capture and explicit inbox lifecycle
+
+**Decision.** Capture is a canonical knowledge type distinct from graph entities and Dataset rows.
+Every Capture has one immutable `capture_<ULID>`, immutable Markdown body, SDK-validated flat YAML
+frontmatter, and an inbox lifecycle. It is stored under `Captures/` without requiring a Vault schema
+or profile. `CreateCapture`, `ReviewCapture`, `LinkCapture`, `PromoteCapture`, and `ArchiveCapture`
+are immutable Intents dispatched through the existing Engine. Natural-language creation produces a
+review-only proposal; promotion always creates a dependency-ordered proposal and preserves the
+original Capture.
+
+**Consequences.** Capture is neither the universal fallback nor a replacement for Graph or Dataset.
+Only explicit note-, thought-, idea-, lesson-, decision-, observation-, reference-, quote-, bookmark-,
+hypothesis-, or personal-question language is eligible. Candidate links are read-only suggestions;
+linking requires approval and never mutates the target. Ambiguous text clarifies. Search and analysis
+include policy-visible Captures and their Evidence references, Activity projects Capture audit/event
+history, and `CaptureChanged` invalidates derived artifacts. Trusted installed plugins may contribute
+enrichment, topics, candidate linking, promotion rules, and recommendations, but receive no approval
+or direct-write authority.

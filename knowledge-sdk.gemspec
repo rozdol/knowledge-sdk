@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
   spec.name = "knowledge-sdk"
   spec.version = KnowledgeSDK::VERSION
   spec.summary = "Vault-independent Knowledge SDK for Obsidian Markdown knowledge graphs"
-  spec.description = "CLI, Engine, Gateway, plugins, orchestration, extraction, planning, Dataset Engine, and deterministic cross-knowledge analysis for attached Obsidian Vaults."
+  spec.description = "CLI, Engine, Gateway, plugins, orchestration, capture inbox, extraction, planning, Dataset Engine, and deterministic cross-knowledge analysis for attached Obsidian Vaults."
   spec.authors = ["Knowledge SDK contributors"]
   spec.license = "MIT"
   spec.required_ruby_version = Gem::Requirement.new(">= 2.6")

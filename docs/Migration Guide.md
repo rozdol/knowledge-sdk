@@ -41,3 +41,18 @@ Canonical filenames, immutable IDs, frontmatter, bodies, wiki links, Dataview vi
 Opening an existing Dataset database with version 15 performs an additive engine migration to SQLite `user_version = 3`. It appends nullable Evidence locator columns (`evidence_id`, `source_uri`, `source_filename`, `source_page`, and `source_span`) to each physical Dataset table and creates a partial Evidence ID index. Existing rows, Dataset schema versions, Activity, proposals, approvals, and graph registry notes are unchanged.
 
 Existing Dataset notes without template metadata remain valid. New automatically provisioned notes record template ID, semantic version, and digest. Existing blood-test schemas continue accepting approved `observed_at`/`marker` Intents; the first approved Phase 15 templated import may add optional normalized fields through the ordinary `UpgradeDatasetSchema` prerequisite. Destructive conversion is neither required nor performed.
+
+## Version 16 Capture adoption
+
+Knowledge Capture is additive and has no eager Vault migration. Existing Markdown notes, inbox
+folders, bookmarks, graph entities, Evidence, and Dataset rows are not scanned, moved, or converted.
+No Capture schema is installed into `_System/Schema`; the SDK validators recognize the versioned
+`Captures/capture_<ULID>.md` contract directly. The directory is created only by the first approved
+`CreateCapture` transaction.
+
+Capture schema version 1 is the only accepted canonical format. A future format change must ship a
+trusted, versioned SDK migration that plans immutable Intents, validates a staged candidate, preserves
+body bytes and unknown compatible frontmatter, and requires review before execution. Attached-Vault
+content cannot supply migration code. Rollback of a Version 16 Capture mutation uses the existing
+Engine audit/receipt history and the Vault's normal backup/version-control boundary; no background
+rewriter runs during `kg attach`, `kg doctor`, or `kg migrate`.

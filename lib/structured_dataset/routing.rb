@@ -351,6 +351,7 @@ module StructuredDataset
 
     def classify(text, context = {})
       source = text.to_s.strip
+      return nil if explicit_capture_message?(source)
       timestamp = observed_time(context)
       medication(source, timestamp) || blood_pressure(source, timestamp) ||
         weight(source, timestamp) || blood_test(source, timestamp) ||
@@ -360,6 +361,7 @@ module StructuredDataset
 
     def classify_health(text, context = {})
       source = text.to_s.strip
+      return nil if explicit_capture_message?(source)
       timestamp = observed_time(context)
       medication(source, timestamp) || blood_pressure(source, timestamp) ||
         weight(source, timestamp) || blood_test(source, timestamp) ||
@@ -368,14 +370,23 @@ module StructuredDataset
 
     def classify_finance(text, context = {})
       source = text.to_s.strip
+      return nil if explicit_capture_message?(source)
       expense(source, observed_time(context)) || structured_guard(source, "finance")
     end
 
     def classify_generic(text, _context = {})
-      structured_guard(text.to_s.strip)
+      source = text.to_s.strip
+      return nil if explicit_capture_message?(source)
+
+      structured_guard(source)
     end
 
     private
+
+    def explicit_capture_message?(source)
+      defined?(KnowledgeCapture::IntentClassifierPlugin) &&
+        KnowledgeCapture::IntentClassifierPlugin.explicit_capture?(source)
+    end
 
     def medication(source, timestamp)
       lifecycle = medication_lifecycle(source, timestamp)

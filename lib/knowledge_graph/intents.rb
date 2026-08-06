@@ -249,4 +249,43 @@ module KnowledgeGraph
     field :added_columns
     field :migration_id, default: nil
   end
+
+  # Capture content and identity are immutable. Separate lifecycle Intents
+  # change only review/link/promotion/archive metadata through the Engine.
+  class CreateCapture < Intent
+    field :capture_id, default: nil
+    field :kind
+    field :title
+    field :body
+    field :captured_at, default: nil
+    field :created_by, default: "agent"
+    field :importance, default: "normal"
+    field :topics, default: -> { [] }
+    field :tags, default: -> { [] }
+    field :language, default: "und"
+    field :evidence, default: -> { [] }
+    field :source, default: "unknown"
+    field :sensitivity, default: "private"
+  end
+
+  class ReviewCapture < Intent
+    field :capture_id
+  end
+
+  class LinkCapture < Intent
+    field :capture_id
+    field :related_entities, default: -> { [] }
+    field :related_projects, default: -> { [] }
+    field :related_contacts, default: -> { [] }
+  end
+
+  class PromoteCapture < Intent
+    field :capture_id
+    field :target_kind
+    field :target_ids
+  end
+
+  class ArchiveCapture < Intent
+    field :capture_id
+  end
 end
