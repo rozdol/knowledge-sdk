@@ -22,6 +22,8 @@ module KnowledgeCapture
       action = @argv.shift || "list"
       case action
       when "list" then list
+      when "bookmarks" then list(forced_kind: "bookmark")
+      when "add-url" then add_url
       when "show" then show
       when "latest" then latest
       when "search" then search
@@ -36,7 +38,7 @@ module KnowledgeCapture
 
     private
 
-    def list
+    def list(forced_kind: nil)
       options = common_options
       OptionParser.new do |parser|
         common_flags(parser, options)
@@ -44,12 +46,45 @@ module KnowledgeCapture
         parser.on("--kind KIND", Capture::KINDS.join(", ")) { |value| options[:kind] = value }
         parser.on("--limit N", Integer, "Maximum results") { |value| options[:limit] = value }
       end.parse!(@argv)
+      options[:kind] = forced_kind if forced_kind
       raise InvalidCapture, "unexpected arguments: #{@argv.join(' ')}" unless @argv.empty?
       captures = @store.all.reverse
       captures = captures.select { |capture| capture.status == options[:status] } if options[:status]
       captures = captures.select { |capture| capture.kind == options[:kind] } if options[:kind]
       captures = captures.first(options[:limit])
       emit_collection(captures, options, heading: options[:status] == "inbox" ? "Knowledge Inbox" : "Captures")
+    end
+
+    def add_url
+      url = @argv.shift || raise(InvalidCapture, "capture add-url expects an HTTP(S) URL")
+      options = common_options.merge(note: nil, collection: nil, fetch_metadata: true)
+      OptionParser.new do |parser|
+        common_flags(parser, options)
+        parser.on("--note TEXT", "Preserve a personal annotation") { |value| options[:note] = value }
+        parser.on("--collection NAME", "Add a human-oriented collection hint") { |value| options[:collection] = value }
+        parser.on("--no-fetch", "Save offline without page metadata retrieval") { options[:fetch_metadata] = false }
+      end.parse!(@argv)
+      raise InvalidCapture, "unexpected arguments: #{@argv.join(' ')}" unless @argv.empty?
+
+      prefix = if options[:collection]
+                 "Add this page to my collection #{options[:collection]}"
+               else
+                 "Bookmark this page"
+               end
+      content = "#{prefix}:#{options[:note] ? " #{options[:note]}" : ""}\n#{url}"
+      result = CaptureProposalBuilder.new(
+        vault_root: @vault_root, proposal_store: @proposal_store,
+        event_bus: @event_bus, clock: @clock
+      ).create(
+        "source_type" => "text", "origin_source" => "cli", "content" => content,
+        "captured_at" => @clock.call.iso8601, "fetch_metadata" => options[:fetch_metadata]
+      )
+      if options[:json]
+        @out.puts(JSON.pretty_generate(result))
+      else
+        @out.puts(result.fetch("confirmation"))
+        @out.puts("Proposal: #{result['proposal_id']}") if result["proposal_id"]
+      end
     end
 
     def show
@@ -205,7 +240,7 @@ module KnowledgeCapture
     end
 
     def help
-      @out.puts("Usage: kg capture list|show|latest|search|review|promote|archive [options]")
+      @out.puts("Usage: kg capture add-url|bookmarks|list|show|latest|search|review|promote|archive [options]")
       @out.puts("Use --ids only when immutable Capture IDs are needed.")
     end
   end

@@ -38,11 +38,11 @@ module AgentPlatform
         raise InvalidArguments, error.message
       end
 
-      registry.register("kg.captures.propose", version: "1.0.0") do |arguments, context|
+      registry.register("kg.captures.propose", version: "2.0.0") do |arguments, context|
         result = services.capture_proposal_builder(context).create(arguments)
         HandlerResult.new(
           payload: result,
-          why: "Recognised explicit note-like content and created an immutable review-only Capture proposal.",
+          why: "Recognised explicit note-like or bookmark content and produced a review-only Capture result without granting execution authority.",
           confidence: 0.98
         )
       rescue KnowledgeCapture::Error, KnowledgeExtraction::Error, ArgumentError => error

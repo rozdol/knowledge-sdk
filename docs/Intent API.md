@@ -63,7 +63,7 @@ Capture identity and content fields are immutable. Lifecycle metadata uses separ
 Intent executes through the same candidate validation, optimistic concurrency, receipt, audit, and
 event hooks as graph operations.
 
-- `CreateCapture(capture_id: nil, kind:, title:, body:, captured_at: nil, created_by: "agent", importance: "normal", topics: [], tags: [], language: "und", evidence: [], source: "unknown", sensitivity: "private")` creates a version-1 Capture in `status: inbox`. Conversational callers place this Intent in a proposal and normally supply a deterministic ID.
+- `CreateCapture(capture_id: nil, kind:, title:, body:, captured_at: nil, created_by: "agent", importance: "normal", topics: [], tags: [], language: "und", evidence: [], source: "unknown", sensitivity: "private")` creates an ordinary version-1 Capture in `status: inbox`; URL-backed bookmark fields select version 2 as described below. Conversational callers place this Intent in a proposal and normally supply a deterministic ID.
 - `ReviewCapture(capture_id:)` marks an inbox Capture reviewed without changing its body.
 - `LinkCapture(capture_id:, related_entities: [], related_projects: [], related_contacts: [])` records exactly approved canonical targets and marks the Capture linked. It rejects empty target sets and Project/Person type mismatches.
 - `PromoteCapture(capture_id:, target_kind:, target_ids:)` records successful promotion after its target dependencies execute. It never removes or rewrites the original Capture content.
@@ -72,6 +72,20 @@ event hooks as graph operations.
 The natural-language intent names are `knowledge.capture`, `knowledge.capture.link`,
 `knowledge.capture.promote`, `knowledge.capture.archive`, and read-only
 `knowledge.capture.search`. Search is not an Engine mutation Intent.
+
+Version 17 extends `CreateCapture` with optional immutable bookmark parameters:
+`url`, `canonical_url`, `domain`, `resource_type`, `user_note`, `collections`, `author_name`,
+`published_at`, `description`, `content_excerpt`, `content_hash`, `fetch_status`, `fetched_at`,
+`page_language`, and `reading_status`. Supplying `kind: "bookmark"` plus `url` creates Capture schema
+version 2; ordinary calls remain schema version 1. URL-backed bookmarks require normalized HTTP(S)
+`url` and `canonical_url`, matching `domain`, a supported `resource_type`, and `fetch_status` from
+`not_attempted`, `succeeded`, or `failed`. These fields remain flat YAML scalars/lists.
+
+The conversational intent is `knowledge.capture.bookmark`, but its only mutation is still
+`CreateCapture(kind: "bookmark")` inside the ordinary review proposal. Normalization, fetch,
+metadata extraction, topic/resource classification, duplicate detection, and Evidence creation are
+read-only planning operations and do not approve or execute the Intent. Exact duplicates return no
+planned Intent.
 
 ## Results and errors
 

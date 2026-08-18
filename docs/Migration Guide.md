@@ -50,9 +50,21 @@ No Capture schema is installed into `_System/Schema`; the SDK validators recogni
 `Captures/capture_<ULID>.md` contract directly. The directory is created only by the first approved
 `CreateCapture` transaction.
 
-Capture schema version 1 is the only accepted canonical format. A future format change must ship a
-trusted, versioned SDK migration that plans immutable Intents, validates a staged candidate, preserves
-body bytes and unknown compatible frontmatter, and requires review before execution. Attached-Vault
-content cannot supply migration code. Rollback of a Version 16 Capture mutation uses the existing
+Version 16 introduced Capture schema version 1 as its only canonical format. Later formats must stay
+versioned, preserve body bytes and compatible unknown frontmatter, and enter through trusted SDK
+code and the Engine boundary; attached-Vault content cannot supply migration code. Rollback of a Version 16 Capture mutation uses the existing
 Engine audit/receipt history and the Vault's normal backup/version-control boundary; no background
 rewriter runs during `kg attach`, `kg doctor`, or `kg migrate`.
+
+## Version 17 bookmark adoption
+
+Version 17 makes the planned format change additively: existing schema-v1 Captures remain accepted
+without rewriting, while newly approved URL-backed `Capture(kind=bookmark)` records use schema
+version 2 bookmark metadata. No eager migration exists because old ordinary Captures have no URL
+provenance to infer safely. Existing notes, browser history, old bookmark exports, graph records,
+Evidence, and Dataset rows are not scanned or converted.
+
+Network enrichment occurs only while explicitly planning a new bookmark and may be disabled with
+`KG_BOOKMARK_FETCH=off` or `kg capture add-url URL --no-fetch`. Attachment, validation, doctor, and
+migration never fetch URLs. A failed fetch remains a valid review proposal and records
+`fetch_status: failed`; no canonical write occurs before exact approval and Engine submission.

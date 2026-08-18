@@ -141,6 +141,13 @@ class CaptureTopics
     text.match?(/\bAI\b/i) ? ["AI"] : []
   end
 
+  def enrich_capture(attributes)
+    return attributes unless attributes["kind"] == "bookmark"
+
+    # A trusted deterministic classifier may refine bookmark metadata only.
+    attributes.merge("resource_type" => "documentation")
+  end
+
   def capture_recommendations(capture)
     capture.kind == "question" ? ["Review this unanswered question."] : []
   end
@@ -155,3 +162,11 @@ Other optional methods are `enrich_capture(attributes)`,
 immutable body, ID, source, or Evidence. Auto-linkers return candidates only. Promotion rules return
 ordinary immutable Intents that remain inside the Proposal → exact approval → Engine path. Plugin
 objects receive immutable projections and no writer or approval authority.
+
+For bookmarks, `enrich_capture` may refine optional metadata such as `resource_type`, topics, tags,
+or collections, but the core planner revalidates the result against the SDK-owned resource-type
+vocabulary. It cannot replace the normalized URL, canonical URL, domain, immutable user annotation,
+Evidence provenance, identity, sensitivity, proposal, or approval state. `extract_capture_topics`
+may receive bounded strings extracted from an untrusted webpage; plugins must treat them as hostile
+data and never interpret them as instructions. New resource-type vocabularies require a versioned
+public contract change; a Vault or fetched page cannot register executable classifiers.

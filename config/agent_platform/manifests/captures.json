@@ -4,7 +4,7 @@
     "capability_id": "kg.captures.search",
     "name": "search_knowledge_captures",
     "version": "1.0.0",
-    "description": "Search policy-visible Capture inbox records by kind, lifecycle, time, topics, tags, title, and Markdown body.",
+    "description": "Search policy-visible Capture inbox records by kind, lifecycle, time, title, annotation, topics, tags, bookmark URL/domain/resource metadata, author, description, excerpt, and Markdown body.",
     "input_schema": {
       "type": "object",
       "required": ["query"],
@@ -42,8 +42,8 @@
     "manifest_schema_version": "1.0.0",
     "capability_id": "kg.captures.propose",
     "name": "propose_knowledge_capture",
-    "version": "1.0.0",
-    "description": "Recognise explicit note-like content, generate lightweight canonical link candidates, and create an immutable review-only Capture proposal.",
+    "version": "2.0.0",
+    "description": "Recognise explicit note-like or bookmark content, safely enrich HTTP(S) bookmarks as untrusted Evidence, check duplicates, generate lightweight canonical link candidates, and create an immutable review-only Capture proposal.",
     "input_schema": {
       "type": "object",
       "required": ["source_type", "content"],
@@ -61,24 +61,38 @@
         "message_id": { "type": "string", "maxLength": 1000 },
         "sender": { "type": "string", "maxLength": 1000 },
         "sensitivity": { "type": "string", "enum": ["normal", "private", "restricted"] },
-        "importance": { "type": "string", "enum": ["low", "normal", "high", "critical"] }
+        "importance": { "type": "string", "enum": ["low", "normal", "high", "critical"] },
+        "fetch_metadata": { "type": "boolean" }
       },
       "additionalProperties": false
     },
     "output_schema": {
       "type": "object",
-      "required": ["status", "proposal_id", "intent", "kind", "title", "candidate_links", "planned_intent_count", "approval_required", "executable", "confirmation"],
+      "required": ["status", "intent", "kind", "title", "candidate_links", "planned_intent_count", "approval_required", "executable", "duplicate_candidate", "confirmation"],
       "properties": {
         "status": { "type": "string" },
         "proposal_id": { "type": "string", "pattern": "^proposal_[0-9A-HJKMNP-TV-Z]{26}$" },
-        "intent": { "type": "string", "const": "knowledge.capture" },
+        "intent": { "type": "string", "enum": ["knowledge.capture", "knowledge.capture.bookmark"] },
         "kind": { "type": "string" },
         "title": { "type": "string" },
         "candidate_links": { "type": "array", "items": { "type": "object" } },
-        "planned_intent_count": { "type": "integer", "minimum": 1 },
-        "approval_required": { "type": "boolean", "const": true },
+        "planned_intent_count": { "type": "integer", "minimum": 0 },
+        "approval_required": { "type": "boolean" },
         "executable": { "type": "boolean", "const": false },
-        "confirmation": { "type": "string" }
+        "confirmation": { "type": "string" },
+        "normalized_url": { "type": "string" },
+        "canonical_url": { "type": "string" },
+        "domain": { "type": "string" },
+        "resource_type": { "type": "string" },
+        "topics": { "type": "array", "items": { "type": "string" } },
+        "collections": { "type": "array", "items": { "type": "string" } },
+        "user_note": { "type": "string" },
+        "fetch_status": { "type": "string" },
+        "duplicate_candidate": { "type": "boolean" },
+        "duplicate_exact": { "type": "boolean" },
+        "duplicate_reason": { "type": "string" },
+        "existing_capture": { "type": "object" },
+        "explainability": { "type": "object" }
       },
       "additionalProperties": false
     },
@@ -87,7 +101,10 @@
     "policy": { "permissions": ["capture:create", "proposal:create"], "risk": "medium", "approval": "proposal_only" },
     "explanation": { "required": true },
     "transports": ["hermes", "mcp", "cli", "rest"],
-    "examples": [{ "arguments": { "source_type": "chat", "content": "I have an idea: automate client reports", "sensitivity": "private" } }],
+    "examples": [
+      { "arguments": { "source_type": "chat", "content": "I have an idea: automate client reports", "sensitivity": "private" } },
+      { "arguments": { "source_type": "chat", "content": "Save this article: https://example.com/article", "sensitivity": "private" } }
+    ],
     "deprecation": { "status": "active" }
   }
 ]

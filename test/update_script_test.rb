@@ -38,8 +38,8 @@ class UpdateScriptTest < Minitest::Test
       stdout, stderr, status = Open3.capture3(environment, "sh", SCRIPT, "--user")
 
       assert status.success?, "#{stdout}\n#{stderr}"
-      assert_includes stdout, "knowledge-sdk updated: 15.0.0 -> 16.0.0"
-      assert_equal "16.0.0", File.read(version_file)
+      assert_includes stdout, "knowledge-sdk updated: 15.0.0 -> 17.0.0"
+      assert_equal "17.0.0", File.read(version_file)
     end
   end
 
@@ -81,7 +81,7 @@ class UpdateScriptTest < Minitest::Test
       [ "$1" = "--ref" ]
       [ "$2" = "main" ]
       [ "$3" = "--user" ]
-      printf '16.0.0' > "$FAKE_VERSION_FILE"
+      printf '17.0.0' > "$FAKE_VERSION_FILE"
     SH
   end
 

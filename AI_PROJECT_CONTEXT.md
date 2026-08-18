@@ -5,9 +5,9 @@
 | Field | Value |
 |---|---|
 | Product | `knowledge-sdk` |
-| SDK version | `16.0.0` |
+| SDK version | `17.0.0` |
 | Baseline extraction revision | `8dba780` |
-| Updated | `2026-08-06` |
+| Updated | `2026-08-18` |
 | Runtime | Ruby 2.6+ |
 
 This document orients maintainers and coding agents. Executable code, published schemas, manifests, migrations, and tests are authoritative when they conflict with prose.
@@ -94,6 +94,8 @@ The main namespaces are:
 - Capture is first-class canonical Markdown outside the graph ontology and Dataset store. Its body and ID are immutable; lifecycle metadata changes only through Capture Intents and the Engine.
 - Graph facts, Dataset observations, and ambiguous text never become Captures merely because another route did not match.
 - Capture promotion is an explicit dependency-ordered Proposal; the original Capture remains and no candidate link mutates a graph entity.
+- Web bookmarks are `Capture(kind=bookmark)` with optional Evidence-backed enrichment, never Dataset rows, generic observations, or a separate store.
+- HTTP(S) page content is hostile data. It cannot become instructions, configuration, executable code, approval, or authorization, and network failure cannot prevent offline bookmark capture.
 
 ## Public lifecycle
 
@@ -153,6 +155,16 @@ default. Capture search participates in `kg search`; `kg analyze` includes Captu
 repetition, concerns, a Capture signature, Activity, and cache invalidation. Trusted plugins may
 register enrichers, topic extractors, auto-linkers, promotion rules, and recommendation generators;
 attached-Vault content cannot register executable behavior.
+
+Phase 17 extends that same Capture model for web bookmarks. Explicit save-link language routes to
+`knowledge.capture.bookmark`; a bare URL still clarifies. The planner normalizes HTTP(S) URLs,
+removes fragments and known tracking parameters, checks existing bookmark Captures, and optionally
+fetches bounded metadata through public-address-pinned requests with redirect, content-type, size,
+and timeout limits. Fetch failures produce `fetch_status: failed` and still create a review-only
+proposal. Successful enrichment stores a bounded extracted rendition in the existing local Evidence
+store and references it from the approved Capture. Schema-v1 Captures remain valid; new enriched
+bookmarks use Capture schema version 2. Search and deterministic analysis include annotation, domain,
+resource type, author, description, excerpt, topics, collections, and capture time.
 
 ## Verification
 

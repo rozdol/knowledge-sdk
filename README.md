@@ -35,7 +35,7 @@ curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/update.sh
 To install a particular tag, branch, or commit, pass `--ref`, for example:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/install.sh | sh -s -- --ref v16.0.0
+curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/install.sh | sh -s -- --ref v17.0.0
 ```
 
 For source development:
@@ -44,7 +44,7 @@ For source development:
 bundle install
 bundle exec rake test
 gem build knowledge-sdk.gemspec
-gem install ./knowledge-sdk-16.0.0.gem
+gem install ./knowledge-sdk-17.0.0.gem
 ```
 
 During source development, use `ruby bin/kg`; after installation, use `kg`.
@@ -82,7 +82,7 @@ Plain `kg init` creates only the target and its normal `.obsidian` directory, th
 - SDK lifecycle: `kg init`, `attach`, `detach`, `upgrade`, `migrate`, `version`, `id`, `vault`, and `plugin`.
 - Graph: `execute`, `validate`, `doctor`, `graph`, `stats`, `search`, and `replay`.
 - Review workflow: `observe`, `extract`, `proposal`, `chat`, and `activity`.
-- Capture inbox: `inbox` and `capture list|show|latest|search|review|promote|archive`.
+- Capture inbox: `inbox` and `capture add-url|bookmarks|list|show|latest|search|review|promote|archive`.
 - Analysis and decisions: `analyze`, `intelligence`, `goal`, and `plan`.
 - Platform: `gateway`, `events`, `workflow`, `scheduler`, `notifications`, and `cache`.
 - Structured rows: `dataset create|list|describe|insert|update|delete|query|export|import|stats|explain|migrate`.
@@ -112,6 +112,18 @@ explicit note-like message -> knowledge.capture -> candidate links
 ```
 
 Capture IDs and Markdown bodies are immutable. Review, approved links, promotion, and archive change lifecycle metadata through independent Intents. Promotion preserves the original Capture and creates or references its target through the same dependency-ordered proposal. Ambiguous requests clarify; explicit graph facts and Dataset observations do not become Captures. See [Knowledge Capture](docs/Knowledge%20Capture/README.md) and [Search](docs/Search.md).
+
+Version 17 makes saved web references first-class without adding a bookmark database:
+
+```text
+explicit save-link message -> knowledge.capture.bookmark
+  -> deterministic URL normalization + duplicate check
+  -> optional bounded hostile-web Evidence enrichment
+  -> review-only CreateCapture(kind=bookmark) proposal
+  -> exact approval -> Engine -> searchable Capture
+```
+
+HTTP(S) URL capture removes fragments and known tracking parameters while preserving meaningful query parameters. Network failure never prevents proposal creation; `fetch_status` records the outcome. Page title, canonical URL, description, author, publication date, language, excerpt, and content hash are optional immutable Capture metadata. The user's annotation remains separate and verbatim. Fetched content cannot supply instructions, configuration, plugins, approval, or authorization.
 
 `kg analyze` combines graph evidence, Capture evidence, structured rows and statistics, Knowledge Activity, Knowledge Intelligence findings, planning signals, events, and derived cache state through deterministic installed analysis plugins:
 

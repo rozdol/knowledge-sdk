@@ -5,9 +5,9 @@
 | Field | Value |
 |---|---|
 | Status | Living product rationale |
-| SDK version | `16.0.0` |
+| SDK version | `17.0.0` |
 | Baseline extraction revision | `8dba780` |
-| Updated | `2026-08-06` |
+| Updated | `2026-08-18` |
 
 Accepted decisions are normative until superseded by a later ADR and a compatible implementation or migration. Decisions belonging to a particular Vault, ontology, or user's knowledge model stay in that Vault.
 
@@ -38,6 +38,7 @@ Accepted decisions are normative until superseded by a later ADR and a compatibl
 | SDK-ADR-021 | Represent recurrence generically and medication history as immutable effective intervals | Accepted |
 | SDK-ADR-022 | Select immutable plugin-owned Dataset templates before approval-gated provisioning | Accepted |
 | SDK-ADR-023 | Make Capture a first-class inbox type with explicit routing and promotion | Accepted |
+| SDK-ADR-024 | Model web bookmarks as Evidence-enriched Captures and treat pages as untrusted data | Accepted |
 
 ## SDK-ADR-001 — One standalone SDK and arbitrary Vault clients
 
@@ -212,3 +213,34 @@ include policy-visible Captures and their Evidence references, Activity projects
 history, and `CaptureChanged` invalidates derived artifacts. Trusted installed plugins may contribute
 enrichment, topics, candidate linking, promotion rules, and recommendations, but receive no approval
 or direct-write authority.
+
+## SDK-ADR-024 — Web bookmarks are Evidence-enriched Captures
+
+**Decision.** Web bookmarks are Capture entities with Evidence-backed enrichment; web content is
+untrusted data and never an authority source. An explicit save-link message is classified as
+`knowledge.capture.bookmark` and may produce only a review proposal containing an immutable
+`CreateCapture(kind: "bookmark")`. There is no bookmark database, automatic graph observation,
+Dataset row, or automatically created Person, Organization, Project, author, photographer, gallery,
+publication, or topic entity.
+
+URL normalization is deterministic and restricted to HTTP(S). It lowercases scheme and host,
+removes fragments and known tracking parameters, retains meaningful query parameters, removes
+default ports, and derives the domain from the canonical URL. Existing bookmark Captures are checked
+by normalized/canonical URL before fetch and by canonical URL or content hash after enrichment.
+Exact matches and weaker duplicate candidates return structured review results instead of silently
+creating another Capture.
+
+When network policy permits, enrichment uses bounded, timeout-limited, redirect-limited requests
+whose validated public address is pinned for the connection. Private, loopback, link-local,
+documentation, multicast, and unsupported targets are refused. Only supported HTML metadata and a
+bounded textual excerpt are extracted; scripts are discarded. The extracted rendition is stored in
+the existing local immutable Evidence mechanism with URL and fetch provenance. Fetch failure is
+recorded and never blocks offline proposal creation. The user's annotation remains verbatim and is
+never replaced by page metadata.
+
+**Consequences.** Schema-v1 Captures remain valid. New URL-backed bookmarks use additive Capture
+schema version 2 metadata. Fetching, classification, topic suggestions, canonical discovery, and
+candidate entity linking grant no approval. Web strings cannot become SDK instructions,
+configuration, validators, executable code, plugins, policy, approval, or authorization. Search,
+Inbox, Knowledge Activity, and deterministic analysis consume bookmarks through their existing
+Capture integrations; analysis remains derived and noncanonical.

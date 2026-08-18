@@ -266,6 +266,23 @@ module KnowledgeGraph
     field :evidence, default: -> { [] }
     field :source, default: "unknown"
     field :sensitivity, default: "private"
+    # Bookmark-only immutable metadata. These fields stay optional so the
+    # Phase 16 Capture API and ordinary schema-v1 Captures remain compatible.
+    field :url, default: nil
+    field :canonical_url, default: nil
+    field :domain, default: nil
+    field :resource_type, default: nil
+    field :user_note, default: nil
+    field :collections, default: -> { [] }
+    field :author_name, default: nil
+    field :published_at, default: nil
+    field :description, default: nil
+    field :content_excerpt, default: nil
+    field :content_hash, default: nil
+    field :fetch_status, default: nil
+    field :fetched_at, default: nil
+    field :page_language, default: nil
+    field :reading_status, default: nil
   end
 
   class ReviewCapture < Intent

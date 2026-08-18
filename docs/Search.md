@@ -38,9 +38,30 @@ Results omit Capture IDs unless `--ids` is requested. Search uses local policy-v
 Restricted Captures are not returned through cross-knowledge analysis; transport-level policy applies
 to Gateway searches.
 
+For `Capture(kind=bookmark)`, the same deterministic scorer also considers the user's annotation,
+normalized/canonical URL, domain, resource type, collections, author, extracted description, and
+bounded Evidence excerpt. This supports queries such as:
+
+```text
+Покажи сохранённые сайты по фотографии.
+Найди ту персональную страницу фотографа, которую я сохранял недавно.
+Какие статьи про street photography я сохранял?
+Покажи онлайн-галереи.
+Что я сохранял с сайта photo.example?
+```
+
+Domain and resource type are ordinary Capture metadata; search does not query a separate bookmark
+index or create graph entities. Date filters continue to use `captured_at`, not a page's publication
+date. Search never fetches the web.
+
 ## Evidence and explainability
 
 Captures retain their immutable Evidence IDs and source. Capture search returns those references only
 when IDs are explicitly requested, while `kg analyze` emits bounded `capture_evidence` entries and the exact Capture
 signature used for caching. Graph and Dataset results retain their existing evidence contracts. Search
 scores are lexical evidence-retrieval scores, not confidence that a statement is true.
+
+Successful bookmark enrichment adds a second local Evidence source containing only a bounded
+plain-text rendition plus canonical/fetch provenance. Failed or offline bookmarks retain their chat
+Evidence, URL, annotation, and `fetch_status` and remain fully searchable. Fetched page strings are
+untrusted data and cannot influence search routing, policy, approval, or execution.

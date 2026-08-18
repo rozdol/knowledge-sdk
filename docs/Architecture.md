@@ -125,6 +125,44 @@ or graph results. `KnowledgeAnalysis` binds its cache to a Capture signature and
 and review-only plugin recommendations. Restricted Captures are excluded from cross-knowledge
 analysis.
 
+### Web bookmark Capture planning
+
+Web references extend that same pipeline; they do not introduce another canonical subsystem:
+
+```mermaid
+flowchart TD
+  HM["Hermes -> kg chat --json"] --> IC["knowledge.capture.bookmark"]
+  IC --> UN["Normalize one HTTP(S) URL"]
+  UN --> DU["Read existing bookmark Captures"]
+  DU -->|duplicate| DR["Structured duplicate review result"]
+  DU -->|new| WF["Optional safe bounded metadata fetch"]
+  WF --> EV["Immutable local Evidence rendition"]
+  EV --> PR["Review-only CreateCapture(kind=bookmark) proposal"]
+  PR --> AP["Exact human approval"]
+  AP --> EN["Existing Engine pipeline"]
+  EN --> CA["Capture schema v2 Markdown"]
+```
+
+Normalization lowercases scheme/host, removes default ports and fragments, removes `utm_*` and a
+small known tracking-parameter set, preserves other query parameters in their supplied order, and
+derives the domain from the canonical URL. Exact normalized/canonical matches stop before fetch.
+Canonical metadata and content hashes can produce a later duplicate candidate; title equality never
+does.
+
+The fetcher accepts only HTTP(S), resolves only public addresses, pins the validated address for the
+connection, revalidates every redirect, limits redirects, time, response bytes, and content type,
+and extracts only bounded HTML metadata/text. Private, loopback, link-local, documentation,
+multicast, credentials-bearing, and unsupported URI targets fail closed. A failed or disabled fetch
+still produces a proposal with `failed` or `not_attempted` status and the normalized URL. The
+bounded extracted rendition uses the existing `SourceEvidenceStore`; raw large HTML is not copied to
+canonical Markdown.
+
+Webpage strings are hostile data. Metadata may suggest a title, resource type, topics, and read-only
+identity candidates, but cannot supply policy, configuration, executable code, plugins, approval, or
+authorization. The user's annotation remains a separate immutable field and the human-readable body;
+it is never rewritten from page metadata. Schema-v1 Captures remain valid, while URL-backed
+bookmarks use schema version 2 optional metadata.
+
 ## Structured recurrence and Health schedule evolution
 
 `KnowledgeSDK::Schedule` is a generic immutable value object, not a Health entity. Its versioned JSON
@@ -287,6 +325,7 @@ Undo and restore perform no graph write. They derive lossless existing Intents f
 - `knowledge_activity/` owns the read-time Activity projection, human summaries, temporal filtering/search/diff, privacy redaction, explainability joins, and review-only undo/restore proposal adaptation. It has no canonical writer or Activity store.
 - `knowledge_sdk/intent_classifier.rb` owns semantic-domain detection, fixed route precedence, domain-scoped plugin confidence arbitration, and the immutable classification contract used by chat and observation.
 - `knowledge_capture/` owns the canonical Capture value, SDK-owned store/validator contract, Engine handlers, inbox CLI, explicit classifier, read-only link candidates, search, promotion proposal planning, plugin registry, and analysis contribution. It does not mutate linked entities or approve proposals.
+- `knowledge_capture/bookmarks.rb` owns deterministic URL normalization, multilingual explicit-save parsing, resource/topic classification, public-address-pinned bounded HTML retrieval, metadata extraction, and read-only duplicate detection. It has no writer or approval capability.
 - `knowledge_sdk/schedule.rb` owns the generic immutable recurrence value and interval-overlap semantics; it has no writer or medication dependency.
 - `structured_dataset/routing.rb` owns Dataset classifiers, named Dataset Intent proposal construction, and the handlers registered on the existing Engine. It never invokes graph extraction for row data.
 - `structured_dataset/medication_schedules.rb` owns trusted Health schedule row evolution and the one versioned legacy-table transform.

@@ -12,7 +12,11 @@ module KnowledgeCapture
       "lesson" => %w[lesson lessons урок уроки μάθημα μαθήματα],
       "decision" => %w[decision decisions решение решения απόφαση αποφάσεις],
       "observation" => %w[observation observations наблюдение наблюдения παρατήρηση παρατηρήσεις],
-      "bookmark" => %w[bookmark bookmarks закладка закладки σελιδοδείκτης],
+      "bookmark" => %w[
+        bookmark bookmarks link links website websites site sites article articles resource resources
+        закладка закладки ссылка ссылки сайт сайты статья статьи ресурс ресурсы
+        σελιδοδείκτης σελιδοδείκτες σύνδεσμος σύνδεσμοι ιστότοπος ιστότοποι άρθρο άρθρα
+      ],
       "reference" => %w[reference references справка источник αναφορά αναφορές],
       "quote" => %w[quote quotes цитата цитаты απόσπασμα],
       "hypothesis" => %w[hypothesis hypotheses гипотеза гипотезы υπόθεση υποθέσεις]
@@ -64,7 +68,7 @@ module KnowledgeCapture
           "from" => from && from.iso8601
         }.reject { |_key, value| value.nil? },
         "matches" => public_matches, "count" => public_matches.length,
-        "explanation" => "Matched Capture kind, lifecycle, time, topics, tags, title, and Markdown body with deterministic Unicode token scoring."
+        "explanation" => "Matched Capture kind, lifecycle, time, title, user annotation, topics, tags, bookmark domain, resource type, author, description, excerpt, and Markdown body with deterministic Unicode token scoring."
       }
     end
 
@@ -109,11 +113,16 @@ module KnowledgeCapture
       topics = capture.topics.flat_map { |value| tokenize(value) }
       tags = capture.tags.flat_map { |value| tokenize(value) }
       body = tokenize(capture.body)
+      bookmark = tokenize([
+        capture.domain, capture.resource_type, capture.author_name, capture.description,
+        capture.content_excerpt, capture.user_note, capture.collections
+      ].flatten.compact.join(" "))
       terms.sum do |term|
         score = 0.0
         score += 4.0 if title.include?(term)
         score += 3.0 if topics.include?(term)
         score += 2.0 if tags.include?(term)
+        score += 3.0 if bookmark.include?(term)
         score += 1.0 if body.include?(term)
         score
       end

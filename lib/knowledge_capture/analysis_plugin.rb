@@ -5,7 +5,7 @@ require "set"
 module KnowledgeCapture
   class AnalysisPlugin < KnowledgeAnalysis::Plugins::Base
     NAME = "capture"
-    QUESTION = /(?:\b(?:capture|captures|captured|idea|ideas|thought|thoughts|note|notes|question|questions|lesson|lessons|theme|themes|repeat|repeated|concern|concerns|frequently)\b|(?:иде[яи]|мысл|замет|вопрос|урок|тем|повтор|беспоко)|(?:ιδέ|σκέψ|σημείωσ|ερώτησ|μάθημα|θέμα|επαναλ))/i.freeze
+    QUESTION = /(?:\b(?:capture|captures|captured|saved|bookmark|bookmarks|website|websites|site|sites|article|articles|resource|resources|domain|domains|idea|ideas|thought|thoughts|note|notes|question|questions|lesson|lessons|theme|themes|repeat|repeated|concern|concerns|frequently)\b|(?:сохраня|заклад|ссыл|сайт|стат|ресурс|домен|иде[яи]|мысл|замет|вопрос|урок|тем|повтор|беспоко)|(?:αποθηκεύ|σελιδοδείκ|σύνδεσ|ιστότοπ|άρθρ|πόρ|ιδέ|σκέψ|σημείωσ|ερώτησ|μάθημα|θέμα|επαναλ))/i.freeze
     STOPWORDS = Set.new(%w[
       about and appear are did do for have i in is most my of often the what which with
       мне мои про что какие часто есть это как почему
@@ -38,8 +38,10 @@ module KnowledgeCapture
           "capture_id" => capture.id, "kind" => capture.kind, "title" => capture.title,
           "captured_at" => capture.captured_at.iso8601, "status" => capture.status,
           "topics" => capture.topics, "tags" => capture.tags,
+          "domain" => capture.domain, "resource_type" => capture.resource_type,
+          "author_name" => capture.author_name, "collections" => capture.collections,
           "evidence_ids" => capture.evidence
-        }
+        }.reject { |_key, value| value.nil? || (value.respond_to?(:empty?) && value.empty?) }
       end
       factors = themes.first(5).map do |theme|
         context.factor(
@@ -76,6 +78,9 @@ module KnowledgeCapture
       ).merge(
         "capture_summary" => {
           "kinds" => kind_counts.sort.to_h, "themes" => themes,
+          "bookmark_domains" => frequency(captures.map(&:domain)),
+          "bookmark_resource_types" => frequency(captures.map(&:resource_type)),
+          "bookmark_topics" => frequency(captures.flat_map(&:topics)),
           "exact_repeated_groups" => repeated.map { |group| group.map(&:id).sort }
         }
       )
@@ -103,7 +108,11 @@ module KnowledgeCapture
     end
 
     def tokens(capture)
-      normalize([capture.title, capture.body, capture.topics, capture.tags].flatten.join(" "))
+      normalize([
+        capture.title, capture.body, capture.topics, capture.tags, capture.domain,
+        capture.resource_type, capture.author_name, capture.description,
+        capture.content_excerpt, capture.user_note, capture.collections
+      ].flatten.compact.join(" "))
         .scan(/[\p{L}\p{N}][\p{L}\p{N}_-]{2,}/u)
         .reject { |term| STOPWORDS.include?(term) || term.start_with?("capture") }
     end
@@ -113,6 +122,12 @@ module KnowledgeCapture
         capture.related_entities + capture.related_projects + capture.related_contacts
       end.uniq.sort
       ids.map { |id| { "record_id" => id, "fields" => ["capture_link"] } }
+    end
+
+    def frequency(values)
+      values.compact.map(&:to_s).reject(&:empty?).each_with_object(Hash.new(0)) do |value, counts|
+        counts[value] += 1
+      end.sort_by { |value, count| [-count, value] }.to_h
     end
 
     def normalize(value)

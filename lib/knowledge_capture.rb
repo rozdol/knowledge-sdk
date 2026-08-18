@@ -1,12 +1,13 @@
 # frozen_string_literal: true
 
 require_relative "knowledge_capture/errors"
+require_relative "knowledge_capture/bookmarks"
 require_relative "knowledge_capture/capture"
 require_relative "knowledge_capture/store"
 require_relative "knowledge_capture/plugins"
 
 module KnowledgeCapture
-  VERSION = "16.0.0".freeze
+  VERSION = KnowledgeSDK::VERSION
 
   class << self
     def registry

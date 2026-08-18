@@ -6,6 +6,8 @@ module KnowledgeCapture
   class Manager
     IMMUTABLE_FIELDS = %w[
       id capture_id type schema_version kind title body captured_at created_at created_by source evidence
+      url canonical_url domain resource_type user_note collections author_name published_at description
+      content_excerpt content_hash fetch_status fetched_at page_language reading_status
     ].freeze
 
     def initialize(vault_root:, writer:, id_generator:, clock:, run_id:)
@@ -21,6 +23,12 @@ module KnowledgeCapture
       raise KnowledgeGraph::InvalidIntent, "invalid capture ID" unless capture_id.match?(/\Acapture_[0-9A-HJKMNP-TV-Z]{26}\z/)
       kind = intent.kind.to_s
       raise KnowledgeGraph::InvalidIntent, "unsupported capture kind #{kind.inspect}" unless Capture::KINDS.include?(kind)
+      if bookmark_metadata_supplied?(intent) && kind != "bookmark"
+        raise KnowledgeGraph::InvalidIntent, "bookmark metadata requires kind bookmark"
+      end
+      if kind == "bookmark" && intent.url.to_s.empty? && bookmark_metadata_supplied?(intent)
+        raise KnowledgeGraph::InvalidIntent, "bookmark metadata requires url"
+      end
       body = intent.body.to_s
       raise KnowledgeGraph::InvalidIntent, "capture body is required" if body.strip.empty?
       title = intent.title.to_s.strip
@@ -30,9 +38,10 @@ module KnowledgeCapture
 
       now = timestamp
       captured_at = normalize_time(intent.captured_at || @clock.call)
+      schema_version = kind == "bookmark" && !intent.url.to_s.empty? ? 2 : 1
       data = {
         "id" => capture_id, "capture_id" => capture_id, "type" => "capture",
-        "schema_version" => 1, "kind" => kind, "title" => title,
+        "schema_version" => schema_version, "kind" => kind, "title" => title,
         "captured_at" => captured_at, "created_at" => now, "updated_at" => now,
         "created_by" => intent.created_by.to_s.empty? ? "agent" : intent.created_by.to_s,
         "updated_by" => "agent", "created_by_run" => @run_id, "updated_by_run" => @run_id,
@@ -44,6 +53,7 @@ module KnowledgeCapture
         "evidence" => strings(intent.evidence), "source" => intent.source.to_s.empty? ? "unknown" : intent.source.to_s,
         "sensitivity" => intent.sensitivity.to_s.empty? ? "private" : intent.sensitivity.to_s
       }
+      data.merge!(bookmark_data(intent)) if schema_version == 2
       Capture.new(data: data, body: body, relative_path: relative)
       context.transaction.write(relative, @writer.render(data, body: body))
       result(intent, capture_id, relative, data)
@@ -173,6 +183,46 @@ module KnowledgeCapture
 
     def strings(value)
       Array(value).map(&:to_s).reject(&:empty?).uniq
+    end
+
+    def bookmark_data(intent)
+      data = {
+        "url" => intent.url, "canonical_url" => intent.canonical_url,
+        "domain" => intent.domain, "resource_type" => intent.resource_type,
+        "user_note" => intent.user_note, "collections" => strings(intent.collections),
+        "author_name" => intent.author_name, "published_at" => intent.published_at,
+        "description" => intent.description, "content_excerpt" => intent.content_excerpt,
+        "content_hash" => intent.content_hash, "fetch_status" => intent.fetch_status,
+        "fetched_at" => intent.fetched_at, "page_language" => intent.page_language,
+        "reading_status" => intent.reading_status || "unread"
+      }
+      data = data.each_with_object({}) do |(key, value), result|
+        next if value.nil? || (value.respond_to?(:empty?) && value.empty?)
+        result[key] = value
+      end
+      %w[url canonical_url domain resource_type fetch_status].each do |field|
+        if data[field].to_s.strip.empty?
+          raise KnowledgeGraph::InvalidIntent, "bookmark Capture requires #{field}"
+        end
+      end
+      {
+        "url" => Bookmarks::MAX_URL_LENGTH, "canonical_url" => Bookmarks::MAX_URL_LENGTH,
+        "author_name" => 500, "description" => 2_000,
+        "content_excerpt" => Bookmarks::MAX_EXCERPT_LENGTH
+      }.each do |field, maximum|
+        if data[field].to_s.length > maximum
+          raise KnowledgeGraph::InvalidIntent, "bookmark #{field} exceeds #{maximum} characters"
+        end
+      end
+      data
+    end
+
+    def bookmark_metadata_supplied?(intent)
+      values = %i[
+        url canonical_url domain resource_type user_note collections author_name published_at
+        description content_excerpt content_hash fetch_status fetched_at page_language reading_status
+      ].map { |name| intent.public_send(name) }
+      values.any? { |value| !value.nil? && (!value.respond_to?(:empty?) || !value.empty?) }
     end
 
     def result(intent, capture_id, relative, data, replayed: false)

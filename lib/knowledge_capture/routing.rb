@@ -25,7 +25,8 @@ module KnowledgeCapture
           next nil unless parsed
 
           {
-            "intent" => "knowledge.capture", "confidence" => parsed.fetch("confidence"),
+            "intent" => parsed["normalized_url"] ? "knowledge.capture.bookmark" : "knowledge.capture",
+            "confidence" => parsed.fetch("confidence"),
             "explanation" => "message explicitly expresses a personal #{parsed.fetch('kind')} to capture",
             "slots" => parsed
           }
@@ -34,6 +35,9 @@ module KnowledgeCapture
 
       def parse(text)
         source = text.to_s.strip
+        bookmark = Bookmarks::RequestParser.new.parse(source)
+        return bookmark if bookmark
+
         PREFIXES.each do |kind, pattern|
           match = pattern.match(source)
           next unless match

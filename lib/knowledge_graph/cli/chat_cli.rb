@@ -179,7 +179,7 @@ module KnowledgeGraph
         result = response.fetch("result")
         if result["confirmation"]
           lines << result.fetch("confirmation")
-          lines << "proposal: #{result.fetch('proposal_id')}"
+          lines << "proposal: #{result.fetch('proposal_id')}" if result["proposal_id"]
         else
           lines << JSON.pretty_generate(result)
         end
