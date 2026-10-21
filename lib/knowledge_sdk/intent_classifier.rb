@@ -353,4 +353,22 @@ module KnowledgeSDK
       raise ArgumentError, "classifier #{entry.name} result is missing #{error.key}"
     end
   end
+
+  # Trusted transport extensions may attach derived conversational state.
+  # Imported content cannot register callbacks or change capability bindings.
+  module ConversationExtensions
+    module_function
+
+    def register(name, &callback)
+      callbacks[name.to_s] = callback
+    end
+
+    def callbacks
+      @callbacks ||= {}
+    end
+
+    def enrich(vault_root:, arguments:, actor_id: nil)
+      callbacks.values.reduce(arguments) { |result, callback| callback.call(vault_root, result, actor_id) }
+    end
+  end
 end

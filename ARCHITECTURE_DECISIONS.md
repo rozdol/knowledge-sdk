@@ -39,6 +39,7 @@ Accepted decisions are normative until superseded by a later ADR and a compatibl
 | SDK-ADR-022 | Select immutable plugin-owned Dataset templates before approval-gated provisioning | Accepted |
 | SDK-ADR-023 | Make Capture a first-class inbox type with explicit routing and promotion | Accepted |
 | SDK-ADR-024 | Model web bookmarks as Evidence-enriched Captures and treat pages as untrusted data | Accepted |
+| SDK-ADR-025 | Preserve immutable financial history in approved Dataset batches and derive owner-scoped projections | Accepted |
 
 ## SDK-ADR-001 — One standalone SDK and arbitrary Vault clients
 
@@ -244,3 +245,22 @@ candidate entity linking grant no approval. Web strings cannot become SDK instru
 configuration, validators, executable code, plugins, policy, approval, or authorization. Search,
 Inbox, Knowledge Activity, and deterministic analysis consume bookmarks through their existing
 Capture integrations; analysis remains derived and noncanonical.
+
+## SDK-ADR-025 — Append-only financial events and reproducible wealth projections
+
+**Decision.** Finance is an explicitly installed domain extension, not another application, database,
+Knowledge Graph, Proposal Engine or execution authority. Semantic owner/account/instrument master
+data stays in Markdown through immutable graph Intents. Exact financial history and sourced prices/FX
+use registered Dataset schemas/templates, decimal TEXT and BigDecimal. An immutable
+`AppendFinanceRows` Intent carries an atomic batch behind existing exact approval and Engine dispatch.
+Every Dataset write entry point protects financial history against unauthorized insertion or rewrites.
+Under the existing Dataset transaction, execution replays current history and deduplicates before append.
+
+**Consequences.** Positions, cash, loans, lots and reports are reproducible, owner/account scoped, and
+noncanonical as projections. Unknown opening history clarifies, unknown basis remains null, and
+missing historical marks/FX prevent exact totals. Corrections retain original events. Transfers do not
+create investment profit. Instrument adapters distinguish premiums, daily futures settlement, nominal
+bond prices and ordinary assets. The Phase 13 Finance analyzer and existing Planning/Decision Engine
+consume derived data; neither recommendations nor decision selection authorize execution. Restricted
+source Evidence stays local and Activity/telemetry remain redacted. Unsupported financial transforms
+fail explicitly; their presence in the reserved operation vocabulary does not imply support.

@@ -171,3 +171,16 @@ structured clarification and never fall through to graph observation.
 Machine-readable contracts are in `dataset-definition.schema.json`, `dataset-template.schema.json`, `dataset-row.schema.json`,
 `schedule.schema.json`, and `response.schema.json` in this directory.
 Dataset evolution and analysis contracts are in `docs/Dataset Intelligence/`.
+
+## Protected Finance Datasets
+
+The optional Finance plugin registers immutable `finance_events` and `finance_observations` templates
+and provisions them through the normal approved lifecycle. Exact monetary fields are decimal TEXT,
+not REAL. `AppendFinanceRows` binds a complete batch to exact human approval and source Evidence.
+The Dataset Engine extension protects every mutation entry point, replays history while holding the
+existing SQLite write transaction, and atomically appends or refuses the batch. Positions and balances
+are derived; corrections append linked events. Per-row child Intent IDs preserve unique receipt
+indexes and parent approval/audit linkage. See [Finance Plugin](../Finance%20Plugin/README.md).
+
+Column regular expressions serialize their declared source rather than repeatedly wrapping compiled
+anchors. Definition JSON round trips are stable; coercion remains fully anchored.

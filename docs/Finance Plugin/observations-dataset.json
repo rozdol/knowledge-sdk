@@ -1,0 +1,104 @@
+{
+  "slug": "finance_observations",
+  "name": "Financial Valuation Observations",
+  "kind": "finance_observations",
+  "purpose": "Append-only sourced prices, FX rates and portfolio valuations",
+  "sensitivity": "private",
+  "columns": [
+    {
+      "name": "observation_key",
+      "type": "TEXT",
+      "required": true,
+      "unique": true,
+      "index": true
+    },
+    {
+      "name": "observation_type",
+      "type": "TEXT",
+      "required": true,
+      "enum": [
+        "price",
+        "fx",
+        "portfolio"
+      ]
+    },
+    {
+      "name": "owner_id",
+      "type": "TEXT",
+      "required": true,
+      "index": true
+    },
+    {
+      "name": "asset_id",
+      "type": "TEXT",
+      "index": true
+    },
+    {
+      "name": "value",
+      "type": "TEXT",
+      "required": true
+    },
+    {
+      "name": "currency",
+      "type": "TEXT",
+      "required": true,
+      "pattern": "[A-Z]{3}"
+    },
+    {
+      "name": "base_currency",
+      "type": "TEXT",
+      "pattern": "[A-Z]{3}"
+    },
+    {
+      "name": "price_type",
+      "type": "TEXT",
+      "required": true,
+      "enum": [
+        "bid",
+        "ask",
+        "last",
+        "appraisal",
+        "market_estimate",
+        "user_estimate",
+        "confirmed_sale",
+        "portfolio_close"
+      ]
+    },
+    {
+      "name": "as_of",
+      "type": "DATETIME",
+      "required": true,
+      "index": true
+    },
+    {
+      "name": "retrieved_at",
+      "type": "DATETIME",
+      "required": true
+    },
+    {
+      "name": "quality",
+      "type": "TEXT",
+      "required": true,
+      "enum": [
+        "verified",
+        "indicative",
+        "estimated"
+      ]
+    },
+    {
+      "name": "sensitivity",
+      "type": "TEXT",
+      "required": true,
+      "enum": [
+        "normal",
+        "private",
+        "restricted"
+      ]
+    },
+    {
+      "name": "metadata",
+      "type": "JSON",
+      "required": true
+    }
+  ]
+}

@@ -17,3 +17,12 @@ ruby "acceptance/test_acceptance.rb"
 ```
 
 Dataview's plugin runtime has no official headless API. The compatibility engine dynamically discovers all `dataview` and `dataviewjs` fences, implements the expressions used by the current views, and fails on unsupported syntax. Native Obsidian rendering remains a release smoke test after plugin upgrades.
+
+## Finance CLI smoke acceptance
+
+`ruby acceptance/finance_smoke.rb` creates an independent temporary generic Vault, installs the
+optional Finance extension, submits exactly approved synthetic master/ledger proposals, verifies
+Microsoft FIFO quantities and P&L through actual CLI commands, and runs `doctor` and `validate`.
+The Vault is removed on exit. Detailed financial accounting, missing-history conversation, derivatives,
+loan/property, import, return, concurrency, restricted-context and cross-Vault scenarios are in
+`test/finance/` and run as part of `bundle exec rake test`.

@@ -172,3 +172,12 @@ Version 15 raises the SQLite engine schema to 3 and additively appends nullable 
 - Factor lists, graph evidence, Capture evidence, activity evidence, events, findings, and planning signals are bounded.
 - Cache keys use row identity/update metadata rather than embedding raw row values.
 - Correlation is in-memory and deterministic; large-scale deployments can add a read-only adapter without changing the public contract.
+
+## Finance ledger analysis
+
+The existing Finance analysis plugin also interprets optional financial event/observation Datasets.
+It returns exact owner-scoped reports in additive `analysis.domain_reports` while retaining expense
+analysis. The adapter uses the existing immutable graph snapshot and bounded Dataset context/cache
+signature. It refuses truncated financial history, filters restricted rows, and marks missing basis,
+prices or return inputs unavailable. It never runs money through the numeric REAL correlation path.
+See [Finance Plugin](../Finance%20Plugin/README.md).

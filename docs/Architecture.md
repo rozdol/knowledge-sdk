@@ -356,3 +356,19 @@ Exact IDs and merged redirects resolve first, followed by strong normalized iden
 An Intent fingerprint is SHA-256 over canonical JSON serialization. A successful command stages `.knowledge/runtime/receipts/<fingerprint>.json` in the same transaction as graph changes. Re-execution validates the Vault and returns the stored result with `replayed: true`.
 
 Each attempt appends a local JSONL audit event containing timestamp, Intent payload, affected IDs, result, duration, rollback flag, replay flag, run ID, and actor ID. Runtime data lives under `.knowledge/runtime/`, is local and Git-ignored by the bundled migration guidance, and is operational history rather than a source of canonical facts. Dataset rows live separately at `.knowledge/datasets.sqlite3`.
+
+## Finance domain extension
+
+`knowledge_finance/` extends the existing Finance analysis plugin, immutable Dataset templates,
+IntentClassifier and Gateway. Graph `CreateEntity` operations own semantic instrument/account/owner
+master data. Exact approved `AppendFinanceRows` Intents own immutable economic events and valuation
+observations in the existing SQLite Dataset store. Derived FIFO lots, quantities, cash, debts, P&L and
+net worth are replayed rather than independently editable. Decimals are TEXT and Ruby BigDecimal.
+
+The Dataset extension validates the exact approved payload and replays current history inside
+`BEGIN IMMEDIATE` before atomically appending a batch. Generic administrative Dataset mutations cannot
+rewrite financial history. Existing Engine staging/validation, receipts, audit, deferred execution,
+Activity and proposal dependency behavior remain in effect. Linked corrections append history.
+Planning uses Finance candidates in the existing Planning/Scenario/Decision Engine; neither scenarios
+nor chat can approve, submit, trade or transfer funds. Analysis binds to the existing snapshot/cache
+signature and refuses truncated history. See [Finance Plugin](Finance%20Plugin/README.md).

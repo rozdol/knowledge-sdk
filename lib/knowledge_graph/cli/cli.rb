@@ -51,6 +51,10 @@ module KnowledgeGraph
       when "search" then search_command
       when "inbox" then capture_cli(["list", "--status", "inbox"] + @argv).run
       when "capture" then capture_cli(@argv).run
+      when "finance" then KnowledgeFinance::CLI.new(
+        argv: @argv, out: @out, err: @err, vault_root: vault_root,
+        event_bus: orchestrator.event_bus, actor_id: @options[:actor_id]
+      ).run
       when "analyze" then KnowledgeAnalysis::CLI.new(
         argv: @argv, out: @out, err: @err, stdin: @stdin,
         vault_root: vault_root, dataset_engine: dataset_engine,
@@ -244,7 +248,7 @@ module KnowledgeGraph
       when "install"
         name = @argv.shift || raise(InvalidIntent, "plugin install expects a name")
         installed = plugin_registry.install(name, vault_root)
-        registry.attach(vault_root, profile: name) if registry.find(vault_root.to_s)
+        registry.attach(vault_root, profile: name) if registry.find(vault_root.to_s) && plugin_registry.fetch(name).fetch("profile", true)
         emit_json(plugin: name, vault: vault_root.to_s, installed: installed)
       else
         raise InvalidIntent, "unknown plugin command #{action.inspect}"
@@ -502,7 +506,7 @@ module KnowledgeGraph
     def print_help(option_parser)
       @out.puts(option_parser)
       @out.puts("SDK: init, attach, detach, upgrade, migrate, version, id, vault, plugin")
-      @out.puts("Knowledge: execute, validate, doctor, graph, stats, search, analyze, replay, inbox, capture, dataset, activity, chat, observe, extract, proposal, intelligence, goal, plan, gateway, events, workflow, scheduler, notifications, cache")
+      @out.puts("Knowledge: execute, validate, doctor, graph, stats, search, analyze, replay, inbox, capture, finance, dataset, activity, chat, observe, extract, proposal, intelligence, goal, plan, gateway, events, workflow, scheduler, notifications, cache")
       0
     end
   end

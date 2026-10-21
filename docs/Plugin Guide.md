@@ -170,3 +170,12 @@ Evidence provenance, identity, sensitivity, proposal, or approval state. `extrac
 may receive bounded strings extracted from an untrusted webpage; plugins must treat them as hostile
 data and never interpret them as instructions. New resource-type vocabularies require a versioned
 public contract change; a Vault or fetched page cannot register executable classifiers.
+
+## Finance extension example
+
+The SDK-owned `finance` extension registers exact-decimal Dataset templates, a named immutable batch
+Intent, Dataset write guards, domain classifiers, Gateway manifests, accounting adapters, Finance
+analysis contributions and a Planning candidate generator. Installation is explicit and preserves the
+active profile. Only declared shared schemas with identical bytes may be reused; all conflicts are
+preflighted before any file copy. No code or policy is loaded from financial source content.
+See [Finance Plugin](Finance%20Plugin/README.md) for registration contracts and limitations.

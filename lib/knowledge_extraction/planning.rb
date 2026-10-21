@@ -14,10 +14,13 @@ module KnowledgeExtraction
       ModifyMedicationDose ModifyMedicationSchedule
       InsertBloodPressureMeasurement InsertWeightMeasurement InsertBloodTestResult
       InsertBodyMeasurement InsertExpense CreateDataset UpgradeDatasetSchema
-      CreateCapture ReviewCapture LinkCapture
+      CreateCapture ReviewCapture LinkCapture AppendFinanceRows
     ].freeze
 
     def classify(intent)
+      if intent.intent_type == "AppendFinanceRows" && intent.rows.any? { |row| row["operation"] == "REVERSAL" || row["correction_of"] }
+        return "high"
+      end
       return "high" if HIGH_RISK.include?(intent.intent_type)
       if intent.is_a?(KnowledgeGraph::UpdateEntity) &&
          !(intent.changes.keys.map(&:to_s) & %w[emails phones external_ids primary_email primary_phone is_self]).empty?
@@ -25,6 +28,7 @@ module KnowledgeExtraction
       end
       return "medium" if MEDIUM_RISK.include?(intent.intent_type)
       return "medium" if intent.is_a?(KnowledgeGraph::CreateEntity) && %w[person organization].include?(intent.entity_type)
+      return "medium" if intent.is_a?(KnowledgeGraph::CreateEntity) && intent.entity_type.to_s.start_with?("financial_")
       return "medium" if intent.is_a?(KnowledgeGraph::CreateEntity) && intent.entity_type == "follow-up"
       return "medium" if intent.is_a?(KnowledgeGraph::CreateEntity) &&
                          KnowledgeGraph::EntityManager::APPROVAL_GATED_TYPES.include?(intent.entity_type)

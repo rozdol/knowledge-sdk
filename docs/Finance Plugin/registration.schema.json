@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Finance Registration Chat Request",
+  "type": "object",
+  "required": [
+    "finance"
+  ],
+  "properties": {
+    "finance": {
+      "type": "object",
+      "required": [
+        "kind",
+        "attributes"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "owner",
+            "account",
+            "asset"
+          ]
+        },
+        "attributes": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "id": {
+              "type": "string"
+            },
+            "owner_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "owner_kind": {
+              "type": "string",
+              "enum": [
+                "personal",
+                "corporate"
+              ]
+            },
+            "asset_class": {
+              "type": "string",
+              "enum": [
+                "stock",
+                "etf",
+                "bond",
+                "mutual_fund",
+                "future",
+                "option",
+                "futures_option",
+                "commodity",
+                "precious_metal",
+                "cash",
+                "real_estate",
+                "land",
+                "vehicle",
+                "movable",
+                "collectible",
+                "artwork",
+                "loan",
+                "credit_card",
+                "credit_facility",
+                "other"
+              ]
+            },
+            "currency": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            },
+            "unit": {
+              "type": "string"
+            },
+            "multiplier": {
+              "type": "string"
+            },
+            "identifiers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "value"
+                ],
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "isin",
+                      "figi",
+                      "cusip",
+                      "sedol",
+                      "ticker_mic",
+                      "conid",
+                      "future_contract",
+                      "option_contract",
+                      "iban",
+                      "bank_account",
+                      "broker_account",
+                      "cadastral",
+                      "vin",
+                      "registration",
+                      "agreement",
+                      "certificate",
+                      "serial",
+                      "user"
+                    ]
+                  },
+                  "value": {
+                    "type": "string"
+                  },
+                  "jurisdiction": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "details": {
+              "type": "object"
+            },
+            "sensitivity": {
+              "enum": [
+                "normal",
+                "private",
+                "restricted"
+              ]
+            },
+            "provenance": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

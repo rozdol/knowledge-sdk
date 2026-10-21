@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Finance Derived Report or Review Result",
+  "type": "object",
+  "required": [
+    "status",
+    "execution_authorized"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "partial",
+        "unavailable",
+        "clarification_required",
+        "conditional_scenario",
+        "awaiting_approval",
+        "reconciled",
+        "unresolved"
+      ]
+    },
+    "execution_authorized": {
+      "type": "boolean",
+      "const": false
+    },
+    "owner_id": {
+      "type": "string"
+    },
+    "as_of": {
+      "type": "string"
+    },
+    "from": {
+      "type": "string"
+    },
+    "to": {
+      "type": "string"
+    },
+    "net_worth": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "totals": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "positions": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "missing_information": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "question": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

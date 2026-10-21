@@ -151,3 +151,13 @@ ruby -I"lib" -I"test" \
   -e 'Dir["test/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
 ruby "validators/personal_crm/validate_vault.rb"
 ```
+
+## Conditional Finance liquidity scenarios
+
+The optional Finance candidate generator produces cost-first and timing-first liquidity candidates
+inside the existing Planning Engine. The existing Scenario Evaluator and Decision Engine apply the
+shared policy; insufficient modeled net cash is a hard constraint violation. Cash amounts stay decimal;
+only dimensionless decision scores use the existing scoring arithmetic. Outputs contain review steps
+and no generated order/transfer Intents. Missing bids, FX, costs, settlement, ownership access, margin
+review or permissions remain explicit missing inputs. See [Finance Plugin](../Finance%20Plugin/README.md)
+for the modeled subset and unfinished margin, concentration, tax and calendar optimization.

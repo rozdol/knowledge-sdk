@@ -179,3 +179,22 @@ kg --vault /path/to/vault doctor
 ```
 
 See [Installation](INSTALL.md), [AI Project Context](AI_PROJECT_CONTEXT.md), [Architecture Decisions](ARCHITECTURE_DECISIONS.md), [Architecture](docs/Architecture.md), [Knowledge Capture](docs/Knowledge%20Capture/README.md), [Search](docs/Search.md), [Knowledge Graph](docs/Knowledge%20Graph.md), [Dataset Intelligence](docs/Dataset%20Intelligence/README.md), [Configuration Guide](docs/Configuration%20Guide.md), [Migration Guide](docs/Migration%20Guide.md), [Plugin Guide](docs/Plugin%20Guide.md), [Developer Guide](docs/Developer%20Guide.md), and [Intent API](docs/Intent%20API.md). Automated contributors must also follow [AGENTS.md](AGENTS.md).
+
+## Finance & Wealth Management plugin
+
+Install with `kg --vault PATH plugin install finance`. The optional extension adds semantic asset,
+owner and account identities, an immutable exact-decimal Dataset ledger, FIFO history, debt tracking,
+price/FX observations, historical P&L and conditional cash-raising scenarios. It reuses existing
+proposals, exact approval, Engine, Finance analysis, Planning/Decision and Activity. It never executes
+trades or transfers. Missing history clarifies; missing valuations/basis remain unavailable.
+
+```sh
+kg chat --text 'Сколько у меня акций Microsoft?' --json
+kg finance positions --owner OWNER_ID --json
+kg finance pnl --owner OWNER_ID --from 2026-01-01 --to 2026-09-30 --json
+kg analyze 'Monthly investment P&L for the past year' --json
+```
+
+See [Finance Plugin](docs/Finance%20Plugin/README.md) for supported accounting slices, structured chat
+requests, imports, privacy and explicit limitations. Physical option settlement, broad corporate actions,
+complete tax accounting and unrestricted financial NLP remain unfinished.

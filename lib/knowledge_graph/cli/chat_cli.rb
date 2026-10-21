@@ -129,7 +129,8 @@ module KnowledgeGraph
         arguments["source_uri"] = source.to_s
         arguments["title"] = source.basename.to_s
       end
-      arguments
+      KnowledgeSDK::ConversationExtensions.enrich(vault_root: @vault_root, arguments: arguments,
+                                                actor_id: @actor_id || "kg-chat-cli")
     end
 
     def router

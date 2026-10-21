@@ -43,6 +43,7 @@
         "graph_evidence": { "type": "array", "items": { "type": "object" } },
         "capture_evidence": { "type": "array", "items": { "type": "object" } },
         "capture_summary": { "type": "object" },
+        "domain_reports": { "type": "array", "items": { "type": "object" } },
         "activity_evidence": { "type": "array", "items": { "type": "object" } },
         "intelligence_evidence": { "type": "array", "items": { "type": "object" } },
         "planning_signals": { "type": "array", "items": { "type": "object" } },

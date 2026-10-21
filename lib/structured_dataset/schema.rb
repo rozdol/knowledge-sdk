@@ -105,7 +105,7 @@ module StructuredDataset
       {
         name: name, type: type, required: required?, unique: unique?,
         unit: unit, index: indexed?, min: minimum, max: maximum,
-        enum: enum.empty? ? nil : enum, pattern: pattern && pattern.source,
+        enum: enum.empty? ? nil : enum, pattern: @pattern_source,
         description: description
       }.reject { |_key, value| value.nil? || value == false }
     end
@@ -130,8 +130,10 @@ module StructuredDataset
     end
 
     def compile_pattern(value)
+      @pattern_source = nil
       return nil if value.nil?
 
+      @pattern_source = value.to_s.dup.freeze
       Regexp.new("\\A(?:#{value})\\z").freeze
     rescue RegexpError => error
       raise InvalidSchema, "#{name}: invalid pattern: #{error.message}"

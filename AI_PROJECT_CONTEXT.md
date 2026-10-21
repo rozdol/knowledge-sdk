@@ -186,3 +186,21 @@ Acceptance work must use temporary synthetic Vaults. Validation against a real V
 - Keep lifecycle commands Vault-agnostic and external-configuration-first.
 - Preserve Intent, Engine, schema, manifest, and adapter compatibility unless a versioned migration is supplied.
 - Keep product decisions here in the SDK repository; keep user- and ontology-specific decisions in their owning Vaults.
+
+## Finance & Wealth Management extension
+
+`KnowledgeFinance` is an optional trusted plugin over existing subsystems. Explicit installation adds
+Financial Owner/Account/Asset semantic schemas without replacing the active profile. `finance_events`
+and `finance_observations` are approval-provisioned Datasets with decimal TEXT fields.
+`AppendFinanceRows` executes an exact-approved atomic batch under the Dataset Engine's transaction.
+All Dataset mutation entry points protect append-only history. FIFO replay reconstructs positions,
+cash and debts; unknown basis/marks never become zero. Cross-knowledge analysis extends the existing
+Finance plugin using the same immutable snapshot and Dataset context. Liquidity candidates run through
+the existing Planning, Scenario and Decision pipeline and contain no executable Intents.
+
+The shared review-envelope implementation now lives in
+`knowledge_extraction/review_proposal_builder.rb`; Capture retains its compatibility class and behavior.
+Chat supports trusted intent-to-capability and derived-context extensions. Financial business logic
+stays under `knowledge_finance/`. See `docs/Finance Plugin/README.md` and the synthetic `test/finance/`
+end-to-end scenarios. Do not claim physical option settlement, general ownership/corporate actions,
+automatic bond/loan accrual, FX attribution or full financial NLP are implemented.

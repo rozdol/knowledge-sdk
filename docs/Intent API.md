@@ -96,3 +96,11 @@ Expected error families include `InvalidIntent`, `ApprovalRequired`, `EntityNotF
 ## Hooks
 
 Subscribe with `engine.on(:before_execute) { |context| ... }`. Supported events are `before_execute`, `after_execute`, `before_commit`, `after_commit`, `before_rollback`, and `after_rollback`. Before-commit hook failures trigger rollback. After-commit hooks must be observational because the graph is already committed.
+
+## Finance batch Intent
+
+The optional Finance extension registers `AppendFinanceRows < DatasetIntent` with `dataset`, `rows`,
+source/observation, Evidence and artifact references. Only exact approved batches reach the Dataset
+Engine extension; raw `InsertDatasetRow`, update/delete and unapproved imports cannot write the
+protected financial tables. Graph master registration continues to use `CreateEntity`.
+See [Finance contracts](Finance%20Plugin/README.md).

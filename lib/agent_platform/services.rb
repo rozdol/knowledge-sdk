@@ -4,7 +4,7 @@ require "date"
 
 module AgentPlatform
   class Services
-    attr_reader :vault_root, :run_id, :actor_id
+    attr_reader :vault_root, :run_id, :actor_id, :clock, :event_bus
 
     def initialize(vault_root:, run_id:, actor_id: nil, clock: nil, event_bus: nil,
                    notification_store: nil)

@@ -25,3 +25,5 @@ require_relative "knowledge_extraction/cli"
 module KnowledgeExtraction
   VERSION = "5.0.0".freeze
 end
+
+require_relative "knowledge_extraction/review_proposal_builder"

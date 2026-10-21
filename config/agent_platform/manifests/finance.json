@@ -1,0 +1,249 @@
+[
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.finance.read",
+    "name": "finance_read",
+    "version": "1.0.0",
+    "description": "Read derived exact financial reports.",
+    "input_schema": {
+      "type": "object",
+      "required": [
+        "content"
+      ],
+      "properties": {
+        "source_type": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000000
+        },
+        "language": {
+          "type": "string"
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "external_id": {
+          "type": "string"
+        },
+        "source_uri": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "observation_id": {
+          "type": "string"
+        },
+        "origin_source": {
+          "type": "string"
+        },
+        "conversation_id": {
+          "type": "string"
+        },
+        "message_id": {
+          "type": "string"
+        },
+        "sender": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "private",
+            "restricted"
+          ]
+        },
+        "finance_pending": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "required": [
+        "status",
+        "execution_authorized"
+      ],
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "execution_authorized": {
+          "type": "boolean",
+          "const": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 30000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "finance:read",
+        "dataset:read",
+        "graph:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "hermes",
+      "mcp",
+      "cli",
+      "rest"
+    ],
+    "examples": [
+      {
+        "arguments": {
+          "content": "Сколько у меня акций Microsoft?"
+        }
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.finance.propose",
+    "name": "finance_propose",
+    "version": "1.0.0",
+    "description": "Prepare finance review proposals; cannot approve or execute.",
+    "input_schema": {
+      "type": "object",
+      "required": [
+        "content"
+      ],
+      "properties": {
+        "source_type": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000000
+        },
+        "language": {
+          "type": "string"
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "external_id": {
+          "type": "string"
+        },
+        "source_uri": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "observation_id": {
+          "type": "string"
+        },
+        "origin_source": {
+          "type": "string"
+        },
+        "conversation_id": {
+          "type": "string"
+        },
+        "message_id": {
+          "type": "string"
+        },
+        "sender": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "private",
+            "restricted"
+          ]
+        },
+        "finance_pending": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "required": [
+        "status",
+        "execution_authorized"
+      ],
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "execution_authorized": {
+          "type": "boolean",
+          "const": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "proposal_write",
+      "timeout_ms": 30000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "finance:create",
+        "proposal:create",
+        "dataset:read",
+        "graph:read"
+      ],
+      "risk": "medium",
+      "approval": "proposal_only"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "hermes",
+      "mcp",
+      "cli",
+      "rest"
+    ],
+    "examples": [
+      {
+        "arguments": {
+          "content": "Я закрыл позицию по золоту по 4,250."
+        }
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  }
+]

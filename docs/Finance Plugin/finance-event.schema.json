@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Normalized Financial Economic Event",
+  "description": "Append-only Dataset row. Reserved corporate/physical-settlement operations may be refused by the installed adapter. Audit provenance is added by the approved writer.",
+  "type": "object",
+  "required": [
+    "event_id",
+    "deduplication_key",
+    "operation",
+    "effective_at",
+    "booked_at",
+    "sequence",
+    "owner_id",
+    "account_id",
+    "asset_id",
+    "quantity",
+    "unit",
+    "currency",
+    "fees",
+    "sensitivity",
+    "metadata"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "deduplication_key": {
+      "type": "string"
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "BUY",
+        "OPEN_LONG",
+        "ASSET_ACQUISITION",
+        "OPENING_BALANCE",
+        "SELL",
+        "CLOSE_LONG",
+        "ASSET_DISPOSAL",
+        "DIVIDEND",
+        "COUPON",
+        "INTEREST_RECEIVED",
+        "RENTAL_INCOME",
+        "FEE",
+        "TAX_WITHHELD",
+        "INTEREST_PAID",
+        "MAINTENANCE_EXPENSE",
+        "OPEN_SHORT",
+        "CLOSE_SHORT",
+        "TRANSFER_IN",
+        "TRANSFER_OUT",
+        "DEPOSIT",
+        "WITHDRAWAL",
+        "SPLIT",
+        "OPTION_EXPIRATION",
+        "OPTION_EXERCISE",
+        "OPTION_ASSIGNMENT",
+        "FUTURES_VARIATION_MARGIN",
+        "LOAN_DISBURSEMENT",
+        "LOAN_REPAYMENT",
+        "INTEREST_ACCRUAL",
+        "VALUATION",
+        "OWNERSHIP_CHANGE",
+        "REVERSAL",
+        "CORPORATE_ACTION",
+        "MERGER",
+        "SPIN_OFF",
+        "CORRECTION"
+      ]
+    },
+    "effective_at": {
+      "type": "string"
+    },
+    "booked_at": {
+      "type": "string"
+    },
+    "settlement_on": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sequence": {
+      "type": "integer"
+    },
+    "owner_id": {
+      "type": "string"
+    },
+    "account_id": {
+      "type": "string"
+    },
+    "asset_id": {
+      "type": "string"
+    },
+    "quantity": {
+      "type": "string",
+      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+    },
+    "unit": {
+      "type": "string"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "price": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+    },
+    "amount": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+    },
+    "fees": {
+      "type": "string",
+      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+    },
+    "external_event_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "transfer_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reverses_event_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "correction_of": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sensitivity": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "private",
+        "restricted"
+      ]
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}

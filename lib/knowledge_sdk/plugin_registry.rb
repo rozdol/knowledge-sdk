@@ -31,6 +31,7 @@ module KnowledgeSDK
       plugin = fetch(name)
       root = Pathname.new(vault_root)
       installed = []
+      copies = []
       {
         "schemas" => "_System/Schema/Entity Types",
         "relationship_types" => "_System/Relationship Types",
@@ -41,14 +42,21 @@ module KnowledgeSDK
         next unless source.directory?
 
         target = root.join(destination)
-        FileUtils.mkdir_p(target)
         Dir.glob(source.join("*").to_s).sort.each do |entry|
           destination_path = target.join(File.basename(entry))
+          if destination_path.file? && source_key == "schemas" &&
+             Array(plugin["shared_schemas"]).include?(File.basename(entry)) &&
+             File.binread(entry) == destination_path.binread
+            next
+          end
           raise PluginError, "plugin install would replace #{destination_path}" if destination_path.exist?
-
-          FileUtils.copy_entry(entry, destination_path)
-          installed << destination_path.relative_path_from(root).to_s
+          copies << [entry, destination_path]
         end
+      end
+      copies.each do |entry, destination_path|
+        FileUtils.mkdir_p(destination_path.dirname)
+        FileUtils.copy_entry(entry, destination_path)
+        installed << destination_path.relative_path_from(root).to_s
       end
       installed.freeze
     end

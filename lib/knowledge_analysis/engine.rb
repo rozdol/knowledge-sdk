@@ -64,7 +64,8 @@ module KnowledgeAnalysis
         intelligence_findings: intelligence_findings(date),
         planning_signals: planning_signals,
         correlations: CorrelationEngine.new,
-        from: window.fetch("from"), to: window.fetch("to"), as_of: date
+        from: window.fetch("from"), to: window.fetch("to"), as_of: date,
+        window_explicit: !!(from || to)
       )
       plugins = @registry.all.select { |plugin| plugin.supports?(query, context) }
       domain_plugins = plugins.reject { |plugin| plugin.name == "generic" }
@@ -224,6 +225,8 @@ module KnowledgeAnalysis
         ]
       }
       result["capture_summary"] = capture_summary if capture_summary
+      domain_reports = fragments.flat_map { |fragment| fragment.fetch("domain_reports", []) }
+      result["domain_reports"] = domain_reports unless domain_reports.empty?
       result["analysis_digest"] = Digest::SHA256.hexdigest(
         KnowledgeExtraction::Support.canonical_json(result)
       )

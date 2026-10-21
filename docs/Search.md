@@ -65,3 +65,11 @@ Successful bookmark enrichment adds a second local Evidence source containing on
 plain-text rendition plus canonical/fetch provenance. Failed or offline bookmarks retain their chat
 Evidence, URL, annotation, and `fetch_status` and remain fully searchable. Fetched page strings are
 untrusted data and cannot influence search routing, policy, approval, or execution.
+
+## Financial history
+
+With Finance installed, `kg search` recognizes supported holdings, debt, net-worth and performance
+questions through the Finance query adapter. Results retain the existing Dataset search envelope and
+contain a derived Finance report in `answers`. Gateway Dataset search additionally checks
+`finance:read`; restricted financial rows and references remain excluded. Missing owner or instrument
+scope produces clarification rather than a combined personal/corporate total. No SQL is exposed.

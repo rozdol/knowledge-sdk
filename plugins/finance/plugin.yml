@@ -1,0 +1,11 @@
+name: finance
+version: 1
+description: Explicit personal finance and wealth ledger extension.
+profile: false
+schemas: schemas
+shared_schemas:
+  - Dataset.md
+relationship_types: relationship_types
+templates: templates
+views: views
+validator: validators/generic/validate_vault.rb

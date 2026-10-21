@@ -1553,7 +1553,7 @@ module StructuredDataset
     end
 
     def dataset_for(intent)
-      return intent.dataset if intent.is_a?(KnowledgeGraph::InsertDatasetRow)
+      return intent.dataset if intent.respond_to?(:dataset)
 
       @routing_registry.for_intent(intent).dataset
     end

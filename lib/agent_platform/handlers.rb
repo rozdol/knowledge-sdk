@@ -73,7 +73,9 @@ module AgentPlatform
 
     def register_dataset_handlers(registry, services)
       registry.register("kg.datasets.query") do |arguments, context|
-        result = StructuredDataset::Search.new(engine: services.dataset_engine(context)).query(arguments.fetch("query"))
+        result = StructuredDataset::Search.new(
+          engine: services.dataset_engine(context), authorizer: ->(permission) { context.agent.permits?(permission) }
+        ).query(arguments.fetch("query"))
         raise InvalidArguments, "unsupported deterministic dataset query" unless result
 
         HandlerResult.new(

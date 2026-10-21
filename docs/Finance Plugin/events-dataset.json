@@ -1,0 +1,166 @@
+{
+  "slug": "finance_events",
+  "name": "Financial Ledger",
+  "kind": "finance_events",
+  "purpose": "Immutable economic events; quantities and balances are projections",
+  "sensitivity": "private",
+  "columns": [
+    {
+      "name": "event_id",
+      "type": "TEXT",
+      "required": true,
+      "unique": true,
+      "index": true
+    },
+    {
+      "name": "deduplication_key",
+      "type": "TEXT",
+      "required": true,
+      "unique": true,
+      "index": true
+    },
+    {
+      "name": "operation",
+      "type": "TEXT",
+      "required": true,
+      "enum": [
+        "BUY",
+        "OPEN_LONG",
+        "ASSET_ACQUISITION",
+        "OPENING_BALANCE",
+        "SELL",
+        "CLOSE_LONG",
+        "ASSET_DISPOSAL",
+        "DIVIDEND",
+        "COUPON",
+        "INTEREST_RECEIVED",
+        "RENTAL_INCOME",
+        "FEE",
+        "TAX_WITHHELD",
+        "INTEREST_PAID",
+        "MAINTENANCE_EXPENSE",
+        "OPEN_SHORT",
+        "CLOSE_SHORT",
+        "TRANSFER_IN",
+        "TRANSFER_OUT",
+        "DEPOSIT",
+        "WITHDRAWAL",
+        "SPLIT",
+        "OPTION_EXPIRATION",
+        "OPTION_EXERCISE",
+        "OPTION_ASSIGNMENT",
+        "FUTURES_VARIATION_MARGIN",
+        "LOAN_DISBURSEMENT",
+        "LOAN_REPAYMENT",
+        "INTEREST_ACCRUAL",
+        "VALUATION",
+        "OWNERSHIP_CHANGE",
+        "REVERSAL",
+        "CORPORATE_ACTION",
+        "MERGER",
+        "SPIN_OFF",
+        "CORRECTION"
+      ]
+    },
+    {
+      "name": "effective_at",
+      "type": "DATETIME",
+      "required": true,
+      "index": true
+    },
+    {
+      "name": "booked_at",
+      "type": "DATETIME",
+      "required": true
+    },
+    {
+      "name": "settlement_on",
+      "type": "DATE"
+    },
+    {
+      "name": "sequence",
+      "type": "INTEGER",
+      "required": true
+    },
+    {
+      "name": "owner_id",
+      "type": "TEXT",
+      "required": true,
+      "index": true
+    },
+    {
+      "name": "account_id",
+      "type": "TEXT",
+      "required": true,
+      "index": true
+    },
+    {
+      "name": "asset_id",
+      "type": "TEXT",
+      "required": true,
+      "index": true
+    },
+    {
+      "name": "quantity",
+      "type": "TEXT",
+      "required": true
+    },
+    {
+      "name": "unit",
+      "type": "TEXT",
+      "required": true
+    },
+    {
+      "name": "currency",
+      "type": "TEXT",
+      "required": true,
+      "pattern": "[A-Z]{3}"
+    },
+    {
+      "name": "price",
+      "type": "TEXT"
+    },
+    {
+      "name": "amount",
+      "type": "TEXT"
+    },
+    {
+      "name": "fees",
+      "type": "TEXT",
+      "required": true
+    },
+    {
+      "name": "external_event_id",
+      "type": "TEXT"
+    },
+    {
+      "name": "transfer_id",
+      "type": "TEXT",
+      "index": true
+    },
+    {
+      "name": "reverses_event_id",
+      "type": "TEXT",
+      "index": true
+    },
+    {
+      "name": "correction_of",
+      "type": "TEXT"
+    },
+    {
+      "name": "sensitivity",
+      "type": "TEXT",
+      "required": true,
+      "enum": [
+        "normal",
+        "private",
+        "restricted"
+      ]
+    },
+    {
+      "name": "metadata",
+      "type": "JSON",
+      "required": true
+    }
+  ]
+}

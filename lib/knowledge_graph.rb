@@ -38,6 +38,7 @@ require_relative "knowledge_analysis"
 require_relative "knowledge_graph/chat"
 require_relative "knowledge_graph/cli/chat_cli"
 require_relative "knowledge_graph/cli/cli"
+require_relative "knowledge_finance"
 
 module KnowledgeGraph
 end

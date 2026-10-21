@@ -61,11 +61,11 @@ module KnowledgeAnalysis
   class AnalysisContext
     attr_reader :question, :datasets, :captures, :snapshot, :activities, :events,
                 :intelligence_findings, :planning_signals, :correlations,
-                :from, :to, :as_of
+                :from, :to, :as_of, :window_explicit
 
     def initialize(question:, datasets:, captures: [], snapshot:, activities:, events:,
                    intelligence_findings:, planning_signals:, correlations:,
-                   from:, to:, as_of:)
+                   from:, to:, as_of:, window_explicit: false)
       @question = question.to_s.freeze
       @datasets = datasets.freeze
       @captures = captures.freeze
@@ -78,6 +78,7 @@ module KnowledgeAnalysis
       @from = from
       @to = to
       @as_of = as_of
+      @window_explicit = window_explicit
       freeze
     end
 

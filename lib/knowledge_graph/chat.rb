@@ -24,6 +24,19 @@ module KnowledgeGraph
     }.freeze
 
     class << self
+      def register_intent_capability(intent:, capability:, permissions: [])
+        capability_overrides[intent.to_s] = capability.to_s
+        extension_permissions.concat(permissions).uniq!
+      end
+
+      def capability_overrides
+        @capability_overrides ||= {}
+      end
+
+      def extension_permissions
+        @extension_permissions ||= []
+      end
+
       def classifier
         classifier = KnowledgeSDK.intent_classifier
         install_defaults(classifier)
@@ -109,7 +122,8 @@ module KnowledgeGraph
       end
 
       decision(
-        classification.route, classification.reason, CAPABILITIES[classification.route],
+        classification.route, classification.reason,
+        self.class.capability_overrides.fetch(classification.intent, CAPABILITIES[classification.route]),
         classification.intent, classification.confidence, classification.slots, trace
       )
     end
@@ -143,14 +157,14 @@ module KnowledgeGraph
         id: actor_id.to_s.empty? ? "kg-chat-cli" : actor_id.to_s,
         permissions: %w[
           graph:read dataset:read capture:read capture:create intelligence:read analysis:read planning:read proposal:read proposal:create
-        ],
+        ] + ChatIntentResolver.extension_permissions,
         roles: ["chat_client"],
         attributes: {
           "autonomous_execution" => false,
           "allowed_capabilities" => %w[
             kg.entities.search kg.graph.query kg.datasets.query kg.datasets.propose
             kg.captures.search kg.captures.propose kg.analysis.run kg.planning.plan kg.proposals.status
-          ],
+          ] + ChatIntentResolver.capability_overrides.values.uniq,
           "denied_capabilities" => ["kg.proposals.submit"]
         }
       )
@@ -158,7 +172,10 @@ module KnowledgeGraph
 
     def route(text, explain: false, context: {})
       decision = @resolver.resolve(text, context, diagnostic: explain)
-      response, capability = case decision.route
+      response, capability = if ChatIntentResolver.capability_overrides.key?(decision.intent)
+                               extension_response(decision, context.merge("content" => text))
+                             else
+                               case decision.route
                              when "dataset" then dataset_response(decision, context)
                              when "analyze" then capability_response(
                                decision, "kg.analysis.run", "question" => text
@@ -173,6 +190,7 @@ module KnowledgeGraph
                              when "proposal" then proposal_response(text, decision)
                              when "clarification" then [intent_clarification, nil]
                              else raise ChatError, "unsupported chat route #{decision.route.inspect}"
+                             end
                              end
       if explain
         response["explain"] = {
@@ -189,6 +207,19 @@ module KnowledgeGraph
     end
 
     private
+
+    def extension_response(decision, arguments)
+      # Capability bindings come from trusted package registrations, never slots.
+      response = invoke(decision.capability, arguments)
+      return [gateway_error(decision.route, response), decision.capability] unless response.success?
+
+      payload = response.payload
+      if payload["status"] == "clarification_required"
+        return [{ "status" => "clarification_required", "route" => decision.route,
+                  "clarification" => { "question" => payload.fetch("question") }, "result" => payload }, decision.capability]
+      end
+      [{ "status" => "ok", "route" => decision.route, "result" => payload }, decision.capability]
+    end
 
     def dataset_response(decision, arguments)
       response = invoke("kg.datasets.propose", arguments)

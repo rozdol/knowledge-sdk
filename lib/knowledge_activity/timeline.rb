@@ -189,7 +189,8 @@ module KnowledgeActivity
       dataset_events = orchestration_events.select { |event| event.type == "DatasetChanged" }
       dataset_audits.map do |audit|
         record = repository.find(audit.fetch("entity_ids").first)
-        privacy = record.data["sensitivity"] == "restricted" ? "redacted" : "visible"
+        privacy = record.data["sensitivity"] == "restricted" ||
+          restricted?(audit, load_proposal(audit["proposal_id"])) ? "redacted" : "visible"
         action = audit.fetch("dataset_action")
         event = dataset_events.find do |candidate|
           candidate.payload["dataset_id"] == record.id && candidate.payload["action"] == action &&

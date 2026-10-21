@@ -31,3 +31,20 @@ Approval and submission are distinct. `submit --dry-run` reports readiness witho
 When the aggregate status is `partially_rejected`, the response also includes `status_context` with
 aggregate counts and per-Intent rejection reasons. A blocked Intent reports its approval, dependency,
 or planning reasons; a failed Intent reports its exception class and message.
+
+## Finance review proposals
+
+With Finance explicitly installed, `kg chat` uses registered `kg.finance.propose` / `kg.finance.read`
+capabilities for supported financial messages. Missing history returns clarification; completed
+financial proposals use this same review, `proposal approve`, and `proposal submit` workflow.
+
+```sh
+kg finance import --file synthetic-transactions.csv --json
+kg proposal export proposal_<ULID> --format json
+kg proposal approve proposal_<ULID> --all --actor finance-reviewer
+kg proposal submit proposal_<ULID>
+```
+
+Use `kg finance --help` for financial reads, normalized import, reconciliation and proposal commands.
+See [Finance Plugin](../Finance%20Plugin/README.md) for schemas, accounting, conversation examples and
+explicitly unfinished financial workflows. No command authorizes a live trade or bank transfer.

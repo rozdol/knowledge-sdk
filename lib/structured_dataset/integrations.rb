@@ -6,9 +6,10 @@ require "time"
 
 module StructuredDataset
   class Search
-    def initialize(engine:, clock: nil)
+    def initialize(engine:, clock: nil, authorizer: nil)
       @engine = engine
       @clock = clock || -> { Time.now }
+      @authorizer = authorizer
     end
 
     def query(text)
