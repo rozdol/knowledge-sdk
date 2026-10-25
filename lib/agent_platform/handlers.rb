@@ -135,11 +135,16 @@ module AgentPlatform
         limit = arguments.fetch("limit", 25)
         matches = services.graph_reader(context).search(
           arguments.fetch("query"), entity_type: arguments["entity_type"],
-          strong_only: arguments.fetch("strong_only", false)
-        ).first(limit).each_with_object([]) do |match, result|
+          strong_only: arguments.fetch("strong_only", false),
+          record_filter: ->(record) { services.visible_entity?(record.data, context.agent) }
+        ).each_with_object([]) do |match, result|
+          signals = match.fetch(:signals)
+          signals = signals - %w[email phone external_id] unless context.agent.permits?("graph:private")
+          next if signals.empty?
+
           entity = services.public_entity(match.fetch(:entity), context.agent)
-          result << entity.merge("signals" => match.fetch(:signals)) if entity
-        end
+          result << entity.merge("signals" => signals) if entity
+        end.sort_by { |item| item.fetch("id") }.first(limit)
         HandlerResult.new(
           payload: { query: arguments.fetch("query"), matches: matches },
           why: "Matched immutable IDs and normalized identity signals without exposing storage details.",

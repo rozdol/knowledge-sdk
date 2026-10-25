@@ -8,14 +8,19 @@ module KnowledgeActivity
   class Timeline
     DEFAULT_LIMIT = 20
 
-    def initialize(vault_root:, clock: nil, event_store: nil, proposal_store: nil, event_bus: nil, cache: nil)
+    attr_reader :source_warnings
+
+    def initialize(vault_root:, clock: nil, event_store: nil, proposal_store: nil, event_bus: nil, cache: nil,
+                   dataset_reader: nil)
       @vault_root = File.expand_path(vault_root.to_s)
       @clock = clock || -> { Time.now }
       @audit_log = KnowledgeGraph::AuditLog.new(vault_root: @vault_root)
       @event_store = event_store || KnowledgeOrchestration::EventStore.new(vault_root: @vault_root)
       @proposal_store = proposal_store || KnowledgeExtraction::ProposalStore.new(vault_root: @vault_root)
       @event_bus = event_bus
-      @cache = cache || KnowledgeOrchestration::KnowledgeCache.new(vault_root: @vault_root, clock: @clock)
+      @cache = cache == false ? nil : (cache || KnowledgeOrchestration::KnowledgeCache.new(vault_root: @vault_root, clock: @clock))
+      @dataset_reader = dataset_reader
+      @source_warnings = []
     end
 
     def latest(actor: nil, source: nil)
@@ -131,6 +136,11 @@ module KnowledgeActivity
     def all
       return @all if @all
 
+      unless @cache
+        return @all = (build_activities + build_dataset_activities + build_recommendation_activities)
+          .sort_by { |activity| [parse_time(activity.created_at), activity.id] }.freeze
+      end
+
       snapshot_digest = current_snapshot_digest
       key = activity_cache_key(snapshot_digest)
       cached = @cache.fetch(key, snapshot_digest: snapshot_digest)
@@ -156,7 +166,10 @@ module KnowledgeActivity
     end
 
     def dataset_audits
-      @dataset_audits ||= StructuredDataset::ActivityAdapter.new(vault_root: @vault_root).audits.freeze
+      @dataset_audits ||= StructuredDataset::ActivityAdapter.new(vault_root: @vault_root, reader: @dataset_reader).audits.freeze
+    rescue StructuredDataset::StorageUnavailable => error
+      @source_warnings << error.code unless @source_warnings.include?(error.code)
+      @dataset_audits = [].freeze
     end
 
     def build_activities

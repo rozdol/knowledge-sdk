@@ -40,6 +40,7 @@ module KnowledgeGraph
       when "upgrade" then upgrade_command
       when "migrate" then migrate_command
       when "version" then version_command
+      when "dashboard" then dashboard_command
       when "id" then id_command
       when "vault" then vault_command
       when "plugin" then plugin_command
@@ -126,6 +127,18 @@ module KnowledgeGraph
     end
 
     private
+
+    def dashboard_command
+      begin
+        require "knowledge_sdk/dashboard"
+      rescue LoadError
+        raise KnowledgeSDK::ConfigurationError, "dashboard requires the optional knowledge-sdk-dashboard gem matching this SDK version"
+      end
+      KnowledgeSDK::Dashboard::Server.run(
+        argv: @argv, out: @out, err: @err, vault: @options[:vault_root],
+        config_path: @options[:config_path], dataset_path: @options[:dataset_db]
+      )
+    end
 
     def parser
       @parser ||= OptionParser.new do |options|

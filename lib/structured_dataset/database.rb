@@ -59,6 +59,32 @@ module StructuredDataset
       raise
     end
 
+    # A separate connection lifecycle: never creates directories/storage or migrates.
+    def with_read_connection
+      raise StorageUnavailable, "dataset_storage_missing" unless path.file?
+
+      load_sqlite!
+      connection = SQLite3::Database.new(path.to_s, flags: SQLite3::Constants::Open::READONLY)
+      connection.results_as_hash = true
+      connection.busy_timeout = 100
+      connection.execute("PRAGMA query_only = ON")
+      connection.execute("BEGIN")
+      yield connection
+    rescue StorageUnavailable
+      raise
+    rescue DependencyError
+      raise StorageUnavailable, "dataset_dependency_missing"
+    rescue sqlite_exception => error
+      code = error.is_a?(SQLite3::CorruptException) || error.is_a?(SQLite3::NotADatabaseException) ?
+        "dataset_storage_invalid" : "dataset_storage_unreadable"
+      raise StorageUnavailable, code
+    ensure
+      if connection
+        connection.execute("ROLLBACK") rescue nil
+        connection.close
+      end
+    end
+
     def create_dataset(database, dataset_id:, table_name:, definition:, created_at: timestamp)
       Names.identifier!(table_name, "table name")
       schema_json = JSON.generate(definition.to_h)

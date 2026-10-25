@@ -122,6 +122,20 @@ Blood tests never add one column per biomarker. Arbitrary reports use rows with 
 
 ## Schema migration
 
+For nonmutating consumers use `StructuredDataset::Reader.new(vault_root: root,
+database_path: resolved_path)` instead of constructing an Engine. It shares the
+existing list/describe/query/stats/schema-history/Activity read semantics, opens
+existing SQLite with READONLY and query_only, and exposes `availability` plus
+`with_consistent_read` for one report snapshot. It has no mutation/migration API.
+Missing directories/databases remain absent; older engine schemas require an
+explicit upgrade, newer schemas require a newer SDK, and malformed/unreadable
+storage is unavailable. Engine construction and existing writer defaults are
+unchanged. Graph/row authorization remains the consuming Gateway handler's duty.
+
+Activity callers can inject `dataset_reader:` and `cache: false` into Timeline;
+unavailable Dataset history is reported through `source_warnings` without writes
+or silent complete-history claims. Ordinary Activity defaults remain compatible.
+
 The database has an engine-level `PRAGMA user_version` and an independent version history for each dataset. Dataset upgrades may append optional columns only. Existing columns cannot be removed, reordered, renamed, retyped, or have constraints changed. Required added columns are rejected because they would invalidate existing rows.
 
 The exact legacy medication schedule shape is the only bounded exception. An approved

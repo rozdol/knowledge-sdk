@@ -11,11 +11,12 @@ module AgentPlatform
       duration_ms cache_hits policy_allowed approval status error_code job_id
     ].freeze
 
-    def initialize(clock: nil, limit: DEFAULT_LIMIT, sink: nil)
+    def initialize(clock: nil, limit: DEFAULT_LIMIT, sink: nil, ttl_seconds: nil)
       @clock = clock || -> { Time.now }
       @limit = Integer(limit)
       raise ArgumentError, "telemetry limit must be positive" unless @limit.positive?
       @sink = sink
+      @ttl_seconds = ttl_seconds
       @events = []
       @mutex = Mutex.new
     end
@@ -29,6 +30,7 @@ module AgentPlatform
       safe["event"] = event.to_s
       immutable = Value.immutable(safe)
       @mutex.synchronize do
+        prune!
         @events << immutable
         @events.shift while @events.length > @limit
       end
@@ -37,14 +39,21 @@ module AgentPlatform
     end
 
     def trace(trace_id)
-      @mutex.synchronize { @events.select { |event| event["trace_id"] == trace_id.to_s }.dup.freeze }
+      @mutex.synchronize { prune!; @events.select { |event| event["trace_id"] == trace_id.to_s }.dup.freeze }
     end
 
     def size
-      @mutex.synchronize { @events.length }
+      @mutex.synchronize { prune!; @events.length }
     end
 
     private
+
+    def prune!
+      return unless @ttl_seconds
+
+      cutoff = @clock.call - @ttl_seconds
+      @events.reject! { |event| Time.iso8601(event.fetch("timestamp")) <= cutoff }
+    end
 
     def scalar(value)
       case value

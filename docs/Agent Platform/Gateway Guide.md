@@ -16,6 +16,18 @@ The Gateway resolves the token to the exact manifest digest and version, loads t
 
 Request-scoped services memoize a GraphReader, immutable GraphSnapshot, feature engine, proposal store, and analyzer results only for one execution. Graph mutations are never cached.
 
+Read-only hosts may pass `dataset_engine_factory:` and `read_only_services: true`
+to `AgentPlatform.build`, plus an optional bounded `jobs:` manager. The factory
+returns a `StructuredDataset::Reader`; writer/proposal service construction then
+fails closed. Existing callers retain the original lazy writer services by default.
+The environment policy and explicit identity capability/permission allow-lists are
+still required; service injection is an additional read-safety boundary.
+
+Entity search filters visibility before applying its limit and uses immutable-ID
+ordering. Email, phone and external-ID-only matches require `graph:private`;
+private identity signals do not influence an unprivileged result. Existing request
+and response schemas remain unchanged.
+
 ## Response model
 
 Every response includes `status`, `payload`, `warnings`, `errors`, `evidence`, `execution_time_ms`, `capability_id`, `capability_version`, `request_id`, and `trace_id`. Reasoning contracts additionally require `why`; handlers provide confidence and graph paths where applicable.

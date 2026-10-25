@@ -35,11 +35,12 @@ module KnowledgeGraph
       @repository.resolve(matches.first.record.id)
     end
 
-    def search(reference, entity_type: nil, strong_only: false)
+    def search(reference, entity_type: nil, strong_only: false, record_filter: nil)
       query = reference.to_s
       matches = []
       @repository.each_record do |record|
         next if entity_type && record.type != entity_type.to_s
+        next if record_filter && !record_filter.call(record)
 
         signals = matching_signals(record, query, strong_only)
         matches << IdentityMatch.new(record: record, signals: signals.freeze).freeze unless signals.empty?

@@ -3,6 +3,34 @@
 require_relative "test_support"
 
 class AgentPlatformJobsPluginsTest < Minitest::Test
+  def test_opt_in_job_capacity_ttl_and_logout_cleanup
+    now = FIXED_TIME
+    jobs = AgentPlatform::JobManager.new(clock: -> { now }, threaded: false,
+      limit: 2, per_agent_limit: 1, ttl_seconds: 600)
+    first = jobs.submit(agent_id: "one", capability_id: "synthetic.read") { {} }
+    assert_raises(AgentPlatform::ExecutionFailed) { jobs.submit(agent_id: "one", capability_id: "synthetic.read") { {} } }
+    second = jobs.submit(agent_id: "two", capability_id: "synthetic.read") { {} }
+    assert_raises(AgentPlatform::ExecutionFailed) { jobs.submit(agent_id: "three", capability_id: "synthetic.read") { {} } }
+    now += 601
+    assert_raises(AgentPlatform::JobNotFound) { jobs.fetch(first.id) }
+    assert_raises(AgentPlatform::JobNotFound) { jobs.fetch(second.id) }
+    active = jobs.submit(agent_id: "one", capability_id: "synthetic.read") { {} }
+    jobs.remove_agent("one")
+    assert_raises(AgentPlatform::JobNotFound) { jobs.fetch(active.id) }
+  end
+
+  def test_opt_in_telemetry_ttl_and_capacity
+    now = FIXED_TIME
+    recorder = AgentPlatform::TelemetryRecorder.new(clock: -> { now }, limit: 1, ttl_seconds: 600)
+    recorder.record("test", trace_id: "old", password: "never retained")
+    recorder.record("test", trace_id: "new")
+    assert_empty recorder.trace("old")
+    assert_equal 1, recorder.size
+    now += 601
+    assert_empty recorder.trace("new")
+    assert_equal 0, recorder.size
+  end
+
   def test_async_network_job_has_bounded_status_protocol
     with_schema_vault do |root|
       create_base_entities(root)

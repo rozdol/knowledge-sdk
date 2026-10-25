@@ -3,6 +3,50 @@
 require_relative "test_support"
 
 class AgentPlatformGatewayTest < Minitest::Test
+  def test_identity_filter_applies_before_redirects_collapse
+    record = Struct.new(:id, :data)
+    visible = record.new(PERSON_ID, { "name" => "Visible synthetic", "sensitivity" => "private" })
+    hidden = record.new(RESTRICTED_PERSON_ID, { "name" => "Hidden synthetic alias", "sensitivity" => "restricted" })
+    repository = Object.new
+    repository.define_singleton_method(:each_record) { |&block| [visible, hidden].each(&block) }
+    repository.define_singleton_method(:resolve) { |_id| visible }
+    resolver = KnowledgeGraph::IdentityResolver.new(repository: repository)
+    assert_equal [PERSON_ID], resolver.search("Hidden synthetic alias").map { |match| match.record.id }
+    assert_empty resolver.search("Hidden synthetic alias", record_filter: ->(item) { item.data["sensitivity"] != "restricted" })
+  end
+
+  def test_search_filters_visibility_and_private_identity_signals_before_limiting
+    with_schema_vault do |root|
+      engine = KnowledgeGraph::Engine.new(vault_root: root, run_id: RUN_ID)
+      [[PERSON_ID, "A hidden", "restricted"], [RESTRICTED_PERSON_ID, "B visible", "private"]].each do |id, name, sensitivity|
+        engine.execute(KnowledgeGraph::CreateEntity.new(entity_type: "person", attributes: {
+          id: id, name: name, aliases: ["Shared"], tier: "active", sensitivity: sensitivity,
+          data_origin: "public", emails: ["synthetic-#{id}@example.test"]
+        }))
+      end
+      gateway, agent = build_gateway(root, permissions: ["graph:read"])
+      found = invoke(gateway, agent, "kg.entities.search", { "query" => "Shared", "limit" => 1 })
+      assert_equal [RESTRICTED_PERSON_ID], found.payload.fetch("matches").map { |item| item["id"] }
+      private_match = invoke(gateway, agent, "kg.entities.search", { "query" => "synthetic-#{RESTRICTED_PERSON_ID}@example.test" })
+      assert_empty private_match.payload.fetch("matches")
+    end
+  end
+
+  def test_read_only_services_use_injected_reader_and_refuse_writer_construction
+    with_vault do |root|
+      services = AgentPlatform::Services.new(vault_root: root, run_id: RUN_ID, read_only: true,
+        dataset_engine_factory: -> { StructuredDataset::Reader.new(vault_root: root, database_path: File.join(root, "absent.sqlite3")) })
+      memo = Object.new
+      def memo.memoize(_key)
+        yield
+      end
+      assert_instance_of StructuredDataset::Reader, services.dataset_engine(memo)
+      assert_raises(AgentPlatform::PolicyDenied) { services.engine(memo) }
+      assert_raises(AgentPlatform::PolicyDenied) { services.proposal_store }
+      assert_empty Dir.children(root)
+    end
+  end
+
   def test_discovery_and_typed_token_execution_do_not_leak_storage
     with_schema_vault do |root|
       create_base_entities(root)

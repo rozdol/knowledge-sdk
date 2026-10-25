@@ -53,8 +53,8 @@ module KnowledgeGraph
       @relationship_registry.predicates.sort.freeze
     end
 
-    def search(query, entity_type: nil, strong_only: false)
-      @identity_resolver.search(query, entity_type: entity_type, strong_only: strong_only).map do |match|
+    def search(query, entity_type: nil, strong_only: false, record_filter: nil)
+      @identity_resolver.search(query, entity_type: entity_type, strong_only: strong_only, record_filter: record_filter).map do |match|
         { entity: EntitySnapshot.new(match.record), signals: match.signals.map(&:to_s).sort.freeze }.freeze
       end.freeze
     end

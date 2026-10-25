@@ -13,4 +13,12 @@ module StructuredDataset
   class ImportError < Error; end
   class ExportError < Error; end
   class ConsistencyError < Error; end
+  class StorageUnavailable < Error
+    attr_reader :code
+
+    def initialize(code)
+      @code = code.to_s.freeze
+      super(@code)
+    end
+  end
 end

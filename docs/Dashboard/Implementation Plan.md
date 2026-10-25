@@ -1,6 +1,10 @@
 # Dashboard implementation plan
 
-Status: planned; no dashboard implementation has started.
+Status: P0 and P1 complete; P2 has not started. The optional authenticated read
+host and nonmigrating Dataset facade are implemented. See [Progress](Progress.md)
+for verification and handoff evidence, and
+[Architecture](Architecture.md), [API Contract](API%20Contract.md), and
+[Dependency Evaluation](Dependency%20Evaluation.md) for the accepted P0 decisions.
 
 Prepared: 2026-10-23. Repository baseline inspected: `85a0385`.
 

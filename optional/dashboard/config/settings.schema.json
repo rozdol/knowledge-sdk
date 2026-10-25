@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dashboard operator settings v1 (P1)",
+  "type": "object",
+  "required": [],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "display_label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "graph:read",
+          "capture:read",
+          "intelligence:read",
+          "graph:private",
+          "graph:restricted",
+          "capture:restricted",
+          "dataset:read",
+          "dataset:restricted",
+          "finance:read",
+          "finance:restricted",
+          "activity:read",
+          "health:read",
+          "orchestration:read",
+          "notification:read"
+        ]
+      }
+    },
+    "schedule_config": {
+      "type": "null"
+    },
+    "execution_timezone": {
+      "type": "null"
+    }
+  },
+  "additionalProperties": false
+}

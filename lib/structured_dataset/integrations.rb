@@ -178,36 +178,42 @@ module StructuredDataset
   end
 
   class ActivityAdapter
-    def initialize(vault_root:)
+    def initialize(vault_root:, reader: nil)
       @vault_root = vault_root
-      @database = Database.new(vault_root: vault_root)
+      @reader = reader
+      @database = Database.new(vault_root: vault_root) unless reader
     end
 
     def audits
-      return [] unless @database.path.file?
+      return [] unless @reader || @database.path.file?
 
       registry = Registry.new(vault_root: @vault_root)
       names = registry.all.to_h { |record| [record.id, record.data["name"]] }
-      @database.migrate!
-      @database.with_connection do |connection|
-        @database.activities(connection).map do |activity|
-          action = activity.fetch("action")
-          dataset_id = activity.fetch("dataset_id")
-          {
-            "id" => activity.fetch("activity_id"), "result" => "success",
-            "timestamp" => activity.fetch("created_at"), "run_id" => activity["run_id"],
-            "actor_id" => activity.fetch("actor_id"), "intent_type" => "Dataset#{action.capitalize}",
-            "entity_ids" => [dataset_id], "changed_paths" => ["sqlite:#{dataset_id}:#{activity['row_id'] || action}"],
-            "dataset_name" => names[dataset_id] || dataset_id, "dataset_action" => action,
-            "row_id" => activity["row_id"], "source" => activity.fetch("source"),
-            "proposal_id" => activity["proposal_id"], "approval_id" => activity["approval_id"],
-            "observation_id" => activity["observation_id"],
-            "fingerprint" => KnowledgeOrchestration::Stable.digest(activity),
-            "intent" => { "params" => { "dataset_id" => dataset_id, "row_id" => activity["row_id"] } }
-          }
-        end
+      activities = if @reader
+                     @reader.activity_records
+                   else
+                     @database.migrate!
+                     @database.with_connection { |connection| @database.activities(connection) }
+                   end
+      activities.map do |activity|
+        action = activity.fetch("action")
+        dataset_id = activity.fetch("dataset_id")
+        {
+          "id" => activity.fetch("activity_id"), "result" => "success",
+          "timestamp" => activity.fetch("created_at"), "run_id" => activity["run_id"],
+          "actor_id" => activity.fetch("actor_id"), "intent_type" => "Dataset#{action.capitalize}",
+          "entity_ids" => [dataset_id], "changed_paths" => ["sqlite:#{dataset_id}:#{activity['row_id'] || action}"],
+          "dataset_name" => names[dataset_id] || dataset_id, "dataset_action" => action,
+          "row_id" => activity["row_id"], "source" => activity.fetch("source"),
+          "proposal_id" => activity["proposal_id"], "approval_id" => activity["approval_id"],
+          "observation_id" => activity["observation_id"],
+          "fingerprint" => KnowledgeOrchestration::Stable.digest(activity),
+          "intent" => { "params" => { "dataset_id" => dataset_id, "row_id" => activity["row_id"] } }
+        }
       end
     rescue StructuredDataset::Error
+      raise if @reader
+
       []
     end
   end

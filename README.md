@@ -89,6 +89,13 @@ Plain `kg init` creates only the target and its normal `.obsidian` directory, th
 
 Global options are `--vault`, `--config`, `--dataset-db`, `--run-id`, and `--actor-id`. Environment overrides are `KG_VAULT`, `KG_CONFIG`, `KG_DATASET_DB`, `KG_RUN_ID`, and `KG_ACTOR_ID`.
 
+The optional `knowledge-sdk-dashboard` companion adds a loopback authenticated
+read API with `kg dashboard serve --vault PATH --timezone IANA --secret-file FILE`.
+It is installed separately and is not required by ordinary CLI commands. P1 provides
+entity search and availability; the browser application and domain widgets follow
+in later phases. Browsing never creates or migrates Dataset storage. See the
+[Dashboard Operator Guide](docs/Dashboard/Operator%20Guide.md).
+
 ## Dataset intelligence
 
 Conversational structured observations no longer stop when a Dataset is missing or needs additive columns. The review proposal includes an approval-gated `CreateDataset` or `UpgradeDatasetSchema` prerequisite, then retries the original Dataset row Intent after that prerequisite succeeds.

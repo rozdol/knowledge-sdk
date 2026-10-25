@@ -7,13 +7,16 @@ module AgentPlatform
     attr_reader :vault_root, :run_id, :actor_id, :clock, :event_bus
 
     def initialize(vault_root:, run_id:, actor_id: nil, clock: nil, event_bus: nil,
-                   notification_store: nil)
+                   notification_store: nil, dataset_engine_factory: nil, read_only: false)
       @vault_root = File.expand_path(vault_root.to_s).freeze
       @run_id = run_id.to_s.freeze
       @actor_id = actor_id && actor_id.to_s.freeze
       @clock = clock || -> { Time.now }
       @event_bus = event_bus
       @notification_store = notification_store
+      @dataset_engine_factory = dataset_engine_factory
+      @read_only = read_only
+      raise ArgumentError, "read-only services require a Dataset reader factory" if read_only && !dataset_engine_factory
     end
 
     def graph_reader(context)
@@ -25,6 +28,7 @@ module AgentPlatform
     end
 
     def proposal_store(context = nil)
+      refuse_writer!
       return context.memoize(:proposal_store) { KnowledgeExtraction::ProposalStore.new(vault_root: vault_root) } if context
 
       KnowledgeExtraction::ProposalStore.new(vault_root: vault_root)
@@ -78,6 +82,7 @@ module AgentPlatform
     end
 
     def engine(context)
+      refuse_writer!
       context.memoize(:engine) do
         engine = KnowledgeGraph::Engine.new(
           vault_root: vault_root, run_id: run_id, actor_id: actor_id, clock: @clock
@@ -91,7 +96,7 @@ module AgentPlatform
 
     def dataset_engine(context)
       context.memoize(:dataset_engine) do
-        StructuredDataset::Engine.new(
+        @dataset_engine_factory ? @dataset_engine_factory.call : StructuredDataset::Engine.new(
           vault_root: vault_root, run_id: run_id, actor_id: actor_id,
           event_bus: @event_bus, clock: @clock
         )
@@ -99,6 +104,7 @@ module AgentPlatform
     end
 
     def dataset_proposal_builder(context)
+      refuse_writer!
       context.memoize(:dataset_proposal_builder) do
         StructuredDataset::DatasetProposalBuilder.new(
           vault_root: vault_root, proposal_store: proposal_store(context),
@@ -119,6 +125,7 @@ module AgentPlatform
     end
 
     def capture_proposal_builder(context)
+      refuse_writer!
       context.memoize(:capture_proposal_builder) do
         KnowledgeCapture::CaptureProposalBuilder.new(
           vault_root: vault_root, proposal_store: proposal_store(context),
@@ -300,6 +307,10 @@ module AgentPlatform
     end
 
     private
+
+    def refuse_writer!
+      raise PolicyDenied, "service is read-only" if @read_only
+    end
 
     def restricted_ids(context)
       return [] if context.agent.permits?("graph:restricted")

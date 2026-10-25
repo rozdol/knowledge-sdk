@@ -1,0 +1,56 @@
+# frozen_string_literal: true
+
+module KnowledgeSDK
+  module Dashboard
+    class Bridge
+      ALLOWED = %w[kg.entities.search kg.dashboard.availability].freeze
+      attr_reader :gateway
+
+      def initialize(settings, clock:)
+        @settings = settings
+        jobs = AgentPlatform::JobManager.new(clock: clock, limit: 100, per_agent_limit: 20, ttl_seconds: 600)
+        @gateway = AgentPlatform.build(
+          vault_root: settings.vault, environment: "read_only", read_only_services: true,
+          dataset_engine_factory: -> { settings.reader }, jobs: jobs, clock: clock,
+          telemetry: AgentPlatform::TelemetryRecorder.new(clock: clock, limit: 1000, ttl_seconds: 600)
+        )
+        @gateway.plugin_registrar.load_manifests(
+          File.join(ROOT, "config", "dashboard.json"),
+          handlers: { "kg.dashboard.availability" => method(:availability) }
+        )
+      end
+
+      def invoke(selector, arguments, agent)
+        raise HTTPError.new(404, "not_found") unless ALLOWED.include?(selector)
+
+        2.times do
+          contract = gateway.discover(agent: agent).reverse.find { |item| item["capability_id"] == selector }
+          raise HTTPError.new(200, "not_available") unless contract
+          unless contract.dig("execution", "effects") == "read_only" && contract.dig("policy", "approval") == "none" &&
+                 contract.dig("execution", "mode") == "synchronous" && contract.dig("execution", "timeout_ms") <= 30_000
+            raise HTTPError.new(403, "request_forbidden")
+          end
+          begin
+            request = gateway.issue_request(invocation_token: contract.fetch("invocation_token"), arguments: arguments)
+            response = gateway.execute(request: request, agent: agent)
+            return response unless response.errors.any? { |error| error["code"] == "CapabilityNotFound" }
+          rescue AgentPlatform::CapabilityNotFound
+            # Manifest changed between discovery and issue; rediscover once.
+          end
+        end
+        raise HTTPError.new(409, "context_changed")
+      end
+
+      private
+
+      def availability(_arguments, context)
+        schemas = KnowledgeGraph::SchemaRegistry.new(vault_root: @settings.vault).keys
+        features = %w[search contacts memory finance medical automation calendar learning hermes os].map do |feature|
+          state = feature == "search" ? (schemas.empty? ? "empty" : "available") : "unsupported"
+          { "feature" => feature, "state" => state, "reason" => state == "unsupported" ? "not_implemented" : nil }
+        end
+        AgentPlatform::HandlerResult.new(payload: { "features" => features }, why: "Only implemented, policy-visible read features are advertised.")
+      end
+    end
+  end
+end

@@ -34,6 +34,14 @@ Replace source-relative invocations such as `ruby _System/KnowledgeGraph/bin/kg`
 
 ## Compatibility
 
+The optional Dashboard host requires no canonical Vault migration. Its new Dataset
+Reader refuses missing/older/newer/incompatible storage without creating or
+migrating it; existing writable Engine/CLI behavior remains unchanged. Upgrade an
+older Dataset explicitly through the existing administrative/approved lifecycle
+workflow outside the dashboard. No automatic repair occurs on a page visit.
+The companion component must match the installed core SDK version and can be
+removed independently of ordinary CLI use. See the [Dashboard Operator Guide](Dashboard/Operator%20Guide.md).
+
 Canonical filenames, immutable IDs, frontmatter, bodies, wiki links, Dataview views, ontology records, and Intent contracts are unchanged. The intentional incompatibilities are the removal of embedded executable paths and the Runtime relocation. The migration command handles Runtime relocation; installed `kg` replaces the embedded launcher.
 
 ## Version 15 Dataset migration
