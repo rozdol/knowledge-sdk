@@ -1,6 +1,6 @@
 # Dashboard presentation API v1 — P0 contract
 
-Status: accepted design, 2026-10-25; the P1 subset is implemented. The `/api/v1` surface is
+Status: accepted design, 2026-10-25; the P1-P3 API/browser subsets are implemented. The `/api/v1` surface is
 optional, local, authenticated and canonically read-only. See
 [Architecture](Architecture.md) for storage/authentication and
 [Dependency Evaluation](Dependency%20Evaluation.md) for compatibility evidence.
@@ -199,8 +199,8 @@ phase: `activity:read` permits safe existing change-history projections (P3);
 `health:read` permits typed laboratory rows for visible subjects in addition to
 `dataset:read` and `graph:read` (P5); `orchestration:read` permits sanitized configured
 KG schedule/job metadata (P6); `notification:read` permits safe informational
-notification metadata (P6). These names are reserved design contracts, not currently
-implemented authority. No run/cancel/enable/ack/write power is implied.
+notification metadata (P6). `activity:read` is registered in P3. The P5/P6 names remain reserved design
+contracts without implemented authority. No run/cancel/enable/ack/write power is implied.
 
 Optional grants come from the operator settings at startup. The explicit capability
 allow-list is exactly the registered data handlers below for enabled features and
@@ -232,9 +232,9 @@ states: `available`, `empty`, `not_available`, `unsupported`, `upgrade_required`
 The six categories and Home always have UI entries. Calendar/diagnoses/learning
 progress/Hermes/OS are explicit unsupported features, not fake empty timelines.
 
-### Contacts, Captures and Activity (P3)
+### Contacts, Captures and Activity (P3, implemented)
 
-| GET path | Filters | Planned capability / required permissions |
+| GET path | Filters | Capability / required permissions |
 |---|---|---|
 | `/contacts` | `q` optional, limit, cursor | `kg.contacts.list` / `graph:read` |
 | `/contacts/top` | `as_of` | `kg.contacts.top` / `graph:read`, `intelligence:read` |
@@ -274,6 +274,50 @@ no disk cache, with only id/type/summary/created_at/source/visible objects and s
 evidence; no undo/restore action, approval details or hidden placeholder counts.
 Activity includes permitted supported sources independently, with missing-source
 warnings and half-open instant windows. Do not turn it into a personal-events model.
+
+P3 implementation details and bounded coverage:
+
+- Manifests live in `config/agent_platform/manifests/typed-reads.json`; typed read
+  models are core SDK handlers registered with the normal Gateway. Their strict
+  schemas expose only the documented fields. The HTTP host supplies the configured
+  date/window and converts internal keyset `after` arrays to session-owned cursors.
+- Contact readiness requires parsed person schema semantics (name plus required
+  tier/sensitivity/data_origin), independent of folder/profile detection. Ranking
+  and traversal remove structural records with hidden/missing references before
+  running the existing Intelligence features and knowledge projection. Detail may
+  include `relationship_strength:{version,score,explanation}` from feature 1.0.0
+  when Intelligence is permitted; absent signals yield a null score.
+- Capture queries use `Search#typed_matches` over policy-projected Captures with
+  literal token scoring, independent of conversational filter inference. Wiki links
+  become permitted record labels, hidden/unresolved links disappear before scoring,
+  and detail is a bounded plain-text rendition. Bookmark metadata includes domain,
+  resource type, author, publication date, description, fetch and reading status;
+  URL destinations/attachments are not exposed or fetched by P3.
+- Activity reuses `Timeline` with `cache:false` and an injected nonmigrating source.
+  A narrow KnowledgeExtraction::ProposalReader reuses proposal read formats without
+  constructing the proposal writer. It omits redacted/unknown objects and audits referencing hidden records before
+  searching, sorting or paging. Summary text is rebuilt from permitted current
+  objects and SDK change types; original actor/source/proposal/approval payloads
+  are absent. Dataset registration events are supported for visible authorized
+  Datasets. Historical Dataset row changes are omitted because current row state
+  cannot prove historical privacy; `dataset_row_history_not_projected` marks this
+  coverage limit. A denied source or one with no visible Dataset yields only
+  `dataset_activity_not_available`, without probing storage or disclosing hidden
+  Dataset presence. For a visible Dataset, unavailable storage codes propagate.
+- A source scan beyond 50,000 Markdown/runtime files or 32 MiB yields unavailable
+  `source_bound_reached`; existing Gateway deadlines still bound parsing/calculation.
+  HTTP reads compare permitted dependency versions before/after, retry once within
+  the deadline, then report partial/source_changed. Cursors store keys and bindings
+  only; logout/expiry discards them. Visible changes yield 409; hidden-only edits
+  leave visible versions, rankings and cursors unchanged.
+- Activity defaults cover the last 30 configured-zone calendar days through today,
+  ending at tomorrow's local midnight. Explicit Capture/Activity windows require
+  offset-bearing instants, both endpoints, `[from,to)` and <=366 local calendar
+  days. The UI exposes separate window fields; Capture creation is never relabeled
+  as personal occurrence. Learning shows graph/resource metadata without progress.
+- `activity:read` is opt-in in operator settings; P1's default grants are unchanged.
+  A caller also needs each included source's own permission. Missing permissions
+  produce unavailable/partial states, never authorization by local-host proximity.
 
 ### Finance (P4)
 
@@ -379,6 +423,22 @@ or automatic notification acknowledgement.
 
 ## Contract evolution and handoff gates
 
+P2 adds only package-owned static GET routes: `/`, `/search`, `/agenda`, `/finance`,
+`/medical`, `/contacts`, `/memory`, `/learning`, and content-hashed JS/CSS/SVG assets.
+They serve a generic shell with no embedded Vault data. Unknown paths remain 404;
+API paths never fall back to HTML. Static query strings are rejected, keeping
+sensitive filters in transient client memory rather than page history. No new
+domain capability, permission, approval or canonical-write route is introduced.
+The common widget UI supports all terminal states plus client-only loading and
+safe evidence/details, with a five-page bound for future cursor consumers. P1
+identity search always has next_cursor:null, so its page controls remain disabled.
+
+Authenticated data responses add `X-Dashboard-Session-Expires-At` (RFC3339 server
+expiry). It contains no credentials and lets the browser revalidate session expiry;
+it does not grant authority or change idle/absolute TTLs. Revalidation GET /session
+does not touch activity. Client logout/expiry clears private DOM and pending reads;
+all imported strings use textContent, never executable HTML/Markdown.
+
 P1 exports `optional/dashboard/config/api-response.schema.json` for the common
 terminal widget envelope, `settings.schema.json` for operator configuration and
 `dashboard.json` for its registered availability capability. Session control
@@ -389,9 +449,9 @@ immutable-ID ordering and private contact/external identity signals requiring
 add a typed result adapter before admitting 202; the current owned-job route returns
 metadata with result:null and P1 only admits synchronous read contracts.
 
-P1 ships only auth, availability, search and owned-job infrastructure. Other routes
-are absent (404) until their owning phase; discovery can label features unsupported.
-P2 may display unavailable states for absent routes. P3-P6 add their manifests,
+P1 supplies auth, availability, search and owned-job infrastructure; P2 supplies the
+browser shell; P3 supplies Contacts/Capture/Activity routes and page integration.
+P4-P6 routes remain absent (404) and their pages unavailable. Later phases add their manifests,
 permission semantics, typed SDK methods, strict output schemas and fixtures together.
 Changes to these accepted design names/semantics require a Progress decision with
 updated consumers/tests; a breaking implemented contract requires a version change.

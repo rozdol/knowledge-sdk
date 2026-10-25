@@ -9,6 +9,34 @@ require "net/http"
 require "timeout"
 
 class DashboardAppTest < Minitest::Test
+  def test_packaged_shell_and_hashed_asset_boundary
+    with_app do |_root, app, _secret, _settings, _time|
+      assets = []
+      KnowledgeSDK::Dashboard::Assets::PAGES.each do |path|
+        result = request(app, "GET", path)
+        assert_equal 200, result.status
+        assert_includes result.body, 'type="module"'
+        refute_includes result.body, "__APP_MODULE__"
+        assets.concat(result.body.scan(%r{(?:src|href)="(/assets/[^"]+)"}).flatten)
+      end
+      assets.uniq.each do |path|
+        assert_match(%r{\A/assets/[a-z]+-[a-f0-9]{24}\.(js|css|svg)\z}, path)
+        response = request(app, "GET", path)
+        assert_equal 200, response.status
+        assert_equal "no-store", response["cache-control"]
+        assert_equal path.split('-').last.split('.').first, Digest::SHA256.hexdigest(response.body)[0, 24]
+        refute_includes response["content-security-policy"], "unsafe-inline"
+      end
+      app_module = assets.find { |path| path.end_with?(".js") }
+      source = request(app, "GET", app_module).body
+      source.scan(%r{from "(/assets/[^"]+)"}).flatten.each { |path| assert_equal 200, request(app, "GET", path).status }
+      assert_equal 404, request(app, "GET", "/assets/app.js").status
+      assert_equal 400, request(app, "GET", "/assets/%2e%2e/secret").status
+      assert_equal 422, request(app, "GET", "/search?q=private").status
+      assert_equal 405, request(app, "POST", "/contacts").status
+    end
+  end
+
   def with_app(schema: true, grants: nil, port: 8765)
     builder = schema ? :with_schema_vault : :with_vault
     public_send(builder) do |vault|
@@ -79,7 +107,7 @@ class DashboardAppTest < Minitest::Test
       bridge = app.instance_variable_get(:@bridge)
       agent = app.instance_variable_get(:@sessions).fetch(cookie.split("=", 2).last)[:agent]
       ids = bridge.gateway.discover(agent: agent).map { |item| item["capability_id"] }
-      assert_equal KnowledgeSDK::Dashboard::Bridge::ALLOWED.sort, ids.sort
+      assert_equal (KnowledgeSDK::Dashboard::Bridge::ALLOWED - ["kg.activity.list"]).sort, ids.sort
       assert_raises(KnowledgeSDK::Dashboard::HTTPError) { bridge.invoke("kg.proposals.submit", {}, agent) }
       forbidden = bridge.gateway.registry.reference_for("kg.proposals.submit").to_h
       submission = bridge.gateway.issue_request(invocation_token: forbidden["invocation_token"],

@@ -5,9 +5,9 @@
 | Field | Value |
 |---|---|
 | Status | Living product rationale |
-| SDK version | `17.0.0` |
+| SDK version | `18.0.0` |
 | Baseline extraction revision | `8dba780` |
-| Updated | `2026-08-18` |
+| Updated | `2026-10-25` |
 
 Accepted decisions are normative until superseded by a later ADR and a compatible implementation or migration. Decisions belonging to a particular Vault, ontology, or user's knowledge model stay in that Vault.
 

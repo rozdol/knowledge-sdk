@@ -16,5 +16,8 @@ end
 require_relative "dashboard/settings"
 require_relative "dashboard/sessions"
 require_relative "dashboard/bridge"
+require_relative "dashboard/assets"
 require_relative "dashboard/app"
+require_relative "dashboard/cursors"
+require_relative "dashboard/domain_routes"
 require_relative "dashboard/server"

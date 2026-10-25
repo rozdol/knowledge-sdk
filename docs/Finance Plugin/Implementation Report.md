@@ -118,6 +118,9 @@ Replay is bounded to 100,000 rows per financial Dataset, and truncated analysis 
 
 ## Verification
 
+These results describe the original implementation build, which still used package version 17.0.0.
+The release version is corrected to **18.0.0**; see [release verification](Release%2018.0.0.md).
+
 Verified on Ruby **2.6.10**, with synthetic data only:
 
 | Check | Result |

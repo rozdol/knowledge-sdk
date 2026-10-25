@@ -103,6 +103,14 @@ module AgentPlatform
       end
     end
 
+    def activity_reader(context)
+      context.memoize(:activity_reader) do
+        @read_only ? dataset_engine(context) : StructuredDataset::Reader.new(
+          vault_root: vault_root, database_path: KnowledgeSDK.dataset_path(vault_root), clock: @clock
+        )
+      end
+    end
+
     def dataset_proposal_builder(context)
       refuse_writer!
       context.memoize(:dataset_proposal_builder) do

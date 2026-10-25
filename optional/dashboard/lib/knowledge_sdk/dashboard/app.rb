@@ -10,13 +10,14 @@ module KnowledgeSDK
         "x-content-type-options" => "nosniff",
         "content-security-policy" => "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; font-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
       }.freeze
-      STATIC = { "/" => "index.html" }.freeze
 
       def initialize(settings, clock: nil, logger: nil)
         @settings, @clock, @logger = settings, clock || -> { Time.now }, logger
+        @assets = Assets.new
+        @cursors = Cursors.new(clock: @clock)
         @bridge = Bridge.new(settings, clock: @clock)
         @sessions = Sessions.new(clock: @clock, permissions: settings.permissions,
-          on_revoke: ->(id) { @bridge.gateway.jobs.remove_agent(id) })
+          on_revoke: ->(id) { @bridge.gateway.jobs.remove_agent(id); @cursors.remove_agent(id) })
         @source_key = SecureRandom.random_bytes(32)
         @gate, @active = Mutex.new, 0
       end
@@ -51,7 +52,8 @@ module KnowledgeSDK
       private
 
       def known_route(path)
-        return path if STATIC.key?(path) || %w[/api/v1/session /api/v1/session/login /api/v1/session/logout /api/v1/search /api/v1/dashboard/availability].include?(path)
+        return domain_template(path) if domain_template(path)
+        return path if @assets.include?(path) || %w[/api/v1/session /api/v1/session/login /api/v1/session/logout /api/v1/search /api/v1/dashboard/availability].include?(path)
         path.match?(%r{\A/api/v1/jobs/[^/]+\z}) ? "/api/v1/jobs/:id" : "/unknown"
       end
 
@@ -76,10 +78,11 @@ module KnowledgeSDK
       end
 
       def dispatch(env, path, method, request_id)
-        if STATIC.key?(path)
+        if @assets.include?(path)
           raise HTTPError.new(405, "method_not_allowed") unless method == "GET"
           raise HTTPError.new(422, "invalid_arguments") unless env.fetch("QUERY_STRING", "").empty?
-          return [200, SECURITY_HEADERS.merge("content-type" => "text/html; charset=utf-8"), [File.read(File.join(ROOT, "assets", STATIC.fetch(path)))]]
+          type, content = @assets.fetch(path)
+          return [200, SECURITY_HEADERS.merge("content-type" => type), [content]]
         end
         raise HTTPError.new(404, "not_found") if known_route(path) == "/unknown"
         expected = %w[/api/v1/session/login /api/v1/session/logout].include?(path) ? "POST" : "GET"
@@ -125,12 +128,17 @@ module KnowledgeSDK
             result = invoke("kg.dashboard.availability", {}, session)
             json(200, envelope(request_id, "ok", data: result.payload))
           else
-            parameters(env, [])
-            owned_job(path, session, request_id)
+            if domain_template(path)
+              domain_read(env, session, request_id)
+            else
+              parameters(env, [])
+              owned_job(path, session, request_id)
+            end
           end
         end
         current = @sessions.fetch(session[:id])
         response[1]["set-cookie"] = cookie(current[:id], [(@sessions.expires_at(current) - @clock.call).to_i, 0].max) if current
+        response[1]["x-dashboard-session-expires-at"] = @sessions.expires_at(current).getutc.iso8601 if current
         response
       end
 
@@ -177,8 +185,8 @@ module KnowledgeSDK
         @bridge.invoke(selector, arguments, session[:agent]).tap do |response|
           unless response.success?
             code = response.errors.first && response.errors.first["code"]
-            status = { "InvalidArguments" => 422, "PolicyDenied" => 403, "Timeout" => 504 }.fetch(code, 500)
-            message = { 422 => "invalid_arguments", 403 => "request_forbidden", 504 => "timeout", 500 => "internal_error" }.fetch(status)
+            status = { "InvalidArguments" => 422, "PolicyDenied" => 404, "CapabilityNotFound" => 404, "Timeout" => 504 }.fetch(code, 500)
+            message = { 422 => "invalid_arguments", 404 => "not_found", 504 => "timeout", 500 => "internal_error" }.fetch(status)
             raise HTTPError.new(status, message)
           end
         end

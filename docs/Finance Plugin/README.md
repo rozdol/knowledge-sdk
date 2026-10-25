@@ -1,5 +1,7 @@
 # Finance & Wealth Management
 
+SDK release: **18.0.0**. See [release notes](Release%2018.0.0.md) for upgrading servers.
+
 The optional `finance` plugin extends the existing Knowledge Graph, Structured Dataset Engine,
 Proposal/Approval/Engine, Phase 13 Finance analysis plugin, Planning/Decision Engine and Knowledge
 Activity. It has no broker connection, order execution, bank-transfer capability, independent database,

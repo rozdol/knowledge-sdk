@@ -1,0 +1,2253 @@
+[
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.contacts.list",
+    "name": "contacts_list",
+    "version": "1.0.0",
+    "description": "Bounded policy-visible typed contacts.list read; no canonical writes or external calls.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "maxLength": 200,
+          "minLength": 1
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "after": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "maxItems": 3
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "data": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                      },
+                      "type": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "aliases": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "maxItems": 50
+                      },
+                      "record_status": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "emails": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "maxItems": 20
+                      },
+                      "phones": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "maxItems": 20
+                      },
+                      "interaction": {
+                        "type": "object",
+                        "properties": {
+                          "formula": {
+                            "const": "interaction-v1",
+                            "type": "string"
+                          },
+                          "score": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "recency_score": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "interaction_frequency": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "interaction_count": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "latest_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 200
+                          },
+                          "reasons": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 500
+                            },
+                            "maxItems": 2
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "record_id": {
+                                  "type": "string",
+                                  "maxLength": 200,
+                                  "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                                },
+                                "evidence_id": {
+                                  "type": "string",
+                                  "maxLength": 200,
+                                  "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                                },
+                                "role": {
+                                  "type": "string",
+                                  "maxLength": 200
+                                }
+                              },
+                              "required": [
+                                "record_id",
+                                "role"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "maxItems": 20
+                          }
+                        },
+                        "required": [
+                          "formula",
+                          "score",
+                          "recency_score",
+                          "interaction_frequency",
+                          "interaction_count",
+                          "latest_at",
+                          "reasons",
+                          "evidence"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "relationship_strength": {
+                        "type": "object",
+                        "required": [
+                          "version",
+                          "score",
+                          "explanation"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "version": {
+                            "type": "string",
+                            "const": "1.0.0"
+                          },
+                          "score": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "explanation": {
+                            "type": "string",
+                            "maxLength": 500
+                          }
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "type",
+                      "name",
+                      "aliases",
+                      "record_status"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 100
+                },
+                "page": {
+                  "type": "object",
+                  "properties": {
+                    "returned": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "after": {
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": [
+                              "string",
+                              "number"
+                            ]
+                          },
+                          "maxItems": 3
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "returned",
+                    "after"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "items",
+                "page"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 10
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "maxLength": 200,
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+              },
+              "evidence_id": {
+                "type": "string",
+                "maxLength": 200,
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "record_id",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "source_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "status",
+        "data",
+        "limitations",
+        "evidence",
+        "source_version"
+      ],
+      "additionalProperties": false
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "CapabilityNotFound",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 5000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "graph:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest",
+      "mcp",
+      "cli",
+      "hermes"
+    ],
+    "examples": [
+      {
+        "arguments": {}
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.contacts.get",
+    "name": "contacts_get",
+    "version": "1.0.0",
+    "description": "Bounded policy-visible typed contacts.get read; no canonical writes or external calls.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+        },
+        "as_of": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "format": "date"
+        }
+      },
+      "required": [
+        "entity_id"
+      ],
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "data": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "item": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "maxLength": 200,
+                      "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                    },
+                    "type": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "name": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "aliases": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "maxItems": 50
+                    },
+                    "record_status": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "emails": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "maxItems": 20
+                    },
+                    "phones": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "maxItems": 20
+                    },
+                    "interaction": {
+                      "type": "object",
+                      "properties": {
+                        "formula": {
+                          "const": "interaction-v1",
+                          "type": "string"
+                        },
+                        "score": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "recency_score": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "interaction_frequency": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "interaction_count": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "latest_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "maxLength": 200
+                        },
+                        "reasons": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "maxLength": 500
+                          },
+                          "maxItems": 2
+                        },
+                        "evidence": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "record_id": {
+                                "type": "string",
+                                "maxLength": 200,
+                                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                              },
+                              "evidence_id": {
+                                "type": "string",
+                                "maxLength": 200,
+                                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                              },
+                              "role": {
+                                "type": "string",
+                                "maxLength": 200
+                              }
+                            },
+                            "required": [
+                              "record_id",
+                              "role"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "maxItems": 20
+                        }
+                      },
+                      "required": [
+                        "formula",
+                        "score",
+                        "recency_score",
+                        "interaction_frequency",
+                        "interaction_count",
+                        "latest_at",
+                        "reasons",
+                        "evidence"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "relationship_strength": {
+                      "type": "object",
+                      "required": [
+                        "version",
+                        "score",
+                        "explanation"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "version": {
+                          "type": "string",
+                          "const": "1.0.0"
+                        },
+                        "score": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "explanation": {
+                          "type": "string",
+                          "maxLength": 500
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "name",
+                    "aliases",
+                    "record_status"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "item"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 10
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "maxLength": 200,
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+              },
+              "evidence_id": {
+                "type": "string",
+                "maxLength": 200,
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "record_id",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "source_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "status",
+        "data",
+        "limitations",
+        "evidence",
+        "source_version"
+      ],
+      "additionalProperties": false
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "CapabilityNotFound",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 10000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "graph:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest",
+      "mcp",
+      "cli",
+      "hermes"
+    ],
+    "examples": [
+      {
+        "arguments": {
+          "entity_id": "person_00000000000000000000000002"
+        }
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.contacts.top",
+    "name": "contacts_top",
+    "version": "1.0.0",
+    "description": "Bounded policy-visible typed contacts.top read; no canonical writes or external calls.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "as_of": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "format": "date"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "data": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                      },
+                      "type": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "aliases": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "maxItems": 50
+                      },
+                      "record_status": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "emails": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "maxItems": 20
+                      },
+                      "phones": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "maxItems": 20
+                      },
+                      "interaction": {
+                        "type": "object",
+                        "properties": {
+                          "formula": {
+                            "const": "interaction-v1",
+                            "type": "string"
+                          },
+                          "score": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "recency_score": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "interaction_frequency": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "interaction_count": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "latest_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 200
+                          },
+                          "reasons": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 500
+                            },
+                            "maxItems": 2
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "record_id": {
+                                  "type": "string",
+                                  "maxLength": 200,
+                                  "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                                },
+                                "evidence_id": {
+                                  "type": "string",
+                                  "maxLength": 200,
+                                  "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                                },
+                                "role": {
+                                  "type": "string",
+                                  "maxLength": 200
+                                }
+                              },
+                              "required": [
+                                "record_id",
+                                "role"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "maxItems": 20
+                          }
+                        },
+                        "required": [
+                          "formula",
+                          "score",
+                          "recency_score",
+                          "interaction_frequency",
+                          "interaction_count",
+                          "latest_at",
+                          "reasons",
+                          "evidence"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "relationship_strength": {
+                        "type": "object",
+                        "required": [
+                          "version",
+                          "score",
+                          "explanation"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "version": {
+                            "type": "string",
+                            "const": "1.0.0"
+                          },
+                          "score": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "explanation": {
+                            "type": "string",
+                            "maxLength": 500
+                          }
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "type",
+                      "name",
+                      "aliases",
+                      "record_status"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 10
+                },
+                "formula": {
+                  "const": "interaction-v1",
+                  "type": "string"
+                },
+                "self_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 200,
+                  "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                }
+              },
+              "required": [
+                "items",
+                "formula",
+                "self_id"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 10
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "maxLength": 200,
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+              },
+              "evidence_id": {
+                "type": "string",
+                "maxLength": 200,
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "record_id",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "source_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "status",
+        "data",
+        "limitations",
+        "evidence",
+        "source_version"
+      ],
+      "additionalProperties": false
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "CapabilityNotFound",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 10000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "graph:read",
+        "intelligence:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest",
+      "mcp",
+      "cli",
+      "hermes"
+    ],
+    "examples": [
+      {
+        "arguments": {}
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.contacts.relations",
+    "name": "contacts_relations",
+    "version": "1.0.0",
+    "description": "Bounded policy-visible typed contacts.relations read; no canonical writes or external calls.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+        },
+        "depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "as_of": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "format": "date"
+        }
+      },
+      "required": [
+        "entity_id"
+      ],
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "data": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "nodes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                      },
+                      "type": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "aliases": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "maxItems": 50
+                      },
+                      "record_status": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "emails": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "maxItems": 20
+                      },
+                      "phones": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "maxItems": 20
+                      },
+                      "interaction": {
+                        "type": "object",
+                        "properties": {
+                          "formula": {
+                            "const": "interaction-v1",
+                            "type": "string"
+                          },
+                          "score": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "recency_score": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "interaction_frequency": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "interaction_count": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "latest_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 200
+                          },
+                          "reasons": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 500
+                            },
+                            "maxItems": 2
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "record_id": {
+                                  "type": "string",
+                                  "maxLength": 200,
+                                  "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                                },
+                                "evidence_id": {
+                                  "type": "string",
+                                  "maxLength": 200,
+                                  "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                                },
+                                "role": {
+                                  "type": "string",
+                                  "maxLength": 200
+                                }
+                              },
+                              "required": [
+                                "record_id",
+                                "role"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "maxItems": 20
+                          }
+                        },
+                        "required": [
+                          "formula",
+                          "score",
+                          "recency_score",
+                          "interaction_frequency",
+                          "interaction_count",
+                          "latest_at",
+                          "reasons",
+                          "evidence"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "depth": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 2
+                      },
+                      "relationship_strength": {
+                        "type": "object",
+                        "required": [
+                          "version",
+                          "score",
+                          "explanation"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "version": {
+                            "type": "string",
+                            "const": "1.0.0"
+                          },
+                          "score": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "explanation": {
+                            "type": "string",
+                            "maxLength": 500
+                          }
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "type",
+                      "name",
+                      "aliases",
+                      "record_status",
+                      "depth"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 100
+                },
+                "edges": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                      },
+                      "source": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                      },
+                      "target": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                      },
+                      "predicate": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "direction": {
+                        "enum": [
+                          "incoming",
+                          "outgoing"
+                        ],
+                        "type": "string"
+                      },
+                      "depth": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 2
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "source",
+                      "target",
+                      "predicate",
+                      "direction",
+                      "depth"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 200
+                }
+              },
+              "required": [
+                "nodes",
+                "edges"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 10
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "maxLength": 200,
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+              },
+              "evidence_id": {
+                "type": "string",
+                "maxLength": 200,
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "record_id",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "source_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "status",
+        "data",
+        "limitations",
+        "evidence",
+        "source_version"
+      ],
+      "additionalProperties": false
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "CapabilityNotFound",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 10000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "graph:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest",
+      "mcp",
+      "cli",
+      "hermes"
+    ],
+    "examples": [
+      {
+        "arguments": {
+          "entity_id": "person_00000000000000000000000002"
+        }
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.captures.list",
+    "name": "captures_list",
+    "version": "1.0.0",
+    "description": "Bounded policy-visible typed captures.list read; no canonical writes or external calls.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "maxLength": 200,
+          "minLength": 1
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "after": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "maxItems": 3
+        },
+        "from": {
+          "type": "string",
+          "maxLength": 200,
+          "format": "date-time"
+        },
+        "to": {
+          "type": "string",
+          "maxLength": 200,
+          "format": "date-time"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "thought",
+            "idea",
+            "note",
+            "question",
+            "lesson",
+            "decision",
+            "observation",
+            "bookmark",
+            "reference",
+            "quote",
+            "hypothesis"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "inbox",
+            "reviewed",
+            "linked",
+            "promoted",
+            "archived"
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "data": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "title": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "status": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "captured_at": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "excerpt": {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      "tags": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "maxItems": 50
+                      },
+                      "topics": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "maxItems": 50
+                      },
+                      "links": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 200,
+                          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                        },
+                        "maxItems": 50
+                      },
+                      "relevance": {
+                        "type": "number"
+                      },
+                      "text": {
+                        "type": "string",
+                        "maxLength": 10000
+                      },
+                      "text_truncated": {
+                        "type": "boolean"
+                      },
+                      "bookmark": {
+                        "type": "object",
+                        "properties": {
+                          "domain": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "resource_type": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "author_name": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "published_at": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "description": {
+                            "type": "string",
+                            "maxLength": 500
+                          },
+                          "fetch_status": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "reading_status": {
+                            "type": "string",
+                            "maxLength": 200
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "title",
+                      "status",
+                      "captured_at",
+                      "excerpt",
+                      "tags",
+                      "topics",
+                      "links"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 100
+                },
+                "page": {
+                  "type": "object",
+                  "properties": {
+                    "returned": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "after": {
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": [
+                              "string",
+                              "number"
+                            ]
+                          },
+                          "maxItems": 3
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "returned",
+                    "after"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "items",
+                "page"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 10
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "maxLength": 200,
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+              },
+              "evidence_id": {
+                "type": "string",
+                "maxLength": 200,
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "record_id",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "source_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "status",
+        "data",
+        "limitations",
+        "evidence",
+        "source_version"
+      ],
+      "additionalProperties": false
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "CapabilityNotFound",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 5000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "capture:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest",
+      "mcp",
+      "cli",
+      "hermes"
+    ],
+    "examples": [
+      {
+        "arguments": {}
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.captures.get",
+    "name": "captures_get",
+    "version": "1.0.0",
+    "description": "Bounded policy-visible typed captures.get read; no canonical writes or external calls.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "capture_id": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+        }
+      },
+      "required": [
+        "capture_id"
+      ],
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "data": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "item": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "maxLength": 200,
+                      "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "title": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "status": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "captured_at": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "excerpt": {
+                      "type": "string",
+                      "maxLength": 500
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "maxItems": 50
+                    },
+                    "topics": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "maxItems": 50
+                    },
+                    "links": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                      },
+                      "maxItems": 50
+                    },
+                    "relevance": {
+                      "type": "number"
+                    },
+                    "text": {
+                      "type": "string",
+                      "maxLength": 10000
+                    },
+                    "text_truncated": {
+                      "type": "boolean"
+                    },
+                    "bookmark": {
+                      "type": "object",
+                      "properties": {
+                        "domain": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "resource_type": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "author_name": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "published_at": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "description": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "fetch_status": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "reading_status": {
+                          "type": "string",
+                          "maxLength": 200
+                        }
+                      },
+                      "required": [],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "title",
+                    "status",
+                    "captured_at",
+                    "excerpt",
+                    "tags",
+                    "topics",
+                    "links"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "item"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 10
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "maxLength": 200,
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+              },
+              "evidence_id": {
+                "type": "string",
+                "maxLength": 200,
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "record_id",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "source_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "status",
+        "data",
+        "limitations",
+        "evidence",
+        "source_version"
+      ],
+      "additionalProperties": false
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "CapabilityNotFound",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 10000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "capture:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest",
+      "mcp",
+      "cli",
+      "hermes"
+    ],
+    "examples": [
+      {
+        "arguments": {
+          "capture_id": "capture_00000000000000000000000001"
+        }
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.activity.list",
+    "name": "activity_list",
+    "version": "1.0.0",
+    "description": "Bounded policy-visible typed activity.list read; no canonical writes or external calls.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "maxLength": 200,
+          "minLength": 1
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "after": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "maxItems": 3
+        },
+        "from": {
+          "type": "string",
+          "maxLength": 200,
+          "format": "date-time"
+        },
+        "to": {
+          "type": "string",
+          "maxLength": 200,
+          "format": "date-time"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "data": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                      },
+                      "type": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "summary": {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "source": {
+                        "enum": [
+                          "graph",
+                          "capture",
+                          "dataset"
+                        ],
+                        "type": "string"
+                      },
+                      "objects": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "maxLength": 200,
+                              "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+                            },
+                            "type": {
+                              "type": "string",
+                              "maxLength": 200
+                            },
+                            "name": {
+                              "type": "string",
+                              "maxLength": 200
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "type",
+                            "name"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 50
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "type",
+                      "summary",
+                      "created_at",
+                      "source",
+                      "objects"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 100
+                },
+                "page": {
+                  "type": "object",
+                  "properties": {
+                    "returned": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "after": {
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": [
+                              "string",
+                              "number"
+                            ]
+                          },
+                          "maxItems": 3
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "returned",
+                    "after"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "items",
+                "page"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 10
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "maxLength": 200,
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+              },
+              "evidence_id": {
+                "type": "string",
+                "maxLength": 200,
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$"
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "record_id",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "source_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "status",
+        "data",
+        "limitations",
+        "evidence",
+        "source_version"
+      ],
+      "additionalProperties": false
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "CapabilityNotFound",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 5000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "activity:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest",
+      "mcp",
+      "cli",
+      "hermes"
+    ],
+    "examples": [
+      {
+        "arguments": {}
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  }
+]

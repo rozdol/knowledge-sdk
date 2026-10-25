@@ -117,3 +117,15 @@ kg activity explain activity_01KYYA00000000000000000000 --json
 ```
 
 The explanation response preserves the same Activity object and adds `origin`, `evidence`, `proposal`, `approval`, `execution`, and `resulting_changes`. Restricted evidence is represented as `{"redacted":true}`.
+
+## Typed read consumer
+
+The registered kg.activity.list 1.0.0 requires activity:read plus source permissions.
+It projects the existing Timeline with cache:false and a nonmigrating Dataset
+reader and a narrow KnowledgeExtraction::ProposalReader. ProposalStore shares the
+read-format implementation, while the injected reader exposes no save/approve API.
+Hidden/redacted and unknown-provenance items are excluded before search or
+paging. It exposes no reversal/approval data. Dataset registration history is
+supported; historical row changes remain omitted with explicit incomplete coverage
+because present-day row visibility cannot establish past privacy. See the
+[Dashboard API contract](../Dashboard/API%20Contract.md) for the bounded projection.

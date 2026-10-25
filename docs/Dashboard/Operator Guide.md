@@ -1,10 +1,13 @@
-# Optional Dashboard host — P1
+# Optional Dashboard — P3
 
-P1 implements the local authenticated read API, not the P2 browser application.
-`/` serves a packaged informational page. Search, authentication, availability and
-owned-job metadata are implemented; Contacts, Finance, Health, Activity, overview
-and operational inventory routes arrive in later phases. Unsupported routes return
-404 and availability labels those features unsupported. There are no editing,
+P3 adds Contacts, Captures and Knowledge Activity to the local authenticated read API. Open the
+printed loopback URL, enter the configured secret and browse Home, Search and all
+six category pages. Exact identity search and availability are connected to real
+SDK reads; Contacts ranking/profiles/relations, Capture lists/details and independent
+search sources are connected. Knowledge Activity requires the opt-in activity:read
+grant plus each included source permission. Finance, Health, overview and
+operational inventory APIs arrive in later phases. Their pages explain what is
+unavailable; unsupported API routes return 404. There are no editing,
 approval, submission, fetch, plugin-install or schedule-control endpoints.
 
 ## Install the optional component from source
@@ -15,10 +18,10 @@ build/install it from this checkout (choose a writable gem installation location
 
 ```sh
 gem build knowledge-sdk.gemspec
-gem install ./knowledge-sdk-17.0.0.gem
+gem install ./knowledge-sdk-18.0.0.gem
 cd optional/dashboard
 gem build knowledge-sdk-dashboard.gemspec
-gem install ./knowledge-sdk-dashboard-17.0.0.gem
+gem install ./knowledge-sdk-dashboard-18.0.0.gem
 ```
 
 The companion installs exact Rack 3.2.7, rackup 2.3.1, WEBrick 1.9.2, TZInfo 2.0.6,
@@ -73,7 +76,9 @@ restart and therefore invalidate all sessions and jobs.
 
 ## Authenticate and read
 
-The P2 login interface is not present yet. A same-origin API client follows:
+Use the browser login form for ordinary browsing. It clears the secret field on
+submission and retains only session metadata in memory. Search text/filters never
+enter page URLs or browser storage. A same-origin API client can also follow:
 
 1. GET `/api/v1/session`, retain the HttpOnly/SameSite=Strict cookie and returned
    `csrf_token`. The unauthenticated response contains no Vault context.
@@ -86,6 +91,8 @@ The P2 login interface is not present yet. A same-origin API client follows:
    by immutable ID, exclude restricted entities without permission, and exclude
    email/phone/external-ID-only matches without `graph:private`. The bounded P1
    search has no cursor; a reached limit returns partial with a limit warning.
+   The browser's Previous/Next controls stay disabled for this bounded read; refine
+   the query or choose a limit of 25, 50 or 100. No missing pages are fabricated.
 4. POST an empty JSON object to `/api/v1/session/logout` with cookie, Origin and the
    current CSRF token. Discard private client data immediately on logout or 401.
 
@@ -93,7 +100,7 @@ Sessions expire after 30 minutes idle or eight hours total. Polls marked
 `X-Dashboard-Poll: 1` do not extend idle time. Authentication failures, input bounds,
 Host/Origin/CSRF failures and throttling use safe JSON errors. All responses have
 no-store, no-referrer and a restrictive CSP. Imported strings remain JSON text;
-the informational page renders no Vault content. No external assets/models or
+the interface renders permitted imported strings as literal text. No external assets/models or
 telemetry services are used. HTTP cookies are not marked Secure on this loopback
 HTTP host; remote/TLS deployment is outside this release.
 
@@ -103,6 +110,47 @@ Each browser session has a different agent identity. Up to four data computation
 20 authenticated/20 pre-login sessions, bounded request rates, 1 MiB responses and
 1,000 expiring telemetry records are allowed. Logs contain route templates, random
 request IDs, status and duration, never filters, secrets or payloads.
+
+## Check Contacts, Memory and Search
+
+Contacts lists permitted people by name/ID and supports literal name/alias filters.
+Top recorded contacts uses the documented interaction-v1 formula; its reasons,
+recorded interaction count and latest substantive date are visible. Missing signals
+remain unknown. The date control applies to ranking and relations. Open a contact
+for permitted fields and a depth-two relationship list (100 nodes/200 edges max).
+Email/phone require an explicit graph:private grant.
+
+Memory presents Capture records and knowledge-change history separately. Capture
+filters select kind/lifecycle and optional offset-bearing from/to times; words in
+the search box do not select lifecycle or time filters. Details show a plain-text
+rendition, a truncation notice where necessary and permitted source references.
+Capture creation is recorded time, not a personal event. No attachments or bookmark
+URLs are fetched. Learning shows existing identities and saved resource metadata;
+learning progress and personal occurrences remain unavailable.
+
+To enable Knowledge Activity, include activity:read in your external settings
+permissions along with the desired source grants, then restart. For example:
+
+```json
+{"version":1,"permissions":["graph:read","capture:read","intelligence:read","activity:read"]}
+```
+
+Activity's default window is 30 configured-zone calendar days through today.
+Explicit from/to filters require both endpoints with offsets, use an exclusive end
+and allow at most 366 calendar days. DST days retain their actual 23/25-hour length.
+The list omits hidden/redacted and unknown-provenance records. Dataset registration
+history additionally needs dataset:read and visible Dataset metadata. Historical
+Dataset row changes remain omitted with a coverage warning because current rows
+cannot establish their historical privacy. Graph/Capture history remains usable
+when a Dataset source is denied, missing or requires an explicit administrative
+upgrade. No storage is created or upgraded by browsing.
+
+Search presents graph identity, Contact, Capture and Activity results independently;
+matching records may appear in multiple sources and counts are never added together.
+Contacts/Captures/Activity page in stable order, with at most five pages per UI
+query. Refine filters after that bound. Cursors expire after five minutes and belong
+to one session/query/source version. A visible source edit asks you to restart the
+query; hidden-only edits do not change visible versions or page bindings.
 
 ## Storage, errors and operational limits
 
@@ -128,8 +176,24 @@ There is no report cache, SSE, persistent browser store, multi-Vault process or
 cross-widget atomicity promise. Search compares successive permitted results under
 a five-second budget, retries visible drift once and returns partial if unstable.
 Opaque result versions change with visible results/filters, not hidden-only edits.
-Latest-stable Ruby, full browser layouts and measured dashboard performance remain
-P7 release gates; see [Progress](Progress.md) for exact evidence and limitations.
+Search and availability fail independently. The UI distinguishes loading, empty,
+partial, unavailable, stale and error states, preserves warnings/coverage/source
+timestamps, and offers retry where appropriate. Record/source drawers show only
+supplied permitted fields and references, with no arbitrary attachment preview.
+Dates without a time remain dates. Navigation, filter changes and logout abort
+obsolete requests and ignore late results. Private DOM is cleared immediately on
+logout, including failed logout; use the retry control to confirm server revocation.
+
+Static source files are package-owned. The server generates a fixed allow-list
+with content-hashed JS/CSS/SVG URLs in memory at startup. Restart after an upgrade
+and reload open tabs. No assets, configuration or scripts are loaded from a Vault.
+Session data responses include `X-Dashboard-Session-Expires-At`, allowing the browser
+to revalidate expiry without extending idle time through polling. No ordinary
+widget refresh polling is implemented before P6.
+
+Chromium/Firefox desktop/mobile browser checks cover the P2 shell and P3 pages. Latest-stable Ruby,
+integrated domain coverage and measured dashboard performance remain P7 release
+gates; see [Progress](Progress.md) for exact evidence and limitations.
 
 ## Developer verification
 
@@ -145,3 +209,10 @@ It uses synthetic temporary Vaults/configuration and a real loopback listener as
 well as Rack requests. It does not access a private Vault or external integration.
 Build both gems and verify a core-only plus companion installed environment outside
 the source checkout. Never deliver generated gems, acceptance Vaults or credentials.
+
+For browser verification, from `optional/dashboard` run `npm ci`,
+`npx playwright install chromium firefox`, then `npm test`. This is development-only
+tooling pinned by package-lock.json. Tests start their own synthetic Ruby host;
+they never select an attached Vault. Set GEM_PATH to the optional dependencies if
+using an isolated gem install. Browser traces/screenshots are ignored under
+`output/playwright/`; they must not be committed.

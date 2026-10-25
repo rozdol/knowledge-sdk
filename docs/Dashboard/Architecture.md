@@ -1,8 +1,8 @@
 # Dashboard architecture — P0 contract
 
 Status: accepted design, 2026-10-25. Inspected revision: `324aed9`.
-No dashboard host, route, permission registration, or browser application is
-implemented by P0. All new names below are implementation requirements for P1-P7.
+P0 established this design. P1-P3 now implement the host, browser and typed
+Contacts/Capture/Activity reads; P4-P7 remain future implementation requirements.
 See [API Contract](API%20Contract.md), [Dependency Evaluation](Dependency%20Evaluation.md),
 [Implementation Plan](Implementation%20Plan.md), and [Progress](Progress.md).
 

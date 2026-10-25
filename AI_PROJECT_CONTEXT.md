@@ -5,9 +5,9 @@
 | Field | Value |
 |---|---|
 | Product | `knowledge-sdk` |
-| SDK version | `17.0.0` |
+| SDK version | `18.0.0` |
 | Baseline extraction revision | `8dba780` |
-| Updated | `2026-08-18` |
+| Updated | `2026-10-25` |
 | Runtime | Ruby 2.6+ |
 
 This document orients maintainers and coding agents. Executable code, published schemas, manifests, migrations, and tests are authoritative when they conflict with prose.

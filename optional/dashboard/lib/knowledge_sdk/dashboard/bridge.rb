@@ -3,7 +3,8 @@
 module KnowledgeSDK
   module Dashboard
     class Bridge
-      ALLOWED = %w[kg.entities.search kg.dashboard.availability].freeze
+      ALLOWED = %w[kg.entities.search kg.dashboard.availability kg.contacts.list kg.contacts.get
+        kg.contacts.top kg.contacts.relations kg.captures.list kg.captures.get kg.activity.list].freeze
       attr_reader :gateway
 
       def initialize(settings, clock:)
@@ -44,9 +45,16 @@ module KnowledgeSDK
       private
 
       def availability(_arguments, context)
-        schemas = KnowledgeGraph::SchemaRegistry.new(vault_root: @settings.vault).keys
+        schemas = KnowledgeGraph::SchemaRegistry.new(vault_root: @settings.vault)
         features = %w[search contacts memory finance medical automation calendar learning hermes os].map do |feature|
-          state = feature == "search" ? (schemas.empty? ? "empty" : "available") : "unsupported"
+          state = case feature
+                  when "search" then schemas.keys.empty? ? "empty" : "available"
+                  when "contacts"
+                    schemas.key?("person") && schemas.fetch("person").name_required? &&
+                      (%w[tier sensitivity data_origin] - schemas.fetch("person").required_fields).empty? ? "available" : "unsupported"
+                  when "memory" then context.agent.permits?("capture:read") || context.agent.permits?("activity:read") ? "available" : "not_available"
+                  else "unsupported"
+                  end
           { "feature" => feature, "state" => state, "reason" => state == "unsupported" ? "not_implemented" : nil }
         end
         AgentPlatform::HandlerResult.new(payload: { "features" => features }, why: "Only implemented, policy-visible read features are advertised.")

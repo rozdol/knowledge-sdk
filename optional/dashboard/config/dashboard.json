@@ -5,20 +5,86 @@
     "name": "dashboard_availability",
     "version": "1.0.0",
     "description": "Report implemented policy-visible dashboard read features without provisioning storage.",
-    "input_schema": {"type":"object","properties":{},"additionalProperties":false},
-    "output_schema": {
-      "type":"object","required":["features"],"additionalProperties":false,
-      "properties":{"features":{"type":"array","maxItems":10,"items":{
-        "type":"object","required":["feature","state","reason"],"additionalProperties":false,
-        "properties":{"feature":{"type":"string"},"state":{"type":"string","enum":["available","empty","unsupported"]},"reason":{"type":["string","null"]}}
-      }}}
+    "input_schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
     },
-    "errors":["PolicyDenied","InvalidArguments","ExecutionFailed","Timeout"],
-    "execution":{"mode":"synchronous","effects":"read_only","timeout_ms":5000,"idempotent":true},
-    "policy":{"permissions":["graph:read"],"risk":"low","approval":"none"},
-    "explanation":{"required":true},
-    "transports":["rest"],
-    "examples":[{"arguments":{}}],
-    "deprecation":{"status":"active"}
+    "output_schema": {
+      "type": "object",
+      "required": [
+        "features"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "features": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "feature",
+              "state",
+              "reason"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "feature": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "available",
+                  "empty",
+                  "unsupported",
+                  "not_available",
+                  "upgrade_required"
+                ]
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "errors": [
+      "PolicyDenied",
+      "InvalidArguments",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 5000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "graph:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest"
+    ],
+    "examples": [
+      {
+        "arguments": {}
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
   }
 ]

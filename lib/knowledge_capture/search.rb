@@ -3,6 +3,29 @@
 require "set"
 
 module KnowledgeCapture
+  # A derived rendition can be empty after privacy filtering, even though its
+  # canonical Capture body passed validation. Never revalidate it as new content.
+  class ReadProjection
+    attr_reader :data, :body
+
+    def initialize(capture:, data:, body:)
+      @capture = capture
+      @data = AgentPlatform::Value.immutable(data)
+      @body = body.to_s.freeze
+      freeze
+    end
+
+    %w[id kind status captured_at evidence domain resource_type].each do |field|
+      define_method(field) { @capture.public_send(field) }
+    end
+    %w[title author_name description content_excerpt user_note].each do |field|
+      define_method(field) { data[field] }
+    end
+    %w[topics tags collections].each do |field|
+      define_method(field) { Array(data[field]) }
+    end
+  end
+
   class Search
     KIND_TERMS = {
       "thought" => %w[thought thoughts мысль мысли σκέψη σκέψεις],
@@ -70,6 +93,20 @@ module KnowledgeCapture
         "matches" => public_matches, "count" => public_matches.length,
         "explanation" => "Matched Capture kind, lifecycle, time, title, user annotation, topics, tags, bookmark domain, resource type, author, description, excerpt, and Markdown body with deterministic Unicode token scoring."
       }
+    end
+
+    # Typed readers supply already policy-projected Captures. Literal query words
+    # never select lifecycle/kind/time filters. Conversational #query is unchanged.
+    def typed_matches(captures:, query: nil, kind: nil, status: nil, from: nil, to: nil)
+      raise InvalidCapture, "invalid kind" if kind && !Capture::KINDS.include?(kind)
+      raise InvalidCapture, "invalid status" if status && !Capture::STATUSES.include?(status)
+      terms = tokenize(query.to_s).uniq
+      captures.each_with_object([]) do |capture, matches|
+        next if capture.status == "deleted" || (kind && capture.kind != kind) || (status && capture.status != status)
+        next if (from && capture.captured_at < from) || (to && capture.captured_at >= to)
+        score = relevance(capture, terms)
+        matches << [capture, score] if terms.empty? || score > 0
+      end.sort_by { |capture, score| [-score, -capture.captured_at.to_f, capture.id] }
     end
 
     private

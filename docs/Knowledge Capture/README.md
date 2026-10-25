@@ -245,3 +245,12 @@ for newly approved URL-backed bookmarks only. Existing Markdown notes, browser h
 files, graph entities, and Dataset rows are never scanned or converted. The `Captures/` directory is
 still created only by the first approved Capture transaction. No background migration or network
 fetch runs during `kg attach`, `kg doctor`, or `kg migrate`.
+
+## Typed read consumers
+
+`KnowledgeCapture::Search#typed_matches(captures:, query:, kind:, status:, from:, to:)`
+accepts already authorized/projected Capture objects and reuses deterministic token
+weights without interpreting query words as filters. The Gateway's kg.captures.list
+and kg.captures.get provide bounded read-only transport projections; the existing
+conversational kg.captures.search 1.0.0 contract remains unchanged. See the
+[Dashboard API contract](../Dashboard/API%20Contract.md) for fields and privacy bounds.

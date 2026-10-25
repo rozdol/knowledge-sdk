@@ -53,7 +53,7 @@ class AgentPlatformGatewayTest < Minitest::Test
       gateway, agent = build_gateway(root, permissions: %w[graph:read graph:private])
 
       discovered = gateway.discover(agent: agent)
-      assert_equal %w[kg.companies.search kg.entities.get kg.entities.search kg.graph.relationship_path kg.projects.search],
+      assert_equal %w[kg.companies.search kg.contacts.get kg.contacts.list kg.contacts.relations kg.entities.get kg.entities.search kg.graph.relationship_path kg.projects.search],
                    discovered.map { |item| item.fetch("capability_id") }
 
       response = invoke(gateway, agent, "kg.entities.search", { "query" => "Ada Example" })

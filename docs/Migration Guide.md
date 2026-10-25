@@ -2,6 +2,15 @@
 
 Phase 12 extracts executable code from an existing Obsidian Vault into the standalone `knowledge-sdk` repository. The original Vault keeps its own name and repository; it is not converted into a product called `knowledge-vault`.
 
+## Version 18 Finance adoption
+
+Version 18.0.0 gives the optional Finance extension a distinct package version. Updating the SDK
+does not install Finance schemas into attached Vaults or change existing financial rows. Install
+the plugin explicitly once per Vault; all Dataset provisioning and events still require exact
+approval. Existing Capture and Dataset formats remain compatible, and Ruby 2.6 remains supported.
+See [Finance release notes](Finance%20Plugin/Release%2018.0.0.md) for server updates and matching
+optional dashboard versions.
+
 ## Existing Vault migration
 
 1. Commit or back up the Vault and ensure only one writer is active.

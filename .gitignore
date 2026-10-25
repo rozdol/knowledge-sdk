@@ -3,4 +3,7 @@ coverage/
 pkg/
 tmp/
 *.gem
-
+# Dashboard development-only browser tooling and synthetic artifacts.
+optional/dashboard/node_modules/
+output/playwright/
+.playwright-cli/

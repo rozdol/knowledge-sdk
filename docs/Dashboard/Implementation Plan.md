@@ -1,7 +1,7 @@
 # Dashboard implementation plan
 
-Status: P0 and P1 complete; P2 has not started. The optional authenticated read
-host and nonmigrating Dataset facade are implemented. See [Progress](Progress.md)
+Status: P0-P3 complete; P4 has not started. The optional authenticated read host,
+nonmigrating Dataset facade, browser shell and Contacts/memory reads are implemented. See [Progress](Progress.md)
 for verification and handoff evidence, and
 [Architecture](Architecture.md), [API Contract](API%20Contract.md), and
 [Dependency Evaluation](Dependency%20Evaluation.md) for the accepted P0 decisions.

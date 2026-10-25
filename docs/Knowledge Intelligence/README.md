@@ -119,3 +119,12 @@ ruby -I"test" -e 'Dir["test/intelligence/*_test.rb"].sort.each { |file| require 
 ```
 
 The suite contains unit, cross-layer integration, CLI read-only, golden-scenario, determinism, proposal-validation, and performance coverage. All fixtures are synthetic. The golden corpus covers forgotten contacts, bridge people, missing email, investor paths, broken promises, inactive relationships, stale projects, multiple introductions, network bottlenecks, and duplicate candidates.
+
+## Typed contact reads
+
+Gateway kg.contacts.list/get/top/relations 1.0.0 compute over policy-visible inputs.
+The top-10 interaction-v1 formula combines recency_score 1.0.0 (60%, 90-day half-life)
+and interaction_frequency 1.0.0 (40%, 365-day window), with score/ID ordering and
+visible evidence reasons. Missing signals remain unknown. Profile strength reuses
+relationship_strength 1.0.0; relations reuse the knowledge projection with bounded
+traversal. See the [Dashboard API contract](../Dashboard/API%20Contract.md).

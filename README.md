@@ -35,7 +35,7 @@ curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/update.sh
 To install a particular tag, branch, or commit, pass `--ref`, for example:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/install.sh | sh -s -- --ref v17.0.0
+curl -fsSL https://raw.githubusercontent.com/rozdol/knowledge-sdk/main/install.sh | sh -s -- --ref main
 ```
 
 For source development:
@@ -44,7 +44,7 @@ For source development:
 bundle install
 bundle exec rake test
 gem build knowledge-sdk.gemspec
-gem install ./knowledge-sdk-17.0.0.gem
+gem install ./knowledge-sdk-18.0.0.gem
 ```
 
 During source development, use `ruby bin/kg`; after installation, use `kg`.
@@ -91,9 +91,11 @@ Global options are `--vault`, `--config`, `--dataset-db`, `--run-id`, and `--act
 
 The optional `knowledge-sdk-dashboard` companion adds a loopback authenticated
 read API with `kg dashboard serve --vault PATH --timezone IANA --secret-file FILE`.
-It is installed separately and is not required by ordinary CLI commands. P1 provides
-entity search and availability; the browser application and domain widgets follow
-in later phases. Browsing never creates or migrates Dataset storage. See the
+It is installed separately and is not required by ordinary CLI commands. The P3
+browser provides contact ranking/profiles/relations, Capture search/details,
+permitted knowledge-change history and independent search sources. Finance,
+laboratory and automation widgets remain unavailable until their later phases.
+Browsing never creates or migrates Dataset storage. See the
 [Dashboard Operator Guide](docs/Dashboard/Operator%20Guide.md).
 
 ## Dataset intelligence
@@ -188,6 +190,9 @@ kg --vault /path/to/vault doctor
 See [Installation](INSTALL.md), [AI Project Context](AI_PROJECT_CONTEXT.md), [Architecture Decisions](ARCHITECTURE_DECISIONS.md), [Architecture](docs/Architecture.md), [Knowledge Capture](docs/Knowledge%20Capture/README.md), [Search](docs/Search.md), [Knowledge Graph](docs/Knowledge%20Graph.md), [Dataset Intelligence](docs/Dataset%20Intelligence/README.md), [Configuration Guide](docs/Configuration%20Guide.md), [Migration Guide](docs/Migration%20Guide.md), [Plugin Guide](docs/Plugin%20Guide.md), [Developer Guide](docs/Developer%20Guide.md), and [Intent API](docs/Intent%20API.md). Automated contributors must also follow [AGENTS.md](AGENTS.md).
 
 ## Finance & Wealth Management plugin
+
+Version 18.0.0 packages the Finance extension under its own SDK release version.
+See [Finance release notes](docs/Finance%20Plugin/Release%2018.0.0.md) for server updates.
 
 Install with `kg --vault PATH plugin install finance`. The optional extension adds semantic asset,
 owner and account identities, an immutable exact-decimal Dataset ledger, FIFO history, debt tracking,

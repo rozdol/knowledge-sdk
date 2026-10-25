@@ -73,3 +73,11 @@ questions through the Finance query adapter. Results retain the existing Dataset
 contain a derived Finance report in `answers`. Gateway Dataset search additionally checks
 `finance:read`; restricted financial rows and references remain excluded. Missing owner or instrument
 scope produces clarification rather than a combined personal/corporate total. No SQL is exposed.
+
+## Typed browser search
+
+The optional Dashboard presents identity, Contacts, Captures and Knowledge Activity
+as independent source results. It never adds their counts into a unique global
+total. Typed Capture filters are literal and independent of conversational inference;
+all ranking, pagination and traversal start from permitted projections. See the
+[Dashboard API contract](Dashboard/API%20Contract.md) for bounds and capability schemas.
