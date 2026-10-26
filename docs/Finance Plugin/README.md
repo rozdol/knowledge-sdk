@@ -318,3 +318,17 @@ Machine-readable contracts: `finance-event.schema.json`, `registration.schema.js
 `finance-report.schema.json`, both Dataset definitions, and
 `config/agent_platform/manifests/finance.json`. See `Implementation Report.md` for verified scenarios
 and remaining gaps.
+
+## Typed Dashboard reads
+
+The ordinary Gateway registrar also exposes `kg.finance.scopes`, `net_worth`,
+`positions`, `liabilities`, `transactions` and `pnl` (all under `kg.finance.`),
+version 1.0.0. These are read-only typed contracts requiring Finance, Dataset and
+Graph read grants. They keep the existing conversational capability unchanged.
+The Dashboard injects a nonmigrating Reader and visible catalog into Service,
+preserves complete owner replay before account selection/display paging, and
+projects exact decimal strings plus native currencies. Arbitrary source metadata
+and account identifiers are excluded. Missing history/storage is unavailable;
+missing marks/basis/FX retain the existing null/partial report semantics.
+See [Dashboard API Contract](../Dashboard/API%20Contract.md) for filters, deadlines,
+restricted-grant requirements, safe field projection and inclusive UTC dates.

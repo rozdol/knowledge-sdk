@@ -6,10 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..');
-export const test = base.extend({
-  host: async ({}, use) => {
+async function runHost(use, finance = false, health = false) {
     const dir = await mkdtemp(join(tmpdir(), 'kg-dashboard-browser-'));
-    const child = spawn(process.env.RUBY || 'ruby', ['-I' + join(repo, 'lib'), '-I' + join(repo, 'optional/dashboard/lib'), join(repo, 'optional/dashboard/test/browser/host.rb'), dir], { env: process.env });
+    const child = spawn(process.env.RUBY || 'ruby', ['-I' + join(repo, 'lib'), '-I' + join(repo, 'optional/dashboard/lib'), join(repo, 'optional/dashboard/test/browser/host.rb'), dir, ...(finance ? ['--finance'] : []), ...(health ? ['--health'] : [])], { env: process.env });
     let diagnostics = '';
     child.stderr.on('data', data => { diagnostics += data; });
     const exited = new Promise(resolveExit => child.once('exit', (code, signal) => resolveExit({ code, signal })));
@@ -27,16 +26,21 @@ export const test = base.extend({
       for (const [path, hash] of Object.entries(metadata.files)) {
         expect(createHash('sha256').update(await readFile(path)).digest('hex')).toBe(hash);
       }
-      await expect(access(join(metadata.vault, '.knowledge/datasets.sqlite3'))).rejects.toThrow();
+      if (!finance && !health) await expect(access(join(metadata.vault, '.knowledge/datasets.sqlite3'))).rejects.toThrow();
       const logs = await readFile(join(dir, 'host.log'), 'utf8');
       expect(logs).not.toContain(metadata.secret); expect(logs).not.toContain('q=Ada');
     } finally {
       child.kill('SIGTERM');
       const result = await Promise.race([exited, new Promise(resolveWait => setTimeout(() => resolveWait(null), 5000))]);
       if (!result) child.kill('SIGKILL');
+      if ((finance || health) && result && metadata) expect(JSON.parse(await readFile(join(dir, 'logical-after.json'), 'utf8'))).toEqual(metadata.logical);
       await rm(dir, { recursive: true, force: true });
     }
-  }
+}
+export const test = base.extend({
+  host: async ({}, use) => runHost(use),
+  financeHost: async ({}, use) => runHost(use, true),
+  healthHost: async ({}, use) => runHost(use, false, true)
 });
 export { expect };
 export async function login(page, host, path = '/') {

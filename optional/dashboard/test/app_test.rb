@@ -102,12 +102,12 @@ class DashboardAppTest < Minitest::Test
       assert_empty JSON.parse(hidden.body).dig("data", "items")
       available = request(app, "GET", "/api/v1/dashboard/availability", cookie: cookie)
       assert_equal 200, available.status, available.body
-      assert_equal "unsupported", JSON.parse(available.body).dig("data", "features").find { |f| f["feature"] == "finance" }["state"]
+      assert_equal "not_available", JSON.parse(available.body).dig("data", "features").find { |f| f["feature"] == "finance" }["state"]
       assert_equal 404, request(app, "POST", "/api/v1/execute", cookie: cookie, body: { capability: "kg.proposals.submit" }).status
       bridge = app.instance_variable_get(:@bridge)
       agent = app.instance_variable_get(:@sessions).fetch(cookie.split("=", 2).last)[:agent]
       ids = bridge.gateway.discover(agent: agent).map { |item| item["capability_id"] }
-      assert_equal (KnowledgeSDK::Dashboard::Bridge::ALLOWED - ["kg.activity.list"]).sort, ids.sort
+      assert_equal KnowledgeSDK::Dashboard::Bridge::ALLOWED.reject { |id| id == "kg.activity.list" || id.start_with?("kg.finance.") || id.start_with?("kg.health.") }.sort, ids.sort
       assert_raises(KnowledgeSDK::Dashboard::HTTPError) { bridge.invoke("kg.proposals.submit", {}, agent) }
       forbidden = bridge.gateway.registry.reference_for("kg.proposals.submit").to_h
       submission = bridge.gateway.issue_request(invocation_token: forbidden["invocation_token"],

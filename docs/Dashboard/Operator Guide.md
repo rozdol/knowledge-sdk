@@ -1,11 +1,13 @@
-# Optional Dashboard — P3
+# Optional Dashboard — P5
 
-P3 adds Contacts, Captures and Knowledge Activity to the local authenticated read API. Open the
-printed loopback URL, enter the configured secret and browse Home, Search and all
+P5 adds subject-scoped laboratory history and trends to typed Finance reports,
+Contacts, Captures and Knowledge Activity in the
+local authenticated read API. Open the printed loopback URL, enter the configured secret and browse Home, Search and all
 six category pages. Exact identity search and availability are connected to real
 SDK reads; Contacts ranking/profiles/relations, Capture lists/details and independent
 search sources are connected. Knowledge Activity requires the opt-in activity:read
-grant plus each included source permission. Finance, Health, overview and
+grant plus each included source permission. Finance requires all of `finance:read`,
+`dataset:read` and `graph:read`; default grants are unchanged. Health requires all of `health:read`, `dataset:read` and `graph:read`. Overview and
 operational inventory APIs arrive in later phases. Their pages explain what is
 unavailable; unsupported API routes return 404. There are no editing,
 approval, submission, fetch, plugin-install or schedule-control endpoints.
@@ -191,7 +193,8 @@ Session data responses include `X-Dashboard-Session-Expires-At`, allowing the br
 to revalidate expiry without extending idle time through polling. No ordinary
 widget refresh polling is implemented before P6.
 
-Chromium/Firefox desktop/mobile browser checks cover the P2 shell and P3 pages. Latest-stable Ruby,
+Chromium/Firefox desktop/mobile browser checks cover the shell, Contacts/Memory
+and Finance pages. Latest-stable Ruby,
 integrated domain coverage and measured dashboard performance remain P7 release
 gates; see [Progress](Progress.md) for exact evidence and limitations.
 
@@ -216,3 +219,57 @@ tooling pinned by package-lock.json. Tests start their own synthetic Ruby host;
 they never select an attached Vault. Set GEM_PATH to the optional dependencies if
 using an isolated gem install. Browser traces/screenshots are ignored under
 `output/playwright/`; they must not be committed.
+
+## Finance reads
+
+Install the Finance plugin explicitly using its normal SDK workflow before browsing.
+Enable `finance:read`, `dataset:read`, `graph:read` in the owner-only operator settings.
+Select an owner in Finance even when only one is available, then load the reports.
+Account and instrument filters apply to positions, transactions and investment P&L;
+net worth and debts remain visibly owner-wide. Net worth defaults to EUR reporting,
+while P&L retains separate native currencies. Reporting currency never changes an
+account's native currency. Missing FX, marks and basis remain unknown/null.
+
+The page provides exact decimal tables, bounded transaction/position pages, safe
+source references and optional monthly P&L bars. Bar lengths are approximate; the
+exact table is authoritative. Dates use inclusive UTC accounting boundaries, even
+when the display timezone has a daylight-saving transition. Transactions default
+to 30 dates ending today; P&L defaults to the current month. Explicit periods are
+at most 366 calendar days apart; monthly reports require date-only endpoints.
+
+Every report replays complete permitted owner history before account filters and
+pagination. Browsing uses the configured nonmigrating Reader, never Finance's
+writable default engine. Missing storage/history, incompatible schemas, incomplete
+transfers/reversals or the existing replay ceiling produce unavailable states.
+Missing observation Datasets mean unavailable marks/FX, with usable recorded history
+retained. Restricted inclusion requires all three of `finance:restricted`,
+`graph:restricted` and `dataset:restricted`; every referenced identity must also be
+visible. Account identifiers, arbitrary metadata, local source paths and approval
+payloads are absent. No evidence preview, live quotes, FX/news fetching or trades
+are exposed. Existing Finance instrument/accounting limitations still apply.
+
+## Laboratory history and trends
+
+Enable `health:read`, `dataset:read` and `graph:read` in the external operator settings
+and restart. Choose a recorded laboratory subject explicitly, then load history.
+Dataset ownership or explicit row subject metadata must establish that scope.
+Unowned ambiguous tables remain unavailable; browsing cannot assign a patient or
+repair/provision storage. Restricted clinical rows, Datasets and subjects require
+both `graph:restricted` and `dataset:restricted`. Default grants are unchanged.
+
+Medical retains the original result table, report intervals/flags and a timeline
+of the current page. Enter an exact recorded analyte for separate raw-point charts.
+Units, methods, specimens and laboratories remain separate, including unknown
+metadata. Series-only filters are labeled. Date filters are inclusive dates,
+defaulting to the last 30 dates through configured-zone today, and allow at most
+366 days between endpoints. Dates without a time stay dates across DST changes.
+Qualitative TEXT results remain text even when they look numeric; they have no
+plotted point. Each chart has its original table below it. Source references are
+opaque metadata and cannot open Evidence or local attachments.
+
+The browser pages history up to five pages per query; refine filters afterwards.
+Series responses explicitly mark raw bounds (ten groups, 1,000 points per group).
+No clinical downsampling or inferred ranges are supplied. Diagnosis, treatment,
+upload/OCR and clinical editing remain unavailable. See [Typed laboratory reads](../Health%20Plugin/Laboratory%20Reads.md)
+for exact compatible storage layouts and source limits. Existing write templates
+and conversational import behavior are unchanged.

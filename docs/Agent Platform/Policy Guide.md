@@ -12,6 +12,9 @@ Core permissions are:
 
 - `graph:read`, with `graph:private` for contact points and `graph:restricted` for restricted entities;
 - `intelligence:read`;
+- `health:read` plus `dataset:read` and `graph:read` for typed laboratory reads;
+  restricted clinical Datasets, rows and subjects require both `dataset:restricted`
+  and `graph:restricted`. Health read permission grants no clinical write authority;
 - `proposal:create`, `proposal:read`, and `proposal:submit`;
 - `telemetry:read_all` for administrative cross-agent trace access.
 

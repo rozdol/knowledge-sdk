@@ -5,9 +5,10 @@ Session workflow: [Session Guide](Session%20Guide.md).
 
 Updated: 2026-10-25. Planning baseline: `85a0385`. P0 inspected revision: `324aed9`.
 
-P0-P3 are complete. The optional browser now includes policy-visible Contacts,
-Captures, Knowledge Activity and independent bounded search sources. P4 has not
-started. Accepted
+P0-P5 are complete. The optional browser includes policy-visible Contacts,
+Captures, Knowledge Activity, independent bounded search, typed Finance reports
+with explicit owner/account selection and subject-scoped laboratory history/trends.
+P6 has not started. Accepted
 contracts: [Architecture](Architecture.md), [API Contract](API%20Contract.md), and
 [Dependency Evaluation](Dependency%20Evaluation.md).
 
@@ -23,8 +24,8 @@ ledger value, not an instruction to change any Codex goal status.
 | P1 | Read-safe SDK primitives and optional authenticated HTTP host | P0 | complete | P1-a/P1-b delivered; required checks, real HTTP security tests and installed CLI smoke passed; see session record |
 | P2 | Browser shell and shared widget states | P1 | complete | 28 browser checks, required SDK/acceptance checks, visual inspection and installed asset/CLI smoke passed |
 | P3 | Contacts, memory and bounded search | P2 | complete | Seven typed read capabilities, visible-only ranking/traversal, cursor/privacy/window tests, 40 browser checks, required SDK/acceptance checks and installed-package smoke passed |
-| P4 | Finance reports and transactions | P3 | not_started | Next: P4-a typed Finance reads and visible scope selection over the shared P3 patterns |
-| P5 | Laboratory history and trends | P4 | not_started | Wait for typed domain read patterns |
+| P4 | Finance reports and transactions | P3 | complete | Six typed Finance reads, explicit scopes, exact tables/native-currency charts, accounting/privacy/nonmigration tests, browser matrix and installed-package smoke; evidence below |
+| P5 | Laboratory history and trends | P4 | complete | Two typed laboratory reads, explicit subjects, original numeric/text results and intervals, separate series, Medical table/timeline/charts; exact evidence below |
 | P6 | KG automation, overview and refresh | P5 | not_started | Wait for domain widgets |
 | P7 | Integrated verification, packaging and first release | P6 | not_started | Wait for first-release features |
 
@@ -492,6 +493,208 @@ Run required checks, update Progress with exact evidence, and stop at P4 handoff
 no P5, commit, publish, deployment or external price/news fetch.
 ```
 
+
+### 2026-10-25 — P4-a/P4-b Finance reads and browser
+
+- Status: **P4 complete**. P5 remains not_started. No commit, publish or deployment.
+- Starting revision: `6106247` (`V18 + P3`); the working tree was clean. P2/P3
+  implementations were already in this revision and were preserved. No checkout,
+  reset or unrelated change was performed. Read AGENTS.md, required root docs,
+  Dashboard contracts/plan/session guide/progress/dependency evaluation, Finance
+  docs/schemas, Service/Projection/catalog/permissions and nearest tests first.
+- SDK delivery: `lib/agent_platform/finance_reads.rb`, its loader/default registrar
+  integration and six additive strict manifests in `finance-reads.json`:
+  kg.finance.scopes/net_worth/positions/liabilities/transactions/pnl, version 1.0.0.
+  All use ordinary policy-filtered discovery and opaque-token invocation, synchronous
+  read_only execution, approval:none, low risk, and finance:read/dataset:read/graph:read.
+  The existing conversational Finance capability and its permissions are unchanged.
+- Read safety: inject the existing nonmigrating Reader via Services plus a visible
+  SnapshotCatalog into KnowledgeFinance::Service. Authorize registrations, rows and
+  referenced identities before computation. All restricted inclusion requires the
+  existing Finance/Graph/Dataset restricted conjunction. Exclude contracts with
+  hidden/missing owners, underlying/issuer/custodian/counterparty references.
+  No writable Engine, proposal store or cache is constructed during typed reads.
+- Accounting: one consistent SQLite read loads permitted history in 10,000-row
+  source pages, under the existing replay ceiling. Service/Projection replay full
+  owner history before account/instrument display filters or pagination, retaining
+  cross-account transfers/FIFO lots. Invalid/incomplete history or replay bounds
+  return unavailable. Missing storage/registration/schema cannot become zero balances;
+  absent observation Datasets retain history with unavailable marks/FX. Decimal strings,
+  units/multipliers, native currencies, null basis/marks/P&L, known subtotal and
+  source mark/FX times retain the owning Finance semantics. No JavaScript accounting.
+- Projection: strict field allow-lists omit identifiers/details/row metadata,
+  arbitrary source strings/paths, free-form collateral/interest terms and approvals.
+  Source Evidence references are bounded/opaque; no bytes are opened. Source versions
+  depend on permitted calculation history and catalog terms. Scope collections cap
+  at 1,000; transactions sort effective_at/sequence/event_id descending, positions
+  account_id/asset_id/currency ascending. Full replay is never a display page.
+- Companion: six fixed GET routes and client allow-list entries, 30s report deadlines,
+  existing session/filter/capability-version/source-version cursor bindings and
+  drift retry. Required owner is never inferred; unrelated/hidden/absent explicit
+  scopes have uniform not-found behavior. HTTP defaults resolve from configured-zone
+  today once, then apply inclusive UTC Finance accounting dates. Monthly P&L requires
+  date-only endpoints because Service#monthly is date-scoped. Periods past explicit
+  as_of are rejected. Net worth/debts remain clearly owner-wide; account/instrument
+  filters apply to positions/transactions/P&L, including external-flow detail.
+- Browser: explicit owner selection even with one owner, related account/instrument
+  controls, date/reporting-currency/direction/period controls, exact tables and safe
+  detail/source drawers, independent errors/retry, bounded pages and obsolete-read
+  cancellation. Monthly bars are grouped by native currency with exact table labels;
+  missing P&L has no bar. Three report reads then two respect the host's four-request
+  admission cap. Mobile Finance tables retain every column, overriding the shared
+  shell's third-column hiding rule. Default operator grants remain unchanged.
+- Documentation: root/companion README, API Contract, Architecture, Implementation
+  Plan, Operator Guide, owning Finance README and this ledger updated. No migration,
+  external connector, live price/news, approval or write endpoint was added.
+
+Verification (Ruby 2.6.10, Node 22.13.1, synthetic fixtures/local HTTP only):
+
+| Exact command / check | Final result |
+|---|---|
+| `ruby -Ilib test/agent_platform/finance_reads_test.rb > /tmp/knowledge-sdk-p4-typed-delivered.log 2>&1` | Exit 0; 6 runs, 121 assertions, no failures/errors/skips; 14.951794s. Service parity, exact fractional FIFO/transfers/fees, loans, two owners/native currencies, missing basis/marks/FX, monthly windows, all restricted grants, hidden-only version stability, hidden counterparty references, replay ceiling and writer refusal |
+| `bundle exec rake test > /tmp/knowledge-sdk-p4-core-delivered.log 2>&1` | Exit 0; 288 runs, 3,399 assertions, no failures/errors/skips; 165.646051s |
+| `ruby acceptance/test_acceptance.rb > /tmp/knowledge-sdk-p4-acceptance-tests-delivered.log 2>&1` | Exit 0; 4 runs, 8 assertions, no failures/errors/skips |
+| `ruby acceptance/run_acceptance.rb --run-id run_01M5TY6GBJK2S5D9H7T77RWKPN --report-root /tmp/knowledge-sdk-p4-acceptance-reports > /tmp/knowledge-sdk-p4-acceptance.log 2>&1` | Exit 0; PASS: 7,724 base notes, 10 Dataview blocks, 2,000 stress operations. Reports went directly to /tmp; tracked reports unchanged |
+| `GEM_PATH=/tmp/knowledge-sdk-dashboard-p0-gems/installed:/Library/Ruby/Gems/2.6.0:/System/Library/Frameworks/Ruby.framework/Versions/2.6/usr/lib/ruby/gems/2.6.0 ruby -Ilib -Ioptional/dashboard/lib -e 'Dir["optional/dashboard/test/*_test.rb"].sort.each { \|f\| require File.expand_path(f) }' > /tmp/knowledge-sdk-p4-companion-delivered.log 2>&1` | Exit 0; 13 runs, 389 assertions, no failures/errors/skips; 4.549899s. Fixed Finance routes, defaults/inclusive UTC bounds, scope, cursor drift/filter binding, denials, old storage nonmigration and preserved P1/P3 safeguards |
+| `GEM_PATH=/tmp/knowledge-sdk-dashboard-p0-gems/installed:/Library/Ruby/Gems/2.6.0:/System/Library/Frameworks/Ruby.framework/Versions/2.6/usr/lib/ruby/gems/2.6.0 PLAYWRIGHT_BROWSERS_PATH=/tmp/knowledge-sdk-dashboard-p2-browsers npm_config_cache=/tmp/knowledge-sdk-dashboard-p2-npm-cache npm --prefix optional/dashboard test > /tmp/knowledge-sdk-p4-browser-final.log 2>&1` | Exit 0; 44/44 passed in 2.5m, Chromium/Firefox at 1440x900 and 390x844. Preserved 40 P2/P3 checks plus Finance owner selection, exact values, missing FX, monthly charts, hostile text, no external requests and canonical/logical Dataset nonmutation |
+| Same browser environment, `npm --prefix optional/dashboard test -- --grep 'Finance isolates' > /tmp/knowledge-sdk-p4-browser-isolation.log 2>&1` | Exit 0; four additional checks passed in 32.9s across all projects: independent failure, retry and cancellation after clearing owner; no late values displayed. Current suite contains 48 checks; 44 plus four were verified in these two runs |
+| Playwright CLI `knowledge-dashboard-p4` isolated visual session | Inspected synthetic Finance at desktop/mobile, plus full report screenshots from the matrix. Readable controls/tables, separate native currency values and clear partial states, no page overflow/overlap. Screenshots ignored under output/playwright/p4-*.png; browser and synthetic host closed |
+| `gem build knowledge-sdk.gemspec --output /tmp/knowledge-sdk-p4-core.gem` and `gem build knowledge-sdk-dashboard.gemspec --output /tmp/knowledge-sdk-p4-dashboard.gem` (second cwd optional/dashboard) | Exit 0; both version 18.0.0; existing homepage warning only. Rebuilt after final documentation |
+| `gem install --local /tmp/knowledge-sdk-p4-core.gem --install-dir /tmp/knowledge-sdk-dashboard-p4-install --ignore-dependencies --no-document` and equivalent companion install | Exit 0; isolated temporary install; no global install or publication |
+| `GEM_PATH=/tmp/knowledge-sdk-dashboard-p4-install:/tmp/knowledge-sdk-dashboard-p0-gems/installed:/Library/Ruby/Gems/2.6.0:/System/Library/Frameworks/Ruby.framework/Versions/2.6/usr/lib/ruby/gems/2.6.0 ruby /tmp/knowledge-sdk-p4-installed-smoke.rb` (cwd /tmp) | Exit 0; installed CLI auth and all six Finance routes, exact quantity, core excludes optional code, five correctly hashed assets/imports totaling 72,110 uncompressed bytes (below 250 KiB), unchanged canonical notes/logical Dataset schemas and rows, sanitized logs |
+| Final Ruby/JS syntax, JSON/manifest parsing, Markdown fences/local links, complete tracked/untracked review, `git diff --check` and `git status --short` | Exit 0; 11 Ruby files, four JS modules/tests, one JSON manifest, eight Markdown files and 41 local links validated; 47 manifests including all six typed Finance contracts loaded. Intended P4 source/docs/tests only. Generated lockfile moved to /tmp; no gems, runtime state, credentials or acceptance reports delivered |
+
+- Resolved verification issues: schema unions now carry the manifest-required type;
+  Dataset registration lookup uses dataset_slug; regression expectations recognize
+  the six additive capabilities and policy-denied Finance availability. The client
+  fixed allow-list now contains all six routes. Browser sandbox Mach-port startup
+  was refused by macOS; approved runs outside the sandbox passed. Finance fixture
+  verification compares logical schemas/rows rather than mutable SQLite lock/shared
+  memory bytes. Test fixture sensitivity changes use parsed YAML serialization.
+  The installed smoke resolves /tmp's physical path when checking gem activation.
+  No failing required check remains; no security/concurrency boundary was relaxed.
+- Limits: recorded policy-visible Finance history only; unsupported instruments,
+  tax/household/business P&L, automatic accrual, evidence previews and live quotes/FX/news
+  remain unavailable per the owning subsystem. Chart coordinates are approximate;
+  exact strings/tables remain authoritative. Latest Ruby and integrated performance/
+  release-scale/security gates remain P7; no new performance claim is made here.
+- Preserve all uncommitted P4 paths: new Finance reads/manifest, loader/registrar,
+  manifest discovery test, typed Finance tests, companion bridge/domain routes,
+  API/app/styles, HTTP/browser tests and Finance fixture, README/owning Finance and
+  Dashboard docs. Existing P2/P3 source and npm lockfile are retained. Generated gems,
+  install/runtime/browser artifacts and core lockfile stay under /tmp or ignored output.
+- Handoff: P4 ends here. P5-a laboratory read contracts are the next possible unit,
+  requiring a separate user request. No P5 implementation or external fetching ran.
+
+Suggested next-session prompt (only when P5 is authorized):
+
+```text
+Implement Dashboard P5, starting with P5-a. Read AGENTS.md, required root and
+Dashboard contracts/progress plus Health/Dataset/schema/permissions docs and tests.
+Preserve the uncommitted P4 source/docs/tests and all P2/P3 behavior. Add typed
+subject-scoped laboratory reads with the nonmigrating Reader, original units,
+reference intervals and nonnumeric results. Use synthetic data only. Run required
+checks, update Progress with exact evidence and stop at P5 handoff; no P6, commit,
+publish, deployment or external fetch.
+```
+
+### 2026-10-25 — P5-a/P5-b Laboratory reads and Medical browser
+
+- Status: **P5 complete**. P6/P7 remain not_started. No commit, publication,
+  deployment, external fetch, real Vault or external integration access occurred.
+- Starting revision: `6106247` (`V18 + P3`). Preserved all 25 uncommitted P4 paths
+  (source/docs/tests, including the untracked Finance manifest/reads/fixtures).
+  A byte snapshot under `/tmp/knowledge-sdk-p5-baseline` supported incremental diff
+  review; no checkout/reset occurred. P4-only Finance implementation/fixture/tests
+  remain byte-identical. Existing P2/P3 behavior is covered by the browser matrix.
+- Prerequisites: read AGENTS, README, root Architecture/ADRs, Dashboard contracts,
+  plan/session guide/progress/dependency evaluation, Health/Dataset/template/schema
+  and Gateway policy docs; inspected Reader, template/registry, permissions,
+  typed Finance/memory patterns and nearest tests before implementation.
+- P5-a delivery: `lib/agent_platform/health_reads.rb`, loader/default registrar,
+  two strict version-1.0.0 manifests in `health-reads.json`, and typed tests/shared
+  synthetic Health fixture. `kg.health.labs` and `kg.health.lab_series` require
+  health:read/dataset:read/graph:read, use ordinary opaque-token Gateway dispatch,
+  read_only effects, low risk and approval:none. No write/approval capability added.
+- Scope/privacy: explicit Dataset owner or row subject metadata, active visible
+  Person identities, explicit selection even for one subject, uniform absent/hidden
+  and unrelated-subject refusal. Owned empty Datasets can supply scopes. Unowned
+  ambiguous rows and conflicting row/owner metadata have explicit unavailable codes.
+  Clinical restricted inclusion requires both graph:restricted and dataset:restricted
+  for Datasets, rows and subjects; hidden referenced identities exclude the record.
+  Authorization precedes groups/pages/versions. Hidden-only row changes retain
+  source versions and cursor bindings. Opaque row Evidence references never open
+  files; source URIs/filenames/spans, comments and approval/Intent payloads stay private.
+- Read/storage compatibility: one injected nonmigrating Reader transaction; no graph
+  Engine, Dataset Engine, ProposalStore, cache or lifecycle construction during reads.
+  Exact trusted template identity/version/digest or the explicit legacy blood_tests
+  layout is required. SDK-owned bounded layouts recognize canonical date/analyte,
+  legacy observed_at/marker, optional TEXT subject/sensitivity/method and recorded
+  REAL/INTEGER/TEXT values. Unknown columns/types/template versions are unsupported.
+  The existing numeric write template and every import/approval/migration default
+  remain unchanged; P5 does not provide qualitative import or storage repair.
+- Clinical data: arbitrary analytes, original value/unit, date, panel, reference
+  low/high/text and flag, specimen/laboratory/method are retained. TEXT values such
+  as Negative, <5 and 123 stay text. No clinical numeric coercion, unit conversion,
+  inferred ranges, diagnoses or treatment. Series group by subject/analyte/unit/
+  method/specimen/laboratory; unknown metadata stays separate. Output is raw with
+  aggregation:none and explicit partial group/point bounds (10/1,000). Combined
+  source scans over 100,000 rows or 50 registrations are unavailable. Scope cap is
+  1,000 subjects; strings over 1,000 characters are refused rather than truncated.
+- HTTP/browser: two fixed GET routes/client allow-list entries, explicit typed
+  filters, inclusive date-only windows (30 dates through configured-zone today by
+  default, endpoints <=366 days apart), unchanged date-only clinical dates across
+  DST, 5s list/30s series deadlines and existing session/query/version cursor/drift
+  handling. Medical offers subject selection, original tables, a timeline of the
+  current page, separate raw numeric-point plots with per-row recorded intervals,
+  text-only table groups and safe observation/source drawers. Series filters are
+  visibly separate from history filters. Independent errors/retry, bounded pages,
+  navigation/filter/logout cancellation and private DOM clearing are retained.
+- Documentation: owning [Typed laboratory reads](../Health%20Plugin/Laboratory%20Reads.md),
+  Health README, Gateway Policy Guide, root/companion README and Dashboard
+  API/Architecture/Operator Guide/Implementation Plan/Progress updated. Existing
+  operator permission enum already reserved health:read; default grants unchanged.
+  No new dependency, schema migration, upload/OCR or P6 inventory/refresh behavior.
+
+Verification (Ruby 2.6.10, Node 22.13.1; synthetic data and local loopback only):
+
+| Exact command / check | Final result |
+|---|---|
+| `ruby -Ilib test/agent_platform/health_reads_test.rb > /tmp/knowledge-sdk-p5-typed.log 2>&1` | Exit 0; 6 runs, 120 assertions, no failures/errors/skips; 14.634225s. Subjects, restricted conjunction, hidden references/versions, original numeric/text results/intervals, grouping, paging, legacy dates, unsupported schemas, unknown/conflicting scopes, empty owners, source/output bounds and writer refusal |
+| `bundle exec rake test > /tmp/knowledge-sdk-p5-core-final.log 2>&1` | Exit 0; 294 runs, 3,519 assertions, no failures/errors/skips; 180.330638s |
+| `ruby acceptance/test_acceptance.rb > /tmp/knowledge-sdk-p5-acceptance-tests.log 2>&1` | Exit 0; 4 runs, 8 assertions, no failures/errors/skips |
+| `ruby acceptance/run_acceptance.rb --run-id run_01M5V0P5A00000000000000000 --report-root /tmp/knowledge-sdk-p5-acceptance-reports > /tmp/knowledge-sdk-p5-acceptance.log 2>&1` | Exit 0; PASS: 7,724 base notes, 10 Dataview blocks, 2,000 stress operations. Reports directly under /tmp; tracked reports unchanged |
+| `GEM_PATH=/tmp/knowledge-sdk-dashboard-p0-gems/installed:/Library/Ruby/Gems/2.6.0:/System/Library/Frameworks/Ruby.framework/Versions/2.6/usr/lib/ruby/gems/2.6.0 ruby -Ilib -Ioptional/dashboard/lib -e 'Dir["optional/dashboard/test/*_test.rb"].sort.each { \|f\| require File.expand_path(f) }' > /tmp/knowledge-sdk-p5-companion.log 2>&1` | Exit 0; 14 runs, 420 assertions, no failures/errors/skips; 6.962766s. Includes preserved P1/P3/P4 security/routes plus laboratory dates/scopes/cursors/drift, denied availability and old-storage nonmigration |
+| `GEM_PATH=/tmp/knowledge-sdk-dashboard-p0-gems/installed:/Library/Ruby/Gems/2.6.0:/System/Library/Frameworks/Ruby.framework/Versions/2.6/usr/lib/ruby/gems/2.6.0 PLAYWRIGHT_BROWSERS_PATH=/tmp/knowledge-sdk-dashboard-p2-browsers npm_config_cache=/tmp/knowledge-sdk-dashboard-p2-npm-cache npm --prefix optional/dashboard test > /tmp/knowledge-sdk-p5-browser-full.log 2>&1` | Exit 0; 56/56 passed in 3.6m, Chromium/Firefox at 1440x900 and 390x844. Preserved 48 P2/P3/P4 checks plus eight Medical checks. Canonical/runtime bytes and logical Dataset schemas/rows unchanged; no external requests |
+| Same browser environment, `npm --prefix optional/dashboard test -- --grep Medical > /tmp/knowledge-sdk-p5-browser-focused.log 2>&1` | Exit 0; 8/8 passed in 53.2s after final table styling and screenshot additions; independent failure/retry and obsolete-subject cancellation included |
+| Visual inspection of ignored `output/playwright/p5-*.png` and viewport screenshots, plus a temporary mobile table crop | Desktop/mobile controls, literal hostile strings, original row values, separate series, readable horizontally scrolling tables with every column retained, and unavailable diagnoses inspected; no page overflow/overlap |
+| `gem build knowledge-sdk.gemspec --output /tmp/knowledge-sdk-p5-core.gem` and `gem build knowledge-sdk-dashboard.gemspec --output /tmp/knowledge-sdk-p5-dashboard.gem` (second cwd optional/dashboard) | Exit 0; both 18.0.0, existing homepage warning only; rebuilt after final docs |
+| `gem install --local /tmp/knowledge-sdk-p5-core.gem --install-dir /tmp/knowledge-sdk-dashboard-p5-install --ignore-dependencies --no-document` and corresponding companion install | Exit 0; isolated temporary installation only |
+| `GEM_PATH=/tmp/knowledge-sdk-dashboard-p5-install:/tmp/knowledge-sdk-dashboard-p0-gems/installed:/Library/Ruby/Gems/2.6.0:/System/Library/Frameworks/Ruby.framework/Versions/2.6/usr/lib/ruby/gems/2.6.0 ruby /tmp/knowledge-sdk-p5-installed-smoke.rb` (cwd /tmp) | Exit 0; installed 18.0.0 CLI authentication, all six Finance and both laboratory routes, subject isolation, original text values and separate series; unchanged canonical notes/logical Dataset schemas and rows; sanitized logs; five hashed assets totaling 85,074 bytes (<250 KiB) |
+| Core-only gem path, `ruby /tmp/knowledge-sdk-dashboard-p5-install/bin/kg version` (cwd /tmp) | Exit 0; ordinary core CLI reports 18.0.0 without optional web dependencies on the gem path |
+| Changed-file Ruby/JS syntax, JSON/manifests, Markdown fences/local links, new-file whitespace, complete P4-to-P5 and tracked/untracked diff review, `git diff --check`, `git status --short` | Exit 0; 15 Ruby files, four JS modules/tests, two JSON manifests, 11 Markdown files/47 local links, 11 new-file whitespace checks. All 49 manifests load; P4-only Finance files byte-identical; intended P4/P5 paths only after generated lockfile cleanup |
+
+- Verification corrections: Ruby Column#to_h uses symbol keys; fixture/schema
+  projection was corrected accordingly. Synthetic provenance is a positional third
+  argument, so fixture Evidence was corrected. Default-discovery expectations now
+  exclude opt-in Health capabilities. An initially malformed harness run ID was
+  rejected before work and replaced with the valid 26-character ID above. Initial
+  browser launch was blocked by macOS sandbox; approved runs outside it passed.
+  A source-ceiling test intermittently reached the unchanged 5s list deadline under
+  concurrent harness load; it now verifies the same shared scan via the existing
+  30s series contract. No production timeout or safety bound was relaxed.
+- Limits: recorded, explicitly scoped compatible laboratory storage only. No
+  cross-method/unit/specimen conversion or clinical inference; text-stored numeric
+  strings remain unplotted. Broad release-scale performance/latest-Ruby/security
+  gates remain P7 and are not claimed complete by these tests. Raw output bounds
+  require narrower filters; there is no silent clinical downsampling.
+- Artifacts: generated gems/install files/logs/reports and the generated Bundler
+  lockfile remain under /tmp; browser screenshots/traces are ignored output.
+  No credentials, real paths/runtime data, migration backup or generated report is
+  part of the delivered changes. All preexisting P4 changes remain uncommitted.
+- **P5 handoff:** laboratory reads and Medical UI end here. The next possible unit
+  is P6-a (sanitized operational reads/time semantics) only after a separate user
+  request. No P6 work, commit, publication, deployment or external fetching ran.
 
 ### Template — copy for each implementation session
 

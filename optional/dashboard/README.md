@@ -2,9 +2,12 @@
 
 Optional Ruby 2.6-compatible, authenticated loopback host for the knowledge-sdk
 read API. This component depends on the matching core version; ordinary CLI use
-does not require it. P3 adds typed Contacts, Captures and Knowledge Activity reads
-to the responsive login/Home/category shell, independent search sources and safe
-record/source drawer. Finance, laboratory and automation widgets remain unavailable. P1 authentication,
+does not require it. The browser includes typed Contacts, Captures, Knowledge
+Activity and Finance reads, independent search sources and a safe record/source
+drawer. Finance requires explicit visible owner selection and opt-in permissions;
+it retains exact decimal tables and native-currency monthly charts. Laboratory history and separate raw analyte series require explicit subject selection
+and Health, Dataset and graph grants, retaining original units, intervals and
+qualitative results. Automation widgets remain unavailable. P1 authentication,
 availability and safe owned-job metadata remain the server boundary.
 
 Build from this directory with `gem build knowledge-sdk-dashboard.gemspec`, after

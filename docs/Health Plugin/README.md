@@ -149,3 +149,10 @@ objects, or attached-Vault internals.
   row per medication must select by `schedule_id` or effective interval.
 - Stored free-text `schedule` and `effective_on` columns are removed only by the approved migration;
   new analysis never depends on them.
+
+## Dashboard laboratory reads
+
+The optional Dashboard supports explicitly subject-scoped laboratory history and
+separate analyte series through the nonmigrating Reader. Original units, intervals,
+flags and qualitative results remain recorded data. See [Typed laboratory reads](Laboratory%20Reads.md)
+for permissions, supported read layouts, scope, bounds and clinical limitations.

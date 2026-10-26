@@ -4,7 +4,9 @@ module KnowledgeSDK
   module Dashboard
     class Bridge
       ALLOWED = %w[kg.entities.search kg.dashboard.availability kg.contacts.list kg.contacts.get
-        kg.contacts.top kg.contacts.relations kg.captures.list kg.captures.get kg.activity.list].freeze
+        kg.contacts.top kg.contacts.relations kg.captures.list kg.captures.get kg.activity.list
+        kg.finance.scopes kg.finance.net_worth kg.finance.positions kg.finance.liabilities
+        kg.finance.transactions kg.finance.pnl kg.health.labs kg.health.lab_series].freeze
       attr_reader :gateway
 
       def initialize(settings, clock:)
@@ -53,6 +55,33 @@ module KnowledgeSDK
                     schemas.key?("person") && schemas.fetch("person").name_required? &&
                       (%w[tier sensitivity data_origin] - schemas.fetch("person").required_fields).empty? ? "available" : "unsupported"
                   when "memory" then context.agent.permits?("capture:read") || context.agent.permits?("activity:read") ? "available" : "not_available"
+                  when "finance"
+                    if !%w[finance:read graph:read dataset:read].all? { |grant| context.agent.permits?(grant) }
+                      "not_available"
+                    else
+                      response = invoke("kg.finance.scopes", {}, context.agent)
+                      if !response.success? || response.payload["status"] == "unavailable"
+                        "not_available"
+                      elsif response.payload["status"] == "empty"
+                        "empty"
+                      else
+                        storage = @settings.reader.availability
+                        storage["status"] == "ready" ? "available" : storage["code"] == "dataset_upgrade_required" ? "upgrade_required" : "not_available"
+                      end
+                    end
+                  when "medical"
+                    if !%w[health:read graph:read dataset:read].all? { |grant| context.agent.permits?(grant) }
+                      "not_available"
+                    else
+                      response = invoke("kg.health.labs", { "scopes" => true }, context.agent)
+                      if !response.success? || response.payload["status"] == "unavailable"
+                        response.payload.fetch("limitations", []).include?("dataset_upgrade_required") ? "upgrade_required" : "not_available"
+                      elsif response.payload["status"] == "empty"
+                        "empty"
+                      else
+                        "available"
+                      end
+                    end
                   else "unsupported"
                   end
           { "feature" => feature, "state" => state, "reason" => state == "unsupported" ? "not_implemented" : nil }

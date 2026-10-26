@@ -1,0 +1,841 @@
+[
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.health.labs",
+    "name": "health_labs",
+    "version": "1.0.0",
+    "description": "Typed explicitly subject-scoped laboratory reads through a nonmigrating Reader; original results and intervals, no clinical inference.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "panel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "analyte": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "subject_id": {
+          "type": "string",
+          "pattern": "^person_[0-9A-HJKMNP-TV-Z]{26}$",
+          "maxLength": 100
+        },
+        "from": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "format": "date",
+          "maxLength": 10
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "format": "date",
+          "maxLength": 10
+        },
+        "scopes": {
+          "type": "boolean"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "after": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 1000
+          },
+          "maxItems": 4,
+          "minItems": 4
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "data": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "subjects": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                        "maxLength": 100
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 200
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 1000
+                }
+              },
+              "required": [
+                "subjects"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "observed_at": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "panel": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "analyte": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "unit": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "reference_text": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "flag": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "specimen": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "laboratory": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "method": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "reference_low": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      },
+                      "reference_high": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      },
+                      "value": {
+                        "type": [
+                          "number",
+                          "string"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "test_date": {
+                        "type": "string",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                        "format": "date",
+                        "maxLength": 10
+                      },
+                      "subject_id": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                        "maxLength": 100
+                      },
+                      "dataset_id": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                        "maxLength": 100
+                      },
+                      "row_id": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                        "maxLength": 100
+                      },
+                      "evidence": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "record_id": {
+                              "type": "string",
+                              "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                              "maxLength": 100
+                            },
+                            "evidence_id": {
+                              "type": "string",
+                              "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                              "maxLength": 100
+                            },
+                            "role": {
+                              "type": "string",
+                              "maxLength": 1000
+                            }
+                          },
+                          "required": [
+                            "record_id",
+                            "role"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 20
+                      }
+                    },
+                    "required": [
+                      "observed_at",
+                      "panel",
+                      "analyte",
+                      "unit",
+                      "reference_text",
+                      "flag",
+                      "specimen",
+                      "laboratory",
+                      "method",
+                      "reference_low",
+                      "reference_high",
+                      "value",
+                      "test_date",
+                      "subject_id",
+                      "dataset_id",
+                      "row_id",
+                      "evidence"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 100
+                },
+                "page": {
+                  "type": "object",
+                  "properties": {
+                    "returned": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "after": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          },
+                          "maxItems": 4,
+                          "minItems": 4
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "returned",
+                    "after"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "items",
+                "page"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 10
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "evidence_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "record_id",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "source_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "status",
+        "data",
+        "limitations",
+        "evidence",
+        "source_version"
+      ],
+      "additionalProperties": false
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "CapabilityNotFound",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 5000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "health:read",
+        "dataset:read",
+        "graph:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest",
+      "mcp",
+      "cli",
+      "hermes"
+    ],
+    "examples": [
+      {
+        "arguments": {
+          "scopes": true
+        }
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.health.lab_series",
+    "name": "health_lab_series",
+    "version": "1.0.0",
+    "description": "Typed explicitly subject-scoped laboratory reads through a nonmigrating Reader; original results and intervals, no clinical inference.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "panel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "analyte": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "specimen": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "laboratory": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "subject_id": {
+          "type": "string",
+          "pattern": "^person_[0-9A-HJKMNP-TV-Z]{26}$",
+          "maxLength": 100
+        },
+        "from": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "format": "date",
+          "maxLength": 10
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "format": "date",
+          "maxLength": 10
+        }
+      },
+      "required": [
+        "subject_id",
+        "analyte"
+      ],
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "data": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "series": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "subject_id": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                        "maxLength": 100
+                      },
+                      "analyte": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "unit": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "method": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "specimen": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "laboratory": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "points": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "observed_at": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 1000
+                            },
+                            "panel": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 1000
+                            },
+                            "analyte": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 1000
+                            },
+                            "unit": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 1000
+                            },
+                            "reference_text": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 1000
+                            },
+                            "flag": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 1000
+                            },
+                            "specimen": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 1000
+                            },
+                            "laboratory": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 1000
+                            },
+                            "method": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "maxLength": 1000
+                            },
+                            "reference_low": {
+                              "type": [
+                                "number",
+                                "null"
+                              ]
+                            },
+                            "reference_high": {
+                              "type": [
+                                "number",
+                                "null"
+                              ]
+                            },
+                            "value": {
+                              "type": [
+                                "number",
+                                "string"
+                              ],
+                              "maxLength": 1000
+                            },
+                            "test_date": {
+                              "type": "string",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                              "format": "date",
+                              "maxLength": 10
+                            },
+                            "subject_id": {
+                              "type": "string",
+                              "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                              "maxLength": 100
+                            },
+                            "dataset_id": {
+                              "type": "string",
+                              "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                              "maxLength": 100
+                            },
+                            "row_id": {
+                              "type": "string",
+                              "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                              "maxLength": 100
+                            },
+                            "evidence": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "record_id": {
+                                    "type": "string",
+                                    "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                                    "maxLength": 100
+                                  },
+                                  "evidence_id": {
+                                    "type": "string",
+                                    "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                                    "maxLength": 100
+                                  },
+                                  "role": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  }
+                                },
+                                "required": [
+                                  "record_id",
+                                  "role"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "maxItems": 20
+                            }
+                          },
+                          "required": [
+                            "observed_at",
+                            "panel",
+                            "analyte",
+                            "unit",
+                            "reference_text",
+                            "flag",
+                            "specimen",
+                            "laboratory",
+                            "method",
+                            "reference_low",
+                            "reference_high",
+                            "value",
+                            "test_date",
+                            "subject_id",
+                            "dataset_id",
+                            "row_id",
+                            "evidence"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 1000
+                      },
+                      "aggregation": {
+                        "type": "string",
+                        "const": "none"
+                      },
+                      "returned": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      },
+                      "bounded": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "subject_id",
+                      "analyte",
+                      "unit",
+                      "method",
+                      "specimen",
+                      "laboratory",
+                      "points",
+                      "aggregation",
+                      "returned",
+                      "bounded"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 10
+                }
+              },
+              "required": [
+                "series"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 10
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "evidence_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "record_id",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "source_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "status",
+        "data",
+        "limitations",
+        "evidence",
+        "source_version"
+      ],
+      "additionalProperties": false
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "CapabilityNotFound",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 30000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "health:read",
+        "dataset:read",
+        "graph:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest",
+      "mcp",
+      "cli",
+      "hermes"
+    ],
+    "examples": [
+      {
+        "arguments": {
+          "subject_id": "person_00000000000000000000000001",
+          "analyte": "Synthetic assay"
+        }
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  }
+]

@@ -1,8 +1,11 @@
 # Dashboard architecture — P0 contract
 
 Status: accepted design, 2026-10-25. Inspected revision: `324aed9`.
-P0 established this design. P1-P3 now implement the host, browser and typed
-Contacts/Capture/Activity reads; P4-P7 remain future implementation requirements.
+P0 established this design. P1-P4 implement the host, browser and typed
+Contacts/Capture/Activity/Finance/laboratory reads; P6-P7 remain future implementation requirements. Finance injects the
+nonmigrating Reader and a policy-visible SnapshotCatalog into the existing Service.
+Each report pins SQLite reads, loads complete permitted history before account
+filtering/paging, and exposes only allow-listed report/transaction fields.
 See [API Contract](API%20Contract.md), [Dependency Evaluation](Dependency%20Evaluation.md),
 [Implementation Plan](Implementation%20Plan.md), and [Progress](Progress.md).
 
@@ -346,3 +349,11 @@ P7 must verify installation on Ruby 2.6.10 and latest stable Ruby (4.0.9 observe
 in the evaluation), browser/security/performance gates and both package smokes.
 Calendar/reminders, diagnoses, learning milestones, live news/valuations, Hermes/OS
 jobs, conversation and mutation UI remain F1-F7, requiring separate authorization.
+
+P5 laboratory handlers use the same injected nonmigrating Reader and explicit
+subject scope from Dataset ownership or row metadata. Trusted SDK read layouts
+recognize recorded numeric/qualitative results and legacy aliases without changing
+the numeric write template. Clinical visibility requires the graph/Dataset
+restricted conjunction. Series keep units, methods, specimens and laboratories
+separate, retain original intervals and expose raw bounds without downsampling.
+See [Typed laboratory reads](../Health%20Plugin/Laboratory%20Reads.md).

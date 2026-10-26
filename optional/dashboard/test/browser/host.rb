@@ -29,8 +29,14 @@ engine.execute(KnowledgeGraph::AddRelationship.new(source: "person_0000000000000
 engine.execute(KnowledgeGraph::CreateCapture.new(capture_id: "capture_00000000000000000000000006", kind: "bookmark", title: "Synthetic research resource",
   body: "**Synthetic** research on Unicode Αδά and literal text <script>neverExecute()</script>.",
   captured_at: Time.now.getutc.iso8601, language: "en", source: "test"))
+finance = ARGV.include?("--finance")
+health = ARGV.include?("--health")
+require_relative "../../../../test/agent_platform/health_fixture" if health
+HealthReadFixture.build(vault, today: Time.now.utc.to_date) if health
+require_relative "finance_fixture" if finance
+DashboardFinanceFixture.build(vault) if finance
 settings_file = File.join(operator, "settings.json")
-File.write(settings_file, JSON.generate(version: 1, permissions: %w[graph:read capture:read intelligence:read activity:read]), mode: "w", perm: 0o600)
+File.write(settings_file, JSON.generate(version: 1, permissions: %w[graph:read capture:read intelligence:read activity:read] + (finance ? %w[finance:read dataset:read] : []) + (health ? %w[health:read dataset:read] : [])), mode: "w", perm: 0o600)
 secret = SecureRandom.urlsafe_base64(32)
 secret_file = File.join(operator, "secret")
 File.write(secret_file, secret, mode: "w", perm: 0o600)
@@ -45,11 +51,15 @@ clock = -> { Time.now + Integer(File.read(clock_file)) }
 log = File.open(File.join(operator, "host.log"), "w")
 app = KnowledgeSDK::Dashboard::App.new(settings, clock: clock, logger: log)
 metadata = { origin: settings.origin, secret: secret, vault: vault,
-             files: Dir.glob(File.join(vault, "**", "*"), File::FNM_DOTMATCH).select { |path| File.file?(path) }.to_h { |path| [path, Digest::SHA256.file(path).hexdigest] } }
+             files: Dir.glob(File.join(vault, "**", "*"), File::FNM_DOTMATCH).select { |path| File.file?(path) && (!(finance || health) || !path.start_with?(settings.dataset_path)) }.to_h { |path| [path, Digest::SHA256.file(path).hexdigest] } }
+metadata[:logical] = DashboardFinanceFixture.logical(vault) if finance
+metadata[:logical] = HealthReadFixture.logical(vault) if health
 server = KnowledgeSDK::Dashboard::Server.new(app, BindAddress: "127.0.0.1", Port: port,
   StartCallback: -> { File.write(File.join(operator, "fixture.json"), JSON.generate(metadata), mode: "w", perm: 0o600) },
   RequestTimeout: 10, AccessLog: [], Logger: WEBrick::Log.new(File::NULL, WEBrick::Log::FATAL))
 %w[INT TERM].each { |signal| Signal.trap(signal) { server.shutdown } }
 server.start
 app.close
+File.write(File.join(operator, "logical-after.json"), JSON.generate(DashboardFinanceFixture.logical(vault))) if finance
+File.write(File.join(operator, "logical-after.json"), JSON.generate(HealthReadFixture.logical(vault))) if health
 log.close

@@ -1,0 +1,3637 @@
+[
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.finance.scopes",
+    "name": "finance_scopes",
+    "version": "1.0.0",
+    "description": "Typed policy-visible Finance scopes; existing exact accounting, nonmigrating Reader and no execution authority.",
+    "input_schema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "data": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "owners": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                        "maxLength": 100
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "type": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "owner_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                          "maxLength": 100
+                        },
+                        "maxItems": 1000
+                      },
+                      "currency": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "unit": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "multiplier": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "asset_class": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "owner_kind": {
+                        "type": "string",
+                        "maxLength": 1000
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 1000
+                },
+                "accounts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                        "maxLength": 100
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "type": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "owner_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                          "maxLength": 100
+                        },
+                        "maxItems": 1000
+                      },
+                      "currency": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "unit": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "multiplier": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "asset_class": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "owner_kind": {
+                        "type": "string",
+                        "maxLength": 1000
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 1000
+                },
+                "assets": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                        "maxLength": 100
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "type": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "owner_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                          "maxLength": 100
+                        },
+                        "maxItems": 1000
+                      },
+                      "currency": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "unit": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "multiplier": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "asset_class": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "owner_kind": {
+                        "type": "string",
+                        "maxLength": 1000
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 1000
+                }
+              },
+              "required": [
+                "owners",
+                "accounts",
+                "assets"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 10
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "evidence_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "record_id",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "source_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "status",
+        "data",
+        "limitations",
+        "evidence",
+        "source_version"
+      ],
+      "additionalProperties": false
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "CapabilityNotFound",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 5000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "finance:read",
+        "dataset:read",
+        "graph:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest",
+      "mcp",
+      "cli",
+      "hermes"
+    ],
+    "examples": [
+      {
+        "arguments": {}
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.finance.net_worth",
+    "name": "finance_net_worth",
+    "version": "1.0.0",
+    "description": "Typed policy-visible Finance net_worth; existing exact accounting, nonmigrating Reader and no execution authority.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "owner_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+          "maxLength": 100
+        },
+        "as_of": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        }
+      },
+      "required": [
+        "owner_id"
+      ],
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "data": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "owner_id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "maxLength": 100
+                },
+                "as_of": {
+                  "type": "string",
+                  "maxLength": 40
+                },
+                "currency": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "net_worth": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                  "maxLength": 1000
+                },
+                "known_subtotal": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                  "maxLength": 1000
+                },
+                "components": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "owner_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "account_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "asset_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "currency": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "direction": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "counterparty_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "counterparty": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "status": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "outstanding_principal": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "accrued_interest": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "original_principal": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "overdue_principal": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "due_dates": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 40
+                        },
+                        "maxItems": 100000
+                      },
+                      "kind": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "value": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "market_value": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "reporting_value": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "valuation": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          },
+                          "as_of": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          },
+                          "retrieved_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          },
+                          "currency": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          },
+                          "price_type": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          },
+                          "quality": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          },
+                          "freshness": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          },
+                          "price": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "observed_price": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "fx_rate": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "split_adjustment_events": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 1000
+                            },
+                            "maxItems": 100000
+                          },
+                          "executable_quote": {
+                            "type": "boolean",
+                            "const": false
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "fx": {
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "status": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "as_of": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "quality": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "base_currency": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "quote_currency": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "freshness": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "rate": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                "maxLength": 1000
+                              }
+                            },
+                            "required": [],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 100000
+                },
+                "valuation_status": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "coverage": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "limitations": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "maxItems": 20
+                },
+                "execution_authorized": {
+                  "type": "boolean",
+                  "const": false
+                }
+              },
+              "required": [
+                "status",
+                "owner_id",
+                "as_of",
+                "currency",
+                "net_worth",
+                "known_subtotal",
+                "components",
+                "valuation_status",
+                "coverage",
+                "limitations",
+                "execution_authorized"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 10
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "evidence_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "record_id",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "source_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "status",
+        "data",
+        "limitations",
+        "evidence",
+        "source_version"
+      ],
+      "additionalProperties": false
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "CapabilityNotFound",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 30000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "finance:read",
+        "dataset:read",
+        "graph:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest",
+      "mcp",
+      "cli",
+      "hermes"
+    ],
+    "examples": [
+      {
+        "arguments": {
+          "owner_id": "financialowner_00000000000000000000000001"
+        }
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.finance.positions",
+    "name": "finance_positions",
+    "version": "1.0.0",
+    "description": "Typed policy-visible Finance positions; existing exact accounting, nonmigrating Reader and no execution authority.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "owner_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+          "maxLength": 100
+        },
+        "account_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+          "maxLength": 100
+        },
+        "asset_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+          "maxLength": 100
+        },
+        "as_of": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "after": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "integer"
+            ]
+          },
+          "maxItems": 3,
+          "minItems": 3
+        }
+      },
+      "required": [
+        "owner_id"
+      ],
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "data": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "owner_id": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "account_id": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "asset_id": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "currency": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "cost_basis_policy": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "basis_status": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "asset_class": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "instrument": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "accounting_method": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "unit": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "quantity": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "cost_basis": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "average_entry_price": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "market_value": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "unrealized_pnl": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "notional_value": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "multiplier": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "valuation": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          },
+                          "as_of": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          },
+                          "retrieved_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          },
+                          "currency": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          },
+                          "price_type": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          },
+                          "quality": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          },
+                          "freshness": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 1000
+                          },
+                          "price": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "observed_price": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "fx_rate": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "split_adjustment_events": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 1000
+                            },
+                            "maxItems": 100000
+                          },
+                          "executable_quote": {
+                            "type": "boolean",
+                            "const": false
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "lots": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "opening_event_id": {
+                              "type": "string",
+                              "maxLength": 1000
+                            },
+                            "quantity": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                              "maxLength": 1000
+                            },
+                            "price": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                              "maxLength": 1000
+                            },
+                            "opened_at": {
+                              "type": "string",
+                              "maxLength": 40
+                            }
+                          },
+                          "required": [
+                            "opening_event_id",
+                            "quantity",
+                            "price",
+                            "opened_at"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "maxItems": 100000
+                      }
+                    },
+                    "required": [],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 100
+                },
+                "page": {
+                  "type": "object",
+                  "properties": {
+                    "returned": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "after": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": [
+                          "string",
+                          "integer"
+                        ]
+                      },
+                      "maxItems": 3
+                    }
+                  },
+                  "required": [
+                    "returned",
+                    "after"
+                  ],
+                  "additionalProperties": false
+                },
+                "owner_id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "maxLength": 100
+                },
+                "as_of": {
+                  "type": "string",
+                  "maxLength": 40
+                },
+                "coverage": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "execution_authorized": {
+                  "type": "boolean",
+                  "const": false
+                }
+              },
+              "required": [
+                "items",
+                "page",
+                "owner_id",
+                "as_of",
+                "coverage",
+                "execution_authorized"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 10
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "evidence_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "record_id",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "source_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "status",
+        "data",
+        "limitations",
+        "evidence",
+        "source_version"
+      ],
+      "additionalProperties": false
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "CapabilityNotFound",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 30000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "finance:read",
+        "dataset:read",
+        "graph:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest",
+      "mcp",
+      "cli",
+      "hermes"
+    ],
+    "examples": [
+      {
+        "arguments": {
+          "owner_id": "financialowner_00000000000000000000000001"
+        }
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.finance.liabilities",
+    "name": "finance_liabilities",
+    "version": "1.0.0",
+    "description": "Typed policy-visible Finance liabilities; existing exact accounting, nonmigrating Reader and no execution authority.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "owner_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+          "maxLength": 100
+        },
+        "as_of": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "receivable",
+            "payable"
+          ]
+        }
+      },
+      "required": [
+        "owner_id"
+      ],
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "data": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "owner_id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                  "maxLength": 100
+                },
+                "as_of": {
+                  "type": "string",
+                  "maxLength": 40
+                },
+                "debts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "owner_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "account_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "asset_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "currency": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "direction": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "counterparty_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "counterparty": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "status": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "outstanding_principal": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "accrued_interest": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "original_principal": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "overdue_principal": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "due_dates": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 40
+                        },
+                        "maxItems": 100000
+                      }
+                    },
+                    "required": [],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 100000
+                },
+                "interest_method": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "execution_authorized": {
+                  "type": "boolean",
+                  "const": false
+                }
+              },
+              "required": [
+                "status",
+                "owner_id",
+                "as_of",
+                "debts",
+                "interest_method",
+                "execution_authorized"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 10
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "evidence_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "record_id",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "source_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "status",
+        "data",
+        "limitations",
+        "evidence",
+        "source_version"
+      ],
+      "additionalProperties": false
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "CapabilityNotFound",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 30000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "finance:read",
+        "dataset:read",
+        "graph:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest",
+      "mcp",
+      "cli",
+      "hermes"
+    ],
+    "examples": [
+      {
+        "arguments": {
+          "owner_id": "financialowner_00000000000000000000000001"
+        }
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.finance.transactions",
+    "name": "finance_transactions",
+    "version": "1.0.0",
+    "description": "Typed policy-visible Finance transactions; existing exact accounting, nonmigrating Reader and no execution authority.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "owner_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+          "maxLength": 100
+        },
+        "account_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+          "maxLength": 100
+        },
+        "asset_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+          "maxLength": 100
+        },
+        "from": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "to": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "after": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "integer"
+            ]
+          },
+          "maxItems": 3,
+          "minItems": 3
+        }
+      },
+      "required": [
+        "owner_id"
+      ],
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "data": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "row_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "event_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "operation": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "effective_at": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "booked_at": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "settlement_on": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "owner_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "account_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "asset_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "unit": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "currency": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "reverses_event_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "correction_of": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 1000
+                      },
+                      "quantity": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "price": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "amount": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "fees": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                        "maxLength": 1000
+                      },
+                      "sequence": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 100
+                },
+                "page": {
+                  "type": "object",
+                  "properties": {
+                    "returned": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "after": {
+                      "type": [
+                        "array",
+                        "null"
+                      ],
+                      "items": {
+                        "type": [
+                          "string",
+                          "integer"
+                        ]
+                      },
+                      "maxItems": 3
+                    }
+                  },
+                  "required": [
+                    "returned",
+                    "after"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "items",
+                "page"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 10
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "evidence_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "record_id",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "source_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "status",
+        "data",
+        "limitations",
+        "evidence",
+        "source_version"
+      ],
+      "additionalProperties": false
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "CapabilityNotFound",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 30000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "finance:read",
+        "dataset:read",
+        "graph:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest",
+      "mcp",
+      "cli",
+      "hermes"
+    ],
+    "examples": [
+      {
+        "arguments": {
+          "owner_id": "financialowner_00000000000000000000000001"
+        }
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  },
+  {
+    "manifest_schema_version": "1.0.0",
+    "capability_id": "kg.finance.pnl",
+    "name": "finance_pnl",
+    "version": "1.0.0",
+    "description": "Typed policy-visible Finance pnl; existing exact accounting, nonmigrating Reader and no execution authority.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "owner_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+          "maxLength": 100
+        },
+        "account_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+          "maxLength": 100
+        },
+        "asset_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+          "maxLength": 100
+        },
+        "from": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "to": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "as_of": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "period": {
+          "type": "string",
+          "enum": [
+            "total",
+            "monthly"
+          ]
+        }
+      },
+      "required": [
+        "owner_id"
+      ],
+      "additionalProperties": false
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "empty",
+            "partial",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "data": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "anyOf": [
+            {
+              "type": "object",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "maxLength": 1000
+                    },
+                    "owner_id": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                      "maxLength": 100
+                    },
+                    "from": {
+                      "type": "string",
+                      "maxLength": 40
+                    },
+                    "to": {
+                      "type": "string",
+                      "maxLength": 40
+                    },
+                    "accounting_basis": {
+                      "type": "string",
+                      "maxLength": 1000
+                    },
+                    "totals": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "realized": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "variation_margin": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "income": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "expense": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "fee": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "realized_pnl": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "fees": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "unrealized_change": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "net_pnl": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "fx_contribution": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "currency": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "status": {
+                            "type": "string",
+                            "maxLength": 1000
+                          }
+                        },
+                        "required": [
+                          "realized",
+                          "variation_margin",
+                          "income",
+                          "expense",
+                          "fee",
+                          "realized_pnl",
+                          "fees",
+                          "unrealized_change",
+                          "net_pnl",
+                          "fx_contribution",
+                          "currency",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 100000
+                    },
+                    "components": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "event_id": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "owner_id": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "account_id": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "asset_id": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "currency": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "effective_at": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "category": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "amount": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          }
+                        },
+                        "required": [
+                          "event_id",
+                          "owner_id",
+                          "account_id",
+                          "asset_id",
+                          "currency",
+                          "effective_at",
+                          "category",
+                          "amount"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 100000
+                    },
+                    "opening_positions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "owner_id": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "account_id": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "asset_id": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "currency": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "cost_basis_policy": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "basis_status": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "asset_class": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "instrument": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "accounting_method": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "unit": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "quantity": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "cost_basis": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "average_entry_price": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "market_value": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "unrealized_pnl": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "notional_value": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "multiplier": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "valuation": {
+                            "type": "object",
+                            "properties": {
+                              "status": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "as_of": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "retrieved_at": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "currency": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "price_type": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "quality": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "freshness": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "price": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                "maxLength": 1000
+                              },
+                              "observed_price": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                "maxLength": 1000
+                              },
+                              "fx_rate": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                "maxLength": 1000
+                              },
+                              "split_adjustment_events": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "maxItems": 100000
+                              },
+                              "executable_quote": {
+                                "type": "boolean",
+                                "const": false
+                              }
+                            },
+                            "required": [],
+                            "additionalProperties": false
+                          },
+                          "lots": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "opening_event_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "quantity": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "price": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "opened_at": {
+                                  "type": "string",
+                                  "maxLength": 40
+                                }
+                              },
+                              "required": [
+                                "opening_event_id",
+                                "quantity",
+                                "price",
+                                "opened_at"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "maxItems": 100000
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 100000
+                    },
+                    "closing_positions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "owner_id": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "account_id": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "asset_id": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "currency": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "cost_basis_policy": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "basis_status": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "asset_class": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "instrument": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "accounting_method": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "unit": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "quantity": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "cost_basis": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "average_entry_price": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "market_value": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "unrealized_pnl": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "notional_value": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "multiplier": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          },
+                          "valuation": {
+                            "type": "object",
+                            "properties": {
+                              "status": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "as_of": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "retrieved_at": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "currency": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "price_type": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "quality": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "freshness": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "maxLength": 1000
+                              },
+                              "price": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                "maxLength": 1000
+                              },
+                              "observed_price": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                "maxLength": 1000
+                              },
+                              "fx_rate": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                "maxLength": 1000
+                              },
+                              "split_adjustment_events": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "maxItems": 100000
+                              },
+                              "executable_quote": {
+                                "type": "boolean",
+                                "const": false
+                              }
+                            },
+                            "required": [],
+                            "additionalProperties": false
+                          },
+                          "lots": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "opening_event_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "quantity": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "price": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "opened_at": {
+                                  "type": "string",
+                                  "maxLength": 40
+                                }
+                              },
+                              "required": [
+                                "opening_event_id",
+                                "quantity",
+                                "price",
+                                "opened_at"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "maxItems": 100000
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 100000
+                    },
+                    "net_external_cash_flows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "event_id": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "owner_id": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "account_id": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "asset_id": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "currency": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "effective_at": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "category": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "amount": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                            "maxLength": 1000
+                          }
+                        },
+                        "required": [
+                          "event_id",
+                          "owner_id",
+                          "account_id",
+                          "asset_id",
+                          "currency",
+                          "effective_at",
+                          "category",
+                          "amount"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 100000
+                    },
+                    "limitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "maxItems": 20
+                    },
+                    "execution_authorized": {
+                      "type": "boolean",
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "owner_id",
+                    "from",
+                    "to",
+                    "accounting_basis",
+                    "totals",
+                    "components",
+                    "opening_positions",
+                    "closing_positions",
+                    "net_external_cash_flows",
+                    "limitations",
+                    "execution_authorized"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "maxLength": 1000
+                    },
+                    "months": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "owner_id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                            "maxLength": 100
+                          },
+                          "from": {
+                            "type": "string",
+                            "maxLength": 40
+                          },
+                          "to": {
+                            "type": "string",
+                            "maxLength": 40
+                          },
+                          "accounting_basis": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "totals": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "realized": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "variation_margin": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "income": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "expense": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "fee": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "realized_pnl": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "fees": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "unrealized_change": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "net_pnl": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "fx_contribution": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "currency": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "status": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                }
+                              },
+                              "required": [
+                                "realized",
+                                "variation_margin",
+                                "income",
+                                "expense",
+                                "fee",
+                                "realized_pnl",
+                                "fees",
+                                "unrealized_change",
+                                "net_pnl",
+                                "fx_contribution",
+                                "currency",
+                                "status"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "maxItems": 100000
+                          },
+                          "components": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "event_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "owner_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "account_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "asset_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "currency": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "effective_at": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "category": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "amount": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                }
+                              },
+                              "required": [
+                                "event_id",
+                                "owner_id",
+                                "account_id",
+                                "asset_id",
+                                "currency",
+                                "effective_at",
+                                "category",
+                                "amount"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "maxItems": 100000
+                          },
+                          "opening_positions": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "owner_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "account_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "asset_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "currency": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "cost_basis_policy": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "basis_status": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "asset_class": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "instrument": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "accounting_method": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "unit": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "quantity": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "cost_basis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "average_entry_price": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "market_value": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "unrealized_pnl": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "notional_value": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "multiplier": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "valuation": {
+                                  "type": "object",
+                                  "properties": {
+                                    "status": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    },
+                                    "as_of": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    },
+                                    "retrieved_at": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    },
+                                    "currency": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    },
+                                    "price_type": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    },
+                                    "quality": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    },
+                                    "freshness": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    },
+                                    "price": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                      "maxLength": 1000
+                                    },
+                                    "observed_price": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                      "maxLength": 1000
+                                    },
+                                    "fx_rate": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                      "maxLength": 1000
+                                    },
+                                    "split_adjustment_events": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "maxLength": 1000
+                                      },
+                                      "maxItems": 100000
+                                    },
+                                    "executable_quote": {
+                                      "type": "boolean",
+                                      "const": false
+                                    }
+                                  },
+                                  "required": [],
+                                  "additionalProperties": false
+                                },
+                                "lots": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "opening_event_id": {
+                                        "type": "string",
+                                        "maxLength": 1000
+                                      },
+                                      "quantity": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                        "maxLength": 1000
+                                      },
+                                      "price": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                        "maxLength": 1000
+                                      },
+                                      "opened_at": {
+                                        "type": "string",
+                                        "maxLength": 40
+                                      }
+                                    },
+                                    "required": [
+                                      "opening_event_id",
+                                      "quantity",
+                                      "price",
+                                      "opened_at"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  "maxItems": 100000
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "maxItems": 100000
+                          },
+                          "closing_positions": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "owner_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "account_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "asset_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "currency": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "cost_basis_policy": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "basis_status": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "asset_class": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "instrument": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "accounting_method": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "unit": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "quantity": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "cost_basis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "average_entry_price": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "market_value": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "unrealized_pnl": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "notional_value": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "multiplier": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                },
+                                "valuation": {
+                                  "type": "object",
+                                  "properties": {
+                                    "status": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    },
+                                    "as_of": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    },
+                                    "retrieved_at": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    },
+                                    "currency": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    },
+                                    "price_type": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    },
+                                    "quality": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    },
+                                    "freshness": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "maxLength": 1000
+                                    },
+                                    "price": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                      "maxLength": 1000
+                                    },
+                                    "observed_price": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                      "maxLength": 1000
+                                    },
+                                    "fx_rate": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ],
+                                      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                      "maxLength": 1000
+                                    },
+                                    "split_adjustment_events": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "maxLength": 1000
+                                      },
+                                      "maxItems": 100000
+                                    },
+                                    "executable_quote": {
+                                      "type": "boolean",
+                                      "const": false
+                                    }
+                                  },
+                                  "required": [],
+                                  "additionalProperties": false
+                                },
+                                "lots": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "opening_event_id": {
+                                        "type": "string",
+                                        "maxLength": 1000
+                                      },
+                                      "quantity": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                        "maxLength": 1000
+                                      },
+                                      "price": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                        "maxLength": 1000
+                                      },
+                                      "opened_at": {
+                                        "type": "string",
+                                        "maxLength": 40
+                                      }
+                                    },
+                                    "required": [
+                                      "opening_event_id",
+                                      "quantity",
+                                      "price",
+                                      "opened_at"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  "maxItems": 100000
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "maxItems": 100000
+                          },
+                          "net_external_cash_flows": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "event_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "owner_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "account_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "asset_id": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "currency": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "effective_at": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "category": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "amount": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+                                  "maxLength": 1000
+                                }
+                              },
+                              "required": [
+                                "event_id",
+                                "owner_id",
+                                "account_id",
+                                "asset_id",
+                                "currency",
+                                "effective_at",
+                                "category",
+                                "amount"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "maxItems": 100000
+                          },
+                          "limitations": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 1000
+                            },
+                            "maxItems": 20
+                          },
+                          "execution_authorized": {
+                            "type": "boolean",
+                            "const": false
+                          }
+                        },
+                        "required": [
+                          "status",
+                          "owner_id",
+                          "from",
+                          "to",
+                          "accounting_basis",
+                          "totals",
+                          "components",
+                          "opening_positions",
+                          "closing_positions",
+                          "net_external_cash_flows",
+                          "limitations",
+                          "execution_authorized"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "maxItems": 14
+                    },
+                    "execution_authorized": {
+                      "type": "boolean",
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "months",
+                    "execution_authorized"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 10
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "evidence_id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*_[0-9A-HJKMNP-TV-Z]{26}$",
+                "maxLength": 100
+              },
+              "role": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "record_id",
+              "role"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        },
+        "source_version": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "status",
+        "data",
+        "limitations",
+        "evidence",
+        "source_version"
+      ],
+      "additionalProperties": false
+    },
+    "errors": [
+      "InvalidArguments",
+      "PolicyDenied",
+      "CapabilityNotFound",
+      "ExecutionFailed",
+      "Timeout"
+    ],
+    "execution": {
+      "mode": "synchronous",
+      "effects": "read_only",
+      "timeout_ms": 30000,
+      "idempotent": true
+    },
+    "policy": {
+      "permissions": [
+        "finance:read",
+        "dataset:read",
+        "graph:read"
+      ],
+      "risk": "low",
+      "approval": "none"
+    },
+    "explanation": {
+      "required": true
+    },
+    "transports": [
+      "rest",
+      "mcp",
+      "cli",
+      "hermes"
+    ],
+    "examples": [
+      {
+        "arguments": {
+          "owner_id": "financialowner_00000000000000000000000001"
+        }
+      }
+    ],
+    "deprecation": {
+      "status": "active"
+    }
+  }
+]

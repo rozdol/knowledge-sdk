@@ -204,3 +204,147 @@ test('P3 federated search has per-source states and source change restarts pagin
   await expect(contacts).toContainText('Page 1'); expect(changed).toBe(true);
   expect(page.url()).toBe(host.origin + '/search');
 });
+
+test('Finance requires explicit scope, exact tables, missing FX and monthly native charts', async ({ page, financeHost: host }) => {
+  const failures = [], external = [];
+  page.on('pageerror', error => failures.push(error.message));
+  page.on('request', request => { if (!request.url().startsWith(host.origin)) external.push(request.url()); });
+  await login(page, host, '/finance');
+  const owner = page.getByLabel('Financial owner', { exact: true });
+  await expect(owner).toHaveValue('');
+  await expect(page.getByRole('button', { name: 'Load financial reports', exact: true })).toBeVisible();
+  await owner.selectOption('financialowner_00000000000000000000000001');
+  await page.getByRole('button', { name: 'Load financial reports', exact: true }).click();
+  const worth = page.locator('.widget').filter({ has: page.getByRole('heading', { name: 'Owner net worth', exact: true }) });
+  const positions = page.locator('.widget').filter({ has: page.getByRole('heading', { name: 'Positions', exact: true }) });
+  const transactions = page.locator('.widget').filter({ has: page.getByRole('heading', { name: 'Immutable transactions', exact: true }) });
+  const pnl = page.locator('.widget').filter({ has: page.getByRole('heading', { name: 'Investment P&L', exact: true }) });
+  await expect(worth).toContainText('Net worth: Unavailable EUR');
+  await expect(positions.getByRole('cell', { name: '0.2', exact: true })).toBeVisible();
+  await expect(positions.getByRole('cell', { name: 'USD', exact: true })).toBeVisible();
+  await expect(transactions.getByRole('cell', { name: 'SELL', exact: true })).toBeVisible();
+  await expect(pnl.locator('tbody tr')).toHaveCount(1);
+  await positions.getByRole('button', { name: 'View details', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('0.04');
+  await page.keyboard.press('Escape');
+  await page.getByLabel('Net worth reporting currency', { exact: true }).selectOption('USD');
+  await page.getByLabel('Investment P&L period', { exact: true }).selectOption('monthly');
+  await expect(positions.locator('tbody tr')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Load financial reports', exact: true }).click();
+  await expect(worth).toContainText('Net worth: 0.059 USD');
+  await expect(pnl.getByRole('img', { name: 'Monthly investment P&L in USD', exact: true })).toBeVisible();
+  await expect(pnl).toContainText('Missing P&L has no bar');
+  expect(await page.evaluate(() => window.injected)).toBeUndefined();
+  expect(await page.locator('main img').count()).toBe(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  expect(external).toEqual([]); expect(failures).toEqual([]);
+  await page.screenshot({ path: `../../output/playwright/p4-${test.info().project.name}.png`, fullPage: true });
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page.getByText('0.059', { exact: true })).toHaveCount(0);
+});
+
+test('Finance isolates failures and cancels obsolete filter results', async ({ page, financeHost: host }) => {
+  let fail = true;
+  await page.route('**/api/v1/finance/pnl?**', async route => {
+    if (fail) { fail = false; await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'internal_error' } }) }); }
+    else await route.continue();
+  });
+  await login(page, host, '/finance');
+  await page.getByLabel('Financial owner', { exact: true }).selectOption('financialowner_00000000000000000000000001');
+  await page.getByLabel('Net worth reporting currency', { exact: true }).selectOption('USD');
+  await page.getByRole('button', { name: 'Load financial reports', exact: true }).click();
+  const pnl = page.locator('.widget').filter({ has: page.getByRole('heading', { name: 'Investment P&L', exact: true }) });
+  const worth = page.locator('.widget').filter({ has: page.getByRole('heading', { name: 'Owner net worth', exact: true }) });
+  await expect(pnl).toHaveAttribute('data-state', 'error');
+  await expect(worth).toContainText('Net worth: 0.059 USD');
+  await pnl.getByRole('button', { name: 'Try again', exact: true }).click();
+  await expect(pnl.locator('tbody tr')).toHaveCount(1);
+  await page.route('**/api/v1/finance/net-worth?**', async route => {
+    const response = await route.fetch(); await new Promise(resolve => setTimeout(resolve, 500));
+    await route.fulfill({ response });
+  });
+  await page.getByRole('button', { name: 'Load financial reports', exact: true }).click();
+  await expect(worth).toHaveAttribute('data-state', 'loading');
+  await page.getByLabel('Financial owner', { exact: true }).selectOption('');
+  await expect(worth).toHaveAttribute('data-state', 'empty');
+  await page.waitForTimeout(800);
+  await expect(worth).not.toContainText('0.059');
+  await expect(worth).toContainText('Select an owner');
+});
+
+test('Medical scopes original results, separate series and literal clinical context', async ({ page, healthHost: host }) => {
+  const errors = [], external = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('request', request => { if (!request.url().startsWith(host.origin)) external.push(request.url()); });
+  await login(page, host, '/medical');
+  const subject = page.getByLabel('Laboratory subject', { exact: true });
+  await expect(subject).toHaveValue('');
+  await expect(subject).not.toContainText('Hidden synthetic patient');
+  await subject.selectOption('person_00000000000000000000000011');
+  await page.getByRole('button', { name: 'Load laboratory history', exact: true }).click();
+  const history = page.locator('.widget').filter({ has: page.getByRole('heading', { name: 'Laboratory history', exact: true }) });
+  const trends = page.locator('.widget').filter({ has: page.getByRole('heading', { name: 'Analyte trends', exact: true }) });
+  await expect(history.locator('tbody tr')).toHaveCount(9);
+  await expect(history.getByRole('cell', { name: 'Negative', exact: true })).toBeVisible();
+  await expect(history.getByRole('cell', { name: '<5', exact: true })).toBeVisible();
+  await expect(history.getByRole('cell', { name: '777', exact: true })).toHaveCount(0);
+  await expect(history.getByRole('columnheader', { name: 'analyte', exact: true })).toBeVisible();
+  await history.getByText('Timeline of this page', { exact: true }).click();
+  await expect(history.locator('.lab-timeline ol li')).toHaveCount(9);
+  await history.getByRole('button', { name: 'View observation', exact: true }).first().click();
+  await expect(page.getByRole('dialog')).toContainText('test date');
+  await expect(page.getByRole('dialog')).not.toContainText('source_uri');
+  await page.keyboard.press('Escape');
+  await page.getByLabel('Analyte (exact recorded name)', { exact: true }).fill('Novel assay <img src=x onerror=window.injected=true>');
+  await page.getByRole('button', { name: 'Load laboratory history', exact: true }).click();
+  await expect(trends.locator('.lab-series > section')).toHaveCount(6);
+  await expect(trends.getByRole('img', { name: 'Laboratory points in mmol/L', exact: true })).toBeVisible();
+  await expect(trends.getByText('This group contains text results only.', { exact: true })).toBeVisible();
+  await expect(trends).toContainText('Unknown method');
+  await expect(trends).toContainText('assay B');
+  await expect(trends).toContainText('Original interval');
+  await expect(page.getByText('Diagnosis and treatment recommendations are unavailable.', { exact: false })).toBeVisible();
+  expect(await page.evaluate(() => window.injected)).toBeUndefined();
+  expect(await page.locator('main img, main script').count()).toBe(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  expect(external).toEqual([]); expect(errors).toEqual([]);
+  await page.screenshot({ path: `../../output/playwright/p5-${test.info().project.name}.png`, fullPage: true });
+  await page.screenshot({ path: `../../output/playwright/p5-viewport-${test.info().project.name}.png` });
+  await subject.selectOption('person_00000000000000000000000012');
+  await expect(history.locator('tbody tr')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Load laboratory history', exact: true }).click();
+  await expect(history.getByRole('cell', { name: '777', exact: true })).toBeVisible();
+  await expect(history.getByRole('cell', { name: 'Negative', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page.getByLabel('Laboratory subject', { exact: true })).toHaveCount(0);
+});
+
+test('Medical series failure stays independent and obsolete subject results are cancelled', async ({ page, healthHost: host }) => {
+  let fail = true;
+  await page.route('**/api/v1/health/labs/series?**', async route => {
+    if (fail) { fail = false; await route.fulfill({ status: 500, json: { error: { code: 'internal_error' } } }); }
+    else await route.continue();
+  });
+  await login(page, host, '/medical');
+  const subject = page.getByLabel('Laboratory subject', { exact: true });
+  await subject.selectOption('person_00000000000000000000000011');
+  await page.getByLabel('Analyte (exact recorded name)', { exact: true }).fill('Novel assay <img src=x onerror=window.injected=true>');
+  await page.getByRole('button', { name: 'Load laboratory history', exact: true }).click();
+  const history = page.locator('.widget').filter({ has: page.getByRole('heading', { name: 'Laboratory history', exact: true }) });
+  const trends = page.locator('.widget').filter({ has: page.getByRole('heading', { name: 'Analyte trends', exact: true }) });
+  await expect(history.locator('tbody tr')).toHaveCount(9);
+  await expect(trends).toHaveAttribute('data-state', 'error');
+  await trends.getByRole('button', { name: 'Try again', exact: true }).click();
+  await expect(trends.locator('.lab-series > section')).toHaveCount(6);
+  await page.route('**/api/v1/health/labs?**', async route => {
+    const response = await route.fetch(); await new Promise(resolve => setTimeout(resolve, 500)); await route.fulfill({ response });
+  });
+  await page.getByRole('button', { name: 'Load laboratory history', exact: true }).click();
+  await expect(history).toHaveAttribute('data-state', 'loading');
+  await subject.selectOption('');
+  await expect(history).toHaveAttribute('data-state', 'empty');
+  await page.waitForTimeout(800);
+  await expect(history.locator('tbody tr')).toHaveCount(0);
+  await expect(trends.locator('svg')).toHaveCount(0);
+  expect(page.url()).toBe(host.origin + '/medical');
+});

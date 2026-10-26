@@ -91,10 +91,12 @@ Global options are `--vault`, `--config`, `--dataset-db`, `--run-id`, and `--act
 
 The optional `knowledge-sdk-dashboard` companion adds a loopback authenticated
 read API with `kg dashboard serve --vault PATH --timezone IANA --secret-file FILE`.
-It is installed separately and is not required by ordinary CLI commands. The P3
+It is installed separately and is not required by ordinary CLI commands. The
 browser provides contact ranking/profiles/relations, Capture search/details,
-permitted knowledge-change history and independent search sources. Finance,
-laboratory and automation widgets remain unavailable until their later phases.
+permitted knowledge-change history, independent search sources and typed Finance
+reports with explicit visible owner/account selection, plus subject-scoped laboratory
+history and separate analyte series. Finance and Health access are opt-in; automation
+widgets remain unavailable until their later phase.
 Browsing never creates or migrates Dataset storage. See the
 [Dashboard Operator Guide](docs/Dashboard/Operator%20Guide.md).
 

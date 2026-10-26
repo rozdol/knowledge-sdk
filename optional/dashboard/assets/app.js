@@ -15,7 +15,6 @@ const NAV = [['/', 'Home', '⌂'], ['/agenda', 'Agenda', '01'], ['/finance', 'Fi
   ['/contacts', 'Contacts', '04'], ['/memory', 'Memory & lifestyle', '05'], ['/learning', 'Learning & research', '06']];
 const PLACEHOLDERS = {
   '/agenda': [['Calendar & reminders', 'No calendar or reminder service is connected.'], ['KG automation', 'Schedule and run summaries are not available yet. Configured schedules will not be presented as proof that a worker is running.']],
-  '/finance': [['Investment reports', 'Positions, net worth, liabilities and investment P&L are not available in this view yet. No balances or valuations are inferred.']],
   '/medical': [['Laboratory history', 'Laboratory rows and analyte trends are not available yet.'], ['Diagnoses', 'Diagnosis management is not connected. Laboratory flags will not be treated as diagnoses.']],
   '/contacts': [['Contact summaries', 'Contact ranking, profiles and relationship views are not available yet. You can search existing graph identities.']],
   '/memory': [['Capture inbox', 'Capture lists and detail views are not available yet.'], ['Knowledge activity', 'The knowledge-change timeline is not available yet. Capture creation time is not a personal occurrence date.']],
@@ -145,6 +144,8 @@ function renderPage() {
     activityList(main, false, true);
   }
   else if (path === '/contacts') contactsPage();
+  else if (path === '/finance') financePage();
+  else if (path === '/medical') medicalPage();
   else if (path === '/memory') memoryPage();
   else if (path === '/learning') learningPage();
   else {
@@ -454,6 +455,278 @@ function learningPage() {
   main.append(element('p', 'scope-notice', 'Search graph names/aliases and saved bookmark metadata as separate sources. Their result counts are not combined into a unique total.'));
   searchPanel(main); captureList(main, true, true);
 }
+
+function financePage() {
+  const generation = epoch;
+  const scopes = new Widget('Finance scope', 'Choose an explicit visible owner. Account filters apply to positions, transactions and investment P&L.');
+  main.append(scopes.node);
+  let sequence = 0;
+  async function loadScopes() {
+    const current = ++sequence;
+    scopes.render({ status: 'loading' }, { message: 'Reading permitted financial scopes…' });
+    try {
+      const result = await api.get('/api/v1/finance/scopes', {}, 'finance-scopes');
+      if (generation !== epoch || current !== sequence) return;
+      if (!result.data?.owners?.length) {
+        scopes.render(result, { message: result.status === 'empty' ? 'No visible financial owners are recorded.' : 'Finance is unavailable. It requires an explicitly installed Finance plugin and Finance, graph and Dataset read access.', retry: loadScopes });
+        return;
+      }
+      financeControls(result, scopes, generation);
+    } catch (error) {
+      if (generation === epoch && current === sequence && error.name !== 'AbortError') scopes.render({ status: 'error' }, { message: message(error), retry: loadScopes });
+    }
+  }
+  loadScopes();
+}
+function financeControls(scopeResult, scopeWidget, generation) {
+  const catalog = scopeResult.data;
+  const form = element('form', 'domain-filters finance-filters'); form.method = 'post'; form.action = '/';
+  const fields = {};
+  function menu(key, title, options) {
+    const field = element('div'); const label = element('label', 'small', title); label.htmlFor = 'finance-' + key;
+    const control = element('select'); control.id = label.htmlFor;
+    field.append(label, control); form.append(field); fields[key] = control;
+    setOptions(control, options); return control;
+  }
+  function setOptions(control, options) {
+    control.replaceChildren();
+    for (const [value, label] of options) { const option = element('option', '', label); option.value = value; control.append(option); }
+  }
+  menu('owner_id', 'Financial owner', [['', 'Choose an owner'], ...catalog.owners.map(item => [item.id, item.name])]).required = true;
+  menu('account_id', 'Financial account', [['', 'All visible owner accounts']]);
+  menu('asset_id', 'Financial instrument', [['', 'All visible owner instruments']]);
+  const today = displayDate();
+  for (const [key, title, value] of [['as_of', 'Valuation date (UTC)', today], ['from', 'Period from (UTC)', today.slice(0, 8) + '01'], ['to', 'Period through (UTC)', today]]) {
+    const field = element('div'); const label = element('label', 'small', title); label.htmlFor = 'finance-' + key;
+    const input = element('input'); input.type = 'date'; input.id = label.htmlFor; input.required = true; input.value = value;
+    fields[key] = input; field.append(label, input); form.append(field);
+  }
+  menu('currency', 'Net worth reporting currency', ['EUR', 'USD', 'GBP', ...catalog.assets.map(item => item.currency)].filter((value, index, all) => value && all.indexOf(value) === index).map(value => [value, value]));
+  menu('period', 'Investment P&L period', [['total', 'Period total'], ['monthly', 'Monthly']]);
+  menu('direction', 'Debt direction', [['', 'Receivables and payables'], ['payable', 'Payables'], ['receivable', 'Receivables']]);
+  const submit = element('button', 'button primary', 'Load financial reports'); submit.type = 'submit'; form.append(submit);
+  form.append(element('p', 'small muted', 'Inclusive UTC accounting dates. Net worth and debts cover the selected owner across visible accounts. Native P&L currencies remain separate. No live prices or news are fetched.'));
+  scopeWidget.render(scopeResult, { content: form, timezone: context.timezone });
+  const grid = element('div', 'widget-grid finance-grid'); main.append(grid);
+  let queryVersion = 0;
+  const definitions = [
+    ['net-worth', 'Owner net worth', 'Recorded assets, cash and debt, with explicit FX coverage.', ['Kind', 'Currency', 'Native value', 'Reporting value'], item => [item.kind, item.currency, item.value, item.reporting_value]],
+    ['positions', 'Positions', 'Complete owner replay before account selection and display paging.', ['Instrument', 'Currency', 'Quantity', 'Unit', 'FIFO basis', 'Market value'], item => [item.instrument || item.asset_id, item.currency, item.quantity, item.unit, item.cost_basis, item.market_value]],
+    ['liabilities', 'Receivables & liabilities', 'Recorded principal and explicit accrued interest; no automatic accrual.', ['Counterparty', 'Direction', 'Currency', 'Principal', 'Interest', 'Overdue'], item => [item.counterparty, item.direction, item.currency, item.outstanding_principal, item.accrued_interest, item.overdue_principal]],
+    ['transactions', 'Immutable transactions', 'The selected period limits display only. Reversals retain the original events.', ['Effective at (UTC)', 'Operation', 'Currency', 'Quantity', 'Price', 'Amount', 'Fees'], item => [item.effective_at, item.operation, item.currency, item.quantity, item.price, item.amount, item.fees]],
+    ['pnl', 'Investment P&L', 'FIFO gross gains and fees at event date. Household, business and tax P&L are unavailable.', ['Period', 'Currency', 'Realized', 'Variation margin', 'Income', 'Expense', 'Fees', 'Unrealized change', 'Net P&L'], item => [item.month || 'Total', item.currency, item.realized, item.variation_margin, item.income, item.expense, item.fees, item.unrealized_change, item.net_pnl]]
+  ];
+  const views = definitions.map(([id, title, description, headings, cells]) => {
+    const widget = new Widget(title, description); grid.append(widget.node);
+    let history = [null], index = 0, args = null, requestSequence = 0;
+    function reset() {
+      requestSequence += 1; api.cancel('finance-' + id); args = null; history = [null]; index = 0;
+      widget.render({ status: 'empty' }, { message: 'Select an owner and load reports for this scope.' });
+    }
+    async function load(cursor = history[index]) {
+      if (!args) return;
+      const version = queryVersion, serial = ++requestSequence;
+      widget.render({ status: 'loading' }, { message: 'Reading permitted financial history…' });
+      try {
+        const result = await api.get('/api/v1/finance/' + id, { ...args, ...(cursor ? { cursor } : {}) }, 'finance-' + id);
+        if (generation !== epoch || version !== queryVersion || serial !== requestSequence) return;
+        const data = result.data;
+        const body = element('div');
+        if (data) {
+          if (id === 'net-worth') {
+            body.append(element('p', 'scope-notice', `Net worth: ${data.net_worth ?? 'Unavailable'} ${data.currency} · Known subtotal: ${data.known_subtotal} ${data.currency}`), element('p', 'small muted', `Valuation: ${data.valuation_status}. ${data.coverage}.`));
+          }
+          for (const limitation of data.limitations || []) body.append(element('p', 'warning', limitation));
+          const rows = data.items || data.debts || (id === 'net-worth' ? data.components : data.months ? data.months.flatMap(month => month.totals.map(total => ({ ...total, month: month.from.slice(0, 7) }))) : data.totals) || [];
+          if (data.months) body.append(financeChart(rows));
+          if (rows.length) {
+            const scroll = element('div', 'table-scroll'), table = element('table', 'results-table');
+            table.append(element('caption', 'sr-only', title + ' — exact decimal values'));
+            const head = element('thead'), tr = element('tr');
+            for (const heading of [...headings, 'Details']) { const th = element('th', '', heading); th.scope = 'col'; tr.append(th); }
+            head.append(tr); table.append(head); const tbody = element('tbody');
+            for (const item of rows) {
+              const row = element('tr');
+              for (const value of cells(item)) row.append(element('td', '', value ?? 'Unknown'));
+              const detail = element('td'); detail.append(button('View details', () => drawer.show(title, Object.entries(item).map(([key, value]) => [key.replaceAll('_', ' '), value && typeof value === 'object' ? JSON.stringify(value) : value]), result.evidence || []), 'record-link'));
+              row.append(detail); tbody.append(row);
+            }
+            table.append(tbody); scroll.append(table); body.append(scroll);
+          } else body.append(element('p', 'muted', 'No permitted recorded items in this scope and period.'));
+          if (data.page) body.append(pagination(data.page, { index: index + 1,
+            next: next => { history = history.slice(0, index + 1); history.push(next); index += 1; load(next); },
+            back: () => { index -= 1; load(); } }));
+        }
+        widget.render(result, { content: body, timezone: 'Etc/UTC', message: result.status === 'unavailable' ? 'This report is unavailable. Check its source limitations.' : null,
+          openEvidence: refs => drawer.show('Finance source references', [], refs) });
+      } catch (error) {
+        if (generation === epoch && version === queryVersion && serial === requestSequence && error.name !== 'AbortError') widget.render({ status: 'error' }, { message: message(error), retry: () => { history = [null]; index = 0; load(); } });
+      }
+    }
+    reset();
+    return { reset, run(parameters) {
+      const keys = id === 'net-worth' ? ['owner_id', 'as_of', 'currency'] : id === 'liabilities' ? ['owner_id', 'as_of', 'direction'] : id === 'positions' ? ['owner_id', 'account_id', 'asset_id', 'as_of'] : id === 'transactions' ? ['owner_id', 'account_id', 'asset_id', 'from', 'to'] : ['owner_id', 'account_id', 'asset_id', 'from', 'to', 'period'];
+      args = Object.fromEntries(keys.filter(key => parameters[key]).map(key => [key, parameters[key]]));
+      if (id === 'positions' || id === 'transactions') args.limit = 25;
+      return load();
+    } };
+  });
+  function changed() {
+    queryVersion += 1; drawer.close(); views.forEach(view => view.reset());
+  }
+  fields.owner_id.addEventListener('change', () => {
+    for (const [key, collection, title] of [['account_id', catalog.accounts, 'All visible owner accounts'], ['asset_id', catalog.assets, 'All visible owner instruments']]) {
+      setOptions(fields[key], [['', title], ...collection.filter(item => item.owner_ids?.includes(fields.owner_id.value)).map(item => [item.id, item.name])]);
+    }
+  });
+  for (const field of Object.values(fields)) { field.addEventListener('input', changed); field.addEventListener('change', changed); }
+  form.addEventListener('submit', async event => {
+    event.preventDefault(); if (!form.reportValidity()) return;
+    changed(); const version = queryVersion;
+    const parameters = Object.fromEntries(Object.entries(fields).map(([key, field]) => [key, field.value]));
+    await Promise.all(views.slice(0, 3).map(view => view.run(parameters)));
+    if (generation === epoch && version === queryVersion) await Promise.all(views.slice(3).map(view => view.run(parameters)));
+  });
+}
+function financeChart(rows) {
+  const figure = element('figure'); figure.append(element('figcaption', 'small muted', 'Monthly investment P&L by native currency. Bar lengths are approximate; the table retains exact values. Missing P&L has no bar.'));
+  const ns = 'http://www.w3.org/2000/svg';
+  for (const currency of [...new Set(rows.map(row => row.currency))]) {
+    const group = rows.filter(row => row.currency === currency);
+    const maximum = Math.max(...group.map(row => Math.abs(Number(row.net_pnl ?? 0))), 1);
+    const svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', `0 0 600 ${group.length * 35 + 35}`); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Monthly investment P&L in ' + currency); svg.setAttribute('width', '100%');
+    group.forEach((row, index) => {
+      const y = index * 35 + 25;
+      const label = document.createElementNS(ns, 'text'); label.setAttribute('x', '0'); label.setAttribute('y', String(y)); label.setAttribute('fill', '#3f514a'); label.setAttribute('font-size', '13'); label.textContent = `${row.month} · ${row.net_pnl ?? 'Unknown'} ${currency}`; svg.append(label);
+      if (row.net_pnl !== null && Number.isFinite(Number(row.net_pnl))) {
+        const bar = document.createElementNS(ns, 'rect'); bar.setAttribute('x', '300'); bar.setAttribute('y', String(y - 13)); bar.setAttribute('height', '17'); bar.setAttribute('width', String(Math.abs(Number(row.net_pnl)) / maximum * 280)); bar.setAttribute('fill', Number(row.net_pnl) < 0 ? '#d79778' : '#8fc1a7'); svg.append(bar);
+      }
+    });
+    figure.append(svg);
+  }
+  return figure;
+}
+function medicalPage() {
+  const generation = epoch;
+  const scope = new Widget('Laboratory subject', 'Choose a recorded subject explicitly. No ownership is inferred from filenames or the current user.'); main.append(scope.node);
+  const diagnosis = new Widget('Diagnoses'); diagnosis.render({ status: 'unavailable' }, { message: 'Diagnosis and treatment recommendations are unavailable. Laboratory flags retain their report-supplied meaning.' }); main.append(diagnosis.node);
+  async function loadScopes() {
+    scope.render({ status: 'loading' }, { message: 'Reading permitted laboratory subjects…' });
+    try {
+      const result = await api.get('/api/v1/health/labs', { scopes: 'true' }, 'lab-scopes');
+      if (generation !== epoch) return;
+      if (!result.data?.subjects?.length) { scope.render(result, { message: 'No supported, explicitly scoped laboratory history is available with the current Health, Dataset and graph permissions.', retry: loadScopes }); return; }
+      medicalControls(result, scope, generation);
+    } catch (error) { if (generation === epoch && error.name !== 'AbortError') scope.render({ status: 'error' }, { message: message(error), retry: loadScopes }); }
+  }
+  loadScopes();
+}
+function medicalControls(scopeResult, scope, generation) {
+  const form = element('form', 'domain-filters medical-filters'); form.method = 'post'; form.action = '/';
+  const controls = {};
+  function field(key, title, type = 'text', value = '') {
+    const group = element('div'), label = element('label', 'small', title); label.htmlFor = 'lab-' + key;
+    const input = element(key === 'subject_id' ? 'select' : 'input'); input.id = label.htmlFor;
+    if (key !== 'subject_id') { input.type = type; input.maxLength = 200; input.value = value; }
+    group.append(label, input); form.append(group); controls[key] = input; return input;
+  }
+  const subject = field('subject_id', 'Laboratory subject'); subject.required = true;
+  for (const item of [{ id: '', name: 'Choose a subject' }, ...scopeResult.data.subjects]) { const option = element('option', '', item.name); option.value = item.id; subject.append(option); }
+  field('panel', 'Laboratory panel'); field('analyte', 'Analyte (exact recorded name)');
+  const today = displayDate(), start = new Date(today + 'T00:00:00Z'); start.setUTCDate(start.getUTCDate() - 29);
+  field('from', 'Test date from', 'date', start.toISOString().slice(0, 10)).required = true;
+  field('to', 'Test date through', 'date', today).required = true;
+  for (const [key, title] of [['unit', 'Series unit'], ['method', 'Series method'], ['specimen', 'Series specimen'], ['laboratory', 'Series laboratory']]) field(key, title);
+  const submit = element('button', 'button primary', 'Load laboratory history'); submit.type = 'submit'; form.append(submit);
+  form.append(element('p', 'small muted', 'Inclusive test dates. Enter an exact analyte to read trends. Series filters affect trends only; each unit, method, specimen and laboratory stays separate. Text results remain text.'));
+  scope.render(scopeResult, { content: form, timezone: context.timezone });
+  let version = 0;
+  const historyWidget = new Widget('Laboratory history', 'Original observations, report-supplied reference intervals and flags. No invented clinical ranges.');
+  const trendWidget = new Widget('Analyte trends', 'Raw points with original units. Unknown method or specimen stays separate from known values.');
+  main.insertBefore(historyWidget.node, main.lastChild); main.insertBefore(trendWidget.node, main.lastChild);
+  let history = [null], index = 0, args = null, listSerial = 0, seriesSerial = 0;
+  function reset() {
+    version += 1; listSerial += 1; seriesSerial += 1; args = null; history = [null]; index = 0; drawer.close(); api.cancel('lab-list'); api.cancel('lab-series');
+    historyWidget.render({ status: 'empty' }, { message: 'Select a subject and load laboratory history.' });
+    trendWidget.render({ status: 'empty' }, { message: 'Choose a subject and enter an analyte to view its trends.' });
+  }
+  async function loadList() {
+    if (!args) return;
+    const current = version, serial = ++listSerial;
+    const params = Object.fromEntries(['subject_id', 'panel', 'analyte', 'from', 'to'].filter(key => args[key]).map(key => [key, args[key]]));
+    if (history[index]) params.cursor = history[index]; params.limit = 25;
+    historyWidget.render({ status: 'loading' }, { message: 'Reading permitted observations…' });
+    try {
+      const result = await api.get('/api/v1/health/labs', params, 'lab-list');
+      if (generation !== epoch || current !== version || serial !== listSerial) return;
+      const body = element('div'), rows = result.data?.items || [];
+      if (rows.length) {
+        body.append(labTable(rows));
+        const timeline = element('details', 'lab-timeline'); timeline.append(element('summary', '', 'Timeline of this page'));
+        const list = element('ol');
+        for (const row of rows) list.append(element('li', '', `${row.test_date} · ${row.panel ?? 'Unknown panel'} · ${row.analyte}: ${row.value} ${row.unit ?? 'Unknown unit'} · Flag: ${row.flag ?? 'Unknown'}`));
+        timeline.append(list); body.append(timeline);
+      }
+      body.append(pagination(result.data?.page, { index: index + 1, next: cursor => { history = history.slice(0, index + 1); history.push(cursor); index += 1; loadList(); }, back: () => { index -= 1; loadList(); } }));
+      if (index >= 4 && result.data?.page?.next_cursor) body.append(element('p', 'muted', 'Five-page browsing limit reached. Refine the dates, panel or analyte.'));
+      historyWidget.render(result, { content: body, timezone: context.timezone, message: result.status === 'empty' ? 'No permitted observations match these filters.' : result.status === 'unavailable' ? 'Laboratory history is unavailable. Check its source limitations.' : null, openEvidence: refs => drawer.show('Laboratory source references', [], refs) });
+    } catch (error) { if (generation === epoch && current === version && serial === listSerial && error.name !== 'AbortError') historyWidget.render({ status: 'error' }, { message: message(error), retry: () => { history = [null]; index = 0; loadList(); } }); }
+  }
+  async function loadSeries() {
+    if (!args?.analyte) return;
+    const current = version, serial = ++seriesSerial;
+    trendWidget.render({ status: 'loading' }, { message: 'Reading separate raw analyte series…' });
+    try {
+      const result = await api.get('/api/v1/health/labs/series', args, 'lab-series');
+      if (generation !== epoch || current !== version || serial !== seriesSerial) return;
+      const body = element('div', 'lab-series');
+      for (const group of result.data?.series || []) {
+        const section = element('section');
+        section.append(element('h3', '', [group.analyte, group.unit ?? 'Unknown unit', group.method ?? 'Unknown method', group.specimen ?? 'Unknown specimen', group.laboratory ?? 'Unknown laboratory'].join(' · ')), labChart(group), labTable(group.points));
+        if (group.bounded) section.append(element('p', 'warning', 'Only the first 1,000 raw observations are shown. Refine the dates; no aggregation or downsampling was performed.'));
+        body.append(section);
+      }
+      trendWidget.render(result, { content: body, timezone: context.timezone, message: result.status === 'empty' ? 'No permitted series match these filters.' : result.status === 'unavailable' ? 'This series is unavailable. Check its source limitations.' : null });
+    } catch (error) { if (generation === epoch && current === version && serial === seriesSerial && error.name !== 'AbortError') trendWidget.render({ status: 'error' }, { message: message(error), retry: loadSeries }); }
+  }
+  Object.values(controls).forEach(input => { input.addEventListener('input', reset); input.addEventListener('change', reset); });
+  form.addEventListener('submit', event => { event.preventDefault(); if (!form.reportValidity()) return; reset(); args = Object.fromEntries(Object.entries(controls).filter(([, field]) => field.value).map(([key, field]) => [key, field.value])); loadList(); loadSeries(); });
+  reset();
+}
+function labTable(rows) {
+  const scroll = element('div', 'table-scroll lab-table'), table = element('table', 'results-table');
+  table.append(element('caption', 'sr-only', 'Original laboratory results and reference intervals'));
+  const head = element('thead'), header = element('tr');
+  const keys = ['test_date', 'panel', 'analyte', 'value', 'unit', 'reference_low', 'reference_high', 'reference_text', 'flag', 'specimen', 'laboratory', 'method'];
+  for (const title of [...keys, 'Details']) { const th = element('th', '', title.replaceAll('_', ' ')); th.scope = 'col'; header.append(th); } head.append(header); table.append(head);
+  const tbody = element('tbody');
+  for (const row of rows) {
+    const tr = element('tr'); for (const key of keys) tr.append(element('td', '', row[key] ?? 'Unknown'));
+    const details = element('td'); details.append(button('View observation', () => drawer.show('Laboratory observation', Object.entries(row).filter(([key]) => key !== 'evidence').map(([key, value]) => [key.replaceAll('_', ' '), value]), row.evidence || []), 'record-link')); tr.append(details); tbody.append(tr);
+  }
+  table.append(tbody); scroll.append(table); return scroll;
+}
+function labChart(group) {
+  const figure = element('figure');
+  figure.append(element('figcaption', 'small muted', 'Original numeric observations by test date; individual report intervals appear as vertical lines when both bounds are recorded. Text results have no plotted point. Exact values and all results remain in the table.'));
+  const numeric = group.points.filter(row => typeof row.value === 'number' && Number.isFinite(row.value));
+  if (!numeric.length) { figure.append(element('p', 'muted', 'This group contains text results only.')); return figure; }
+  const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', '0 0 640 250'); svg.setAttribute('width', '100%'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Laboratory points in ' + (group.unit ?? 'unknown unit'));
+  const values = numeric.flatMap(row => [row.value, row.reference_low, row.reference_high]).filter(value => typeof value === 'number' && Number.isFinite(value));
+  const low = Math.min(...values), high = Math.max(...values), dates = group.points.map(row => Date.parse(row.test_date + 'T00:00:00Z'));
+  const start = Math.min(...dates), finish = Math.max(...dates);
+  const x = row => finish === start ? 320 : 55 + (Date.parse(row.test_date + 'T00:00:00Z') - start) / (finish - start) * 520;
+  const y = value => high === low ? 110 : 190 - (value - low) / (high - low) * 160;
+  function shape(name, attrs, text) { const node = document.createElementNS(ns, name); for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value)); if (text) node.textContent = text; return node; }
+  svg.append(shape('line', { x1: 55, y1: 200, x2: 580, y2: 200, stroke: '#84948b' }));
+  for (const row of numeric) {
+    if (typeof row.reference_low === 'number' && typeof row.reference_high === 'number' && row.reference_high >= row.reference_low) svg.append(shape('line', { x1: x(row), x2: x(row), y1: y(row.reference_low), y2: y(row.reference_high), stroke: '#8fc1a7', 'stroke-width': 3 }));
+    const point = shape('circle', { cx: x(row), cy: y(row.value), r: 4, fill: '#32594b' }); point.append(shape('title', {}, `${row.test_date}: ${row.value} ${group.unit ?? ''}; flag ${row.flag ?? 'Unknown'}`)); svg.append(point);
+  }
+  svg.append(shape('text', { x: 5, y: 25, fill: '#3f514a', 'font-size': 12 }, String(high)), shape('text', { x: 5, y: 195, fill: '#3f514a', 'font-size': 12 }, String(low)), shape('text', { x: 55, y: 225, fill: '#3f514a', 'font-size': 12 }, new Date(start).toISOString().slice(0, 10)), shape('text', { x: 480, y: 245, fill: '#3f514a', 'font-size': 12 }, new Date(finish).toISOString().slice(0, 10)));
+  figure.append(svg); return figure;
+}
+
 window.addEventListener('popstate', () => { if (context) renderPage(); });
 window.addEventListener('pageshow', event => { if (event.persisted) lock('Verify your session to continue.'); });
 document.addEventListener('visibilitychange', () => {

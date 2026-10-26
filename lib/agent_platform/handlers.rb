@@ -7,6 +7,8 @@ module AgentPlatform
     def build(services)
       registry = HandlerRegistry.new
       ReadViews.register(registry, services)
+      FinanceReads.register(registry, services)
+      HealthReads.register(registry, services)
       register_entity_handlers(registry, services)
       register_graph_handlers(registry, services)
       register_dataset_handlers(registry, services)

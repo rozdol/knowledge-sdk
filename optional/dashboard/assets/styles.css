@@ -19,3 +19,17 @@
 .record-fields dd { white-space: pre-wrap; overflow-wrap: anywhere; }
 .domain-list .results-table { min-width: 36rem; }
 @media (max-width: 640px) { .domain-filters { margin-top: 1rem; } .domain-list .widget-body { padding: 1rem; } .domain-list { margin-top: 1.5rem; } }
+.finance-filters{grid-template-columns:repeat(3,minmax(0,1fr));max-width:none;margin-top:1rem}.finance-filters>p{grid-column:1/-1}.finance-filters select,.finance-filters input{min-width:0;width:100%}.finance-grid{grid-template-columns:minmax(0,1fr);margin-top:24px}.finance-grid .results-table td{white-space:nowrap;max-width:320px}.finance-grid figure{margin:1rem 0;max-width:600px}.finance-grid figure svg{display:block}.finance-grid .results-table th:nth-child(3),.finance-grid .results-table td:nth-child(3){display:table-cell}@media(max-width:760px){.finance-filters{grid-template-columns:minmax(0,1fr)}.finance-grid figure{min-width:260px}}
+
+/* Preserve every laboratory column on small screens inside its own scroller. */
+.lab-table .results-table th, .lab-table .results-table td { display: table-cell; }
+.medical-filters { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.lab-series, .lab-series section { min-width: 0; }
+.lab-series h3 { overflow-wrap: anywhere; font-size: 1rem; }
+.lab-series figure { margin: 1rem 0; }
+.lab-series svg { max-height: 300px; }
+.lab-timeline { margin-block: 1rem; overflow-wrap: anywhere; }
+.lab-timeline li { margin-block: .6rem; }
+.medical-filters > p { grid-column: 1 / -1; }
+.medical-filters input, .medical-filters select { min-width: 0; width: 100%; }
+.lab-table .results-table td, .lab-table .results-table th { white-space: nowrap; max-width: none; }

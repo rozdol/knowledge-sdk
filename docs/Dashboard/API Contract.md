@@ -1,6 +1,6 @@
 # Dashboard presentation API v1 — P0 contract
 
-Status: accepted design, 2026-10-25; the P1-P3 API/browser subsets are implemented. The `/api/v1` surface is
+Status: accepted design, 2026-10-25; the P1-P5 API/browser subsets are implemented. The `/api/v1` surface is
 optional, local, authenticated and canonically read-only. See
 [Architecture](Architecture.md) for storage/authentication and
 [Dependency Evaluation](Dependency%20Evaluation.md) for compatibility evidence.
@@ -197,10 +197,10 @@ Capture linked identities require their graph permission even with Capture acces
 New permission semantics, to register/document with their manifests in the owning
 phase: `activity:read` permits safe existing change-history projections (P3);
 `health:read` permits typed laboratory rows for visible subjects in addition to
-`dataset:read` and `graph:read` (P5); `orchestration:read` permits sanitized configured
+`dataset:read` and `graph:read` (implemented P5); `orchestration:read` permits sanitized configured
 KG schedule/job metadata (P6); `notification:read` permits safe informational
-notification metadata (P6). `activity:read` is registered in P3. The P5/P6 names remain reserved design
-contracts without implemented authority. No run/cancel/enable/ack/write power is implied.
+notification metadata (P6). `activity:read` is registered in P3 and `health:read` in P5. P6 permission names
+remain reserved design contracts without implemented authority. No run/cancel/enable/ack/write power is implied.
 
 Optional grants come from the operator settings at startup. The explicit capability
 allow-list is exactly the registered data handlers below for enabled features and
@@ -319,9 +319,9 @@ P3 implementation details and bounded coverage:
   A caller also needs each included source's own permission. Missing permissions
   produce unavailable/partial states, never authorization by local-host proximity.
 
-### Finance (P4)
+### Finance (P4, implemented)
 
-| GET path | Filters | Planned capability |
+| GET path | Filters | Capability |
 |---|---|---|
 | `/finance/scopes` | None | `kg.finance.scopes` |
 | `/finance/net-worth` | Required `owner_id`; optional `as_of`, `currency` | `kg.finance.net_worth` |
@@ -365,9 +365,47 @@ time. Preserve source price freshness rules (24h for ordinary reports). Physical
 settlement, broad corporate actions, tax/business/household P&L and live prices/news
 remain unavailable as documented by the Finance subsystem.
 
+P4 implementation contract:
+
+- Six additive 1.0.0 manifests in `finance-reads.json` register through the ordinary
+  SDK registrar; all are synchronous, read_only, approval:none, low risk. Scopes has
+  a 5s deadline; other reads have 30s. The existing conversational read is unchanged
+  and remains outside the Dashboard allow-list.
+- SDK payloads use the shared typed-read `{status,data,limitations,evidence,
+  source_version}` contract. Scope data is `{owners,accounts,assets}`, each with
+  id/name/type and applicable owner_ids/currency/unit/multiplier/asset_class/owner_kind.
+  Scopes are bounded at 1,000 entries per collection. Lists return `{items,page}`;
+  positions also return owner_id/as_of/coverage/execution_authorized. Reports retain
+  the owning Service shape, including `{months:[report]}` for monthly P&L.
+- Dataset registration and all row/contract identity references are authorized
+  before replay. Restricted Finance catalogs, registrations and rows require the
+  full restricted-grant conjunction. Financial identities with hidden/missing owner,
+  underlying, issuer, custodian or loan counterparty references are excluded.
+  Unsupported/missing history never becomes an inferred zero balance.
+- All reads use the injected nonmigrating Reader in one consistent SQLite read.
+  Both trusted Finance column contracts are checked; history is loaded in 10,000-row
+  pages under the existing replay ceiling. SQL input paging is independent of
+  display pagination. There is no report disk cache or database initialization.
+- Transactions include immutable originals and reversals, ordered effective_at,
+  sequence, event_id descending. Positions order account_id/asset_id/currency
+  ascending. Existing session/filter/capability-version/source-version cursor
+  bindings apply. Source versions depend on permitted calculation history and
+  catalog terms, so changing page size never limits replay or loses FIFO basis.
+- Safe projection uses allow-lists. It omits identifiers/details/row metadata,
+  arbitrary source strings, paths, collateral/interest free text and approval
+  payloads. Evidence is a bounded opaque reference without dereferencing its bytes.
+  Marks retain price/as_of/retrieved_at/quality/freshness, and FX retains rate/as_of.
+  Informational Service coverage limitations stay in report data; missing/stale
+  inputs additionally produce envelope limitations. Unknown basis/marks retain null.
+- HTTP defaults resolve once in the configured timezone, then use Finance's UTC
+  inclusive accounting dates. `as_of` never overrides explicit P&L endpoints; a
+  period extending past it is rejected. Monthly reports require date-only endpoints
+  because Service#monthly is date-scoped. P&L external-flow detail is filtered to
+  the selected account/instrument just like its totals.
+
 ### Laboratory history (P5)
 
-| GET path | Filters | Planned capability / permissions |
+| GET path | Filters | Capability / permissions |
 |---|---|---|
 | `/health/labs` | `subject_id`, `panel`, `analyte`, `from`, `to`, limit, cursor; optional `scopes=true` | `kg.health.labs` / `health:read`, `dataset:read`, `graph:read` |
 | `/health/labs/series` | Required `subject_id`, `analyte`; optional panel/from/to/unit/specimen/laboratory/method | `kg.health.lab_series` / same grants |
@@ -377,8 +415,12 @@ IDs/labels, enabling explicit selection. Ordinary reads require subject_id. Subj
 come from explicit Dataset ownership or supported explicit row subject metadata;
 an unowned ambiguous table returns unavailable `subject_scope_unknown`, not an
 inferred person. Existing blood-test schema need not gain a physical subject column.
-Use trusted template metadata to recognize compatible definitions and map legacy
-aliases only where explicitly supported. Unknown custom schemas remain unsupported.
+Use trusted template identity/version/digest or the explicit legacy blood_tests
+read layout to recognize compatible definitions. Supported value read types are
+REAL/INTEGER/TEXT; the numeric write template is unchanged. Legacy observed_at/marker
+map only through that layout. Optional TEXT subject_id/sensitivity/method are
+recognized; unknown columns/types/custom schemas remain unsupported. See
+[Typed laboratory reads](../Health%20Plugin/Laboratory%20Reads.md) for exact layouts.
 
 Rows retain row/Dataset IDs, test_date (or supported observed_at), panel, analyte,
 value, unit, original reference_low/high/text, flag, specimen, laboratory, method
@@ -388,8 +430,14 @@ intervals. Series groups by subject/analyte/unit/method/specimen/laboratory with
 null method/specimen labeled unknown, never assumed compatible with known values.
 No unit conversions except trusted existing supported ones. Bounds on numeric
 series require explicit aggregation metadata or partial/raw bounded results; never
-silently downsample a clinical signal. Date filters are inclusive date-only and
-max 366 days. Diagnosis and treatment recommendations are unavailable.
+silently downsample a clinical signal. Date filters are inclusive date-only, default
+to 30 dates through configured-zone today, and are max 366 days apart. History orders date/time/Dataset/row descending;
+series returns `series` groups with original `points`, `aggregation: none`,
+`returned` and `bounded`. More than ten groups/1,000 points per group is partial,
+with explicit limitation codes and no downsampling. Combined source scans over
+100,000 rows/50 registrations are unavailable. `labs(scopes:true)` returns
+`subjects: [{id,name}]`, also including explicit owners of empty supported Datasets.
+Diagnosis and treatment recommendations are unavailable.
 
 ### Operational inventory (P6)
 
@@ -451,7 +499,9 @@ metadata with result:null and P1 only admits synchronous read contracts.
 
 P1 supplies auth, availability, search and owned-job infrastructure; P2 supplies the
 browser shell; P3 supplies Contacts/Capture/Activity routes and page integration.
-P4-P6 routes remain absent (404) and their pages unavailable. Later phases add their manifests,
+P4 supplies typed Finance routes and page integration. P5 supplies typed laboratory
+routes and the Medical page. P6 routes remain absent
+(404) and their pages unavailable. Later phases add their manifests,
 permission semantics, typed SDK methods, strict output schemas and fixtures together.
 Changes to these accepted design names/semantics require a Progress decision with
 updated consumers/tests; a breaking implemented contract requires a version change.

@@ -1,4 +1,5 @@
-const READS = new Set(['/api/v1/search', '/api/v1/dashboard/availability', '/api/v1/contacts', '/api/v1/contacts/top', '/api/v1/captures', '/api/v1/activity']);
+const READS = new Set(['/api/v1/search', '/api/v1/dashboard/availability', '/api/v1/contacts', '/api/v1/contacts/top', '/api/v1/captures', '/api/v1/activity',
+  '/api/v1/finance/scopes', '/api/v1/finance/net-worth', '/api/v1/finance/positions', '/api/v1/finance/liabilities', '/api/v1/finance/transactions', '/api/v1/finance/pnl', '/api/v1/health/labs', '/api/v1/health/labs/series']);
 export class APIError extends Error {
   constructor(code, status = 0) { super(code); this.code = code; this.status = status; }
 }
@@ -26,7 +27,7 @@ export class API {
     outside?.addEventListener('abort', abort, { once: true });
     if (outside?.aborted) controller.abort();
     let timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 12000);
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, (path.startsWith('/api/v1/finance/') || path.startsWith('/api/v1/health/')) ? 32000 : 12000);
     const headers = { Accept: 'application/json' };
     if (method === 'POST') { headers['Content-Type'] = 'application/json'; headers['X-CSRF-Token'] = this.csrf || ''; }
     try {

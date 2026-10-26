@@ -10,7 +10,15 @@ module KnowledgeSDK
         "/api/v1/contacts/:id/relations" => ["kg.contacts.relations", %w[depth as_of]],
         "/api/v1/captures" => ["kg.captures.list", %w[q kind status from to limit cursor]],
         "/api/v1/captures/:id" => ["kg.captures.get", []],
-        "/api/v1/activity" => ["kg.activity.list", %w[q from to limit cursor]]
+        "/api/v1/activity" => ["kg.activity.list", %w[q from to limit cursor]],
+        "/api/v1/finance/scopes" => ["kg.finance.scopes", []],
+        "/api/v1/finance/net-worth" => ["kg.finance.net_worth", %w[owner_id as_of currency]],
+        "/api/v1/finance/positions" => ["kg.finance.positions", %w[owner_id account_id asset_id as_of limit cursor]],
+        "/api/v1/finance/liabilities" => ["kg.finance.liabilities", %w[owner_id as_of direction]],
+        "/api/v1/finance/transactions" => ["kg.finance.transactions", %w[owner_id account_id asset_id from to limit cursor]],
+        "/api/v1/finance/pnl" => ["kg.finance.pnl", %w[owner_id account_id asset_id from to as_of period]],
+        "/api/v1/health/labs" => ["kg.health.labs", %w[subject_id panel analyte from to limit cursor scopes]],
+        "/api/v1/health/labs/series" => ["kg.health.lab_series", %w[subject_id panel analyte from to unit specimen laboratory method]]
       }.freeze
 
       private
@@ -37,6 +45,9 @@ module KnowledgeSDK
             max = key == "depth" ? 2 : 100
             raise HTTPError.new(422, "invalid_arguments") unless value.match?(/\A[0-9]{1,3}\z/) && value.to_i.between?(1, max)
             arguments[key] = value.to_i
+          when "scopes"
+            raise HTTPError.new(422, "invalid_arguments") unless value == "true" || value == "false"
+            arguments[key] = value == "true"
           when "q"
             raise HTTPError.new(422, "invalid_arguments") if value.strip.empty?
             arguments["query"] = value.strip
@@ -50,6 +61,18 @@ module KnowledgeSDK
           arguments[prefix == "capture" ? "capture_id" : "entity_id"] = id
         end
         now = TZInfo::Timezone.get(@settings.timezone).to_local(@clock.call.getutc)
+        health = selector.start_with?("kg.health.")
+        finance = selector.start_with?("kg.finance.")
+        finance_arguments(selector, arguments, now.to_date) if finance
+        if health
+          if arguments["scopes"]
+            raise HTTPError.new(422, "invalid_arguments") unless params.keys == ["scopes"]
+          else
+            raise HTTPError.new(422, "invalid_arguments") if !!arguments["from"] != !!arguments["to"]
+            arguments["to"] ||= now.to_date.iso8601
+            arguments["from"] ||= (Date.iso8601(arguments["to"]) - 29).iso8601
+          end
+        end
         arguments["as_of"] ||= now.to_date.iso8601 if selector.start_with?("kg.contacts.") && selector != "kg.contacts.list"
         # Activity defaults follow successive configured-zone calendar midnights.
         if selector == "kg.activity.list" && !params["from"] && !params["to"]
@@ -59,7 +82,7 @@ module KnowledgeSDK
           arguments["from"] = zone.local_time(start.year, start.month, start.day).getutc.iso8601
           arguments["to"] = zone.local_time(finish.year, finish.month, finish.day).getutc.iso8601
         end
-        if params["from"] || params["to"]
+        if !finance && !health && (params["from"] || params["to"])
           raise HTTPError.new(422, "invalid_arguments") unless params["from"] && params["to"]
           values = %w[from to].map do |key|
             value = params.fetch(key)
@@ -70,11 +93,11 @@ module KnowledgeSDK
           raise HTTPError.new(422, "invalid_arguments") unless values[1] > values[0] && last - first <= 366
           arguments["from"], arguments["to"] = values.map { |time| time.getutc.iso8601(6) }
         end
-        arguments["limit"] ||= 25 if allowed.include?("limit")
+        arguments["limit"] ||= 25 if allowed.include?("limit") && !arguments["scopes"]
         binding = params["cursor"] && @cursors.fetch(params["cursor"], owner: session[:agent].id, selector: selector, filters: arguments)
         payload = nil
         capability_version = nil
-        seconds = selector.match?(/\.(?:get|top|relations)\z/) ? 10 : 5
+        seconds = selector == "kg.health.lab_series" || (finance && selector != "kg.finance.scopes") ? 30 : selector.match?(/\.(?:get|top|relations)\z/) ? 10 : 5
         Timeout.timeout(seconds) do
           2.times do
             before_response = invoke(selector, arguments, session)
@@ -106,13 +129,35 @@ module KnowledgeSDK
         body[:warnings] = warnings
         body[:completeness][:limitations] = warnings
         body[:evidence] = payload.fetch("evidence")
+        body[:scope].merge!(owner_id: arguments["owner_id"], account_id: arguments["account_id"]) if finance && data
+        body[:scope][:subject_id] = arguments["subject_id"] if health && data
         body[:window].merge!(from: arguments["from"], to: arguments["to"], as_of: arguments["as_of"],
-          bounds: arguments["from"] ? "half_open_instants" : arguments["as_of"] ? "inclusive_dates" : nil)
+          bounds: health && arguments["from"] ? "inclusive_dates" : finance ? finance_bounds(arguments) : arguments["from"] ? "half_open_instants" : arguments["as_of"] ? "inclusive_dates" : nil)
+        body[:window][:timezone] = "Etc/UTC" if finance
         json(200, body)
       rescue ArgumentError, TZInfo::PeriodNotFound, TZInfo::AmbiguousTime
         raise HTTPError.new(422, "invalid_arguments")
       rescue ::Timeout::Error
         raise HTTPError.new(504, "timeout")
+      end
+
+      def finance_arguments(selector, arguments, today)
+        return if selector == "kg.finance.scopes"
+        if %w[kg.finance.positions kg.finance.net_worth kg.finance.liabilities].include?(selector)
+          arguments["as_of"] ||= today.iso8601
+        end
+        if %w[kg.finance.transactions kg.finance.pnl].include?(selector)
+          raise HTTPError.new(422, "invalid_arguments") if !!arguments["from"] != !!arguments["to"]
+          day = arguments["as_of"] ? Date.iso8601(arguments["as_of"][0, 10]) : today
+          arguments["to"] ||= day.iso8601
+          arguments["from"] ||= (selector == "kg.finance.pnl" ? Date.new(day.year, day.month, 1) : day - 29).iso8601
+        end
+      end
+
+      def finance_bounds(arguments)
+        values = %w[from to as_of].map { |key| arguments[key] }.compact
+        return nil if values.empty?
+        values.all? { |value| value.length == 10 } ? "inclusive_dates" : "inclusive_instants"
       end
     end
   end
